@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.12
+// @version		2015.08.12a
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -228,7 +228,7 @@ var L = (function(){
 				[['-'],['Renforcé','Renforcée'],['Clouté','Cloutée'],['Dominateur','Dominatrice'],['Léger','Légère'],['Écailleux','Écailleuses'],['En plate'],['Guerrier','Guerrière'],['Flexible'],['Sanglant','Sanglante'],['Chasseur'],['Chamaniste'],['Pare-balles'],['Tigre'],['Elfe'],['Runique'],['Mortel','Mortelle']],
 				[['-'],['Court','Courte'],['Piqué','Piquée'],['Léger','Légère'],['Renforcé','Renforcée'],['Satiné','Satinée'],['Clouté','Cloutée'],['Pare-balles'],['Flexible'],['Épineux','Épineuse'],['Chamaniste'],['Sanglant','Sanglante'],['Elfe'],['Tigre'],['Blindé','Blindée'],['Composite'],['Runique'],['Mortel','Mortelle']],
 				[['-'],['En Bronze'],['En Argent'],['Émeraude'],['En Or'],['En Platine'],['En Titane'],['Rubis'],['Distingué','Distinguée'],['Astucieux','Astucieuse'],['Ours'],['Dur','Dure'],['Astral','Astrale'],['Élastique'],['Cardinal','Cardinale'],['Nécromancien','Nécromancienne'],['Archaique'],['Hypnotique'],['Dansant','Dansante'],['Fauve'],['Diamant'],['Vindicatif','Vindicative'],['Faussé'],['En Plastique'],['Insidieux','Insidieuse'],['Solaire'],['Araignée'],['Faucon'],['Noir','Noire']],
-				[['-'],['En Bronze'],['En Argent'],['Émeraude'],['En Or'],['En Platine'],['	En Titane'],['Rubis'],['Distingué','Distinguée'],['Astucieux','Astucieuse'],['Ours'],['Dur','Dure'],['Astral','Astrale'],['Élastique'],['Cardinal','Cardinale'],['Nécromancien','Nécromancienne'],['Archaique'],['Hypnotique'],['Dansant','Dansante'],['Fauve'],['Diamant'],['Vindicatif','Vindicative'],['Faussé'],['En Plastique'],['Insidieux','Insidieuse'],['Solaire'],['Araignée'],['Faucon'],['Noir','Noire']],
+				[['-'],['En Bronze'],['En Argent'],['Émeraude'],['En Or'],['En Platine'],['En Titane'],['Rubis'],['Distingué','Distinguée'],['Astucieux','Astucieuse'],['Ours'],['Dur','Dure'],['Astral','Astrale'],['Élastique'],['Cardinal','Cardinale'],['Nécromancien','Nécromancienne'],['Archaique'],['Hypnotique'],['Dansant','Dansante'],['Fauve'],['Diamant'],['Vindicatif','Vindicative'],['Faussé'],['En Plastique'],['Insidieux','Insidieuse'],['Solaire'],['Araignée'],['Faucon'],['Noir','Noire']],
 				[['-'],['Sévère'],['Denté','Dentée'],['Osseux','Osseuse'],['Tonifiant','Tonifiante'],['Cristallin','Cristalline'],['Mystique'],['Léger','Légère'],['Cruel','Cruelle'],['Amical','Amicale'],['Piquant','Piquante'],['Protecteur','Protectrice'],['Lumineux','Lumineuse'],['Venimeux','Venimeuse'],['Meurtrier','Meurtrière'],['Empoisonné','Empoisonnée'],['Damné','Damnée'],['Agile'],['Antique'],['Rapide'],['Démoniaque']],
 				[['-'],['Dispendieux','Dispendieuse'],['Sévère'],['Cristallin','Cristalline'],['Denté','Dentée'],['Large'],['Cruel','Cruelle'],['Mystique'],['Tonifiant','Tonifiante'],['Piquant','Piquante'],['Léger','Légère'],['Lourd','Lourde'],['Empoisonné','Empoisonnée'],['Irradié','Irradiée'],['Lumineux','Lumineuse'],['Protecteur','Protectrice'],['Venimeux','Venimeuse'],['Meurtrier','Meurtrière'],['Damné','Damnée'],['Agile'],['Antique'],['Démoniaque']],
 				[['-']],
@@ -236,13 +236,13 @@ var L = (function(){
 				[['-']]
 			],
 			[ // 4 - suffixes
-				[['-'],['De L`Explorateur'],['De La Précaution'],['D`Endurance'],['Du Berger'],['Du Toxicomane'],['De La Protection'],['Des Sens'],['Du Prophète'],['De La Punition'],['Du Gladiateur'],['Du Sang'],[' De Carapace De Tortue'],['Du Soleil'],['De l`Adrénaline'],['De La Précognition'],['D`Écaille De Dragon'],['De La Puissance'],['De La Magie']],
+				[['-'],['De L`Explorateur'],['De La Précaution'],['D`Endurance'],['Du Berger'],['Du Toxicomane'],['De La Protection'],['Des Sens'],['Du Prophète'],['De La Punition'],['Du Gladiateur'],['Du Sang'],['De Carapace De Tortue'],['Du Soleil'],['De l`Adrénaline'],['De La Précognition'],['D`Écaille De Dragon'],['De La Puissance'],['De La Magie']],
 				[['-'],['Du Voleur'],['De L`Adepte'],['Du Garde'],['De L`Athlète'],['Du Toxicomane'],['Du Maître D`Epée'],['Du Tueur'],['Du Gardien'],['Du Cobra'],['De Carapace De Tortue'],['D`Esquive'],['Du Pillard'],['Du Maître'],['De l`Adrénaline'],['Du Centurion'],['De La Résistance'],['De Caligula'],['Du Semeur De La Mort'],['De La Vitesse'],['De L`Orchidée']],
 				[['-'],['Du Brigand'],['Du Contrebandier'],['Du Toxicomane'],['De L`Athlète'],['Des Gestes Muets'],['D`Esquive'],['De La Réserve'],['Du Soleil'],['Du Trafiquant D`Armes'],['Du Berger'],['Du Chasseur D`Ombres'],['Du Serpent'],['Des Incas'],['De L`Orienteur'],['De La Nuit']],
 				[['-'],['Du Délit'],['De La Beauté'],['Du Pouvoir'],['Du Génie'],['De La Force'],['De La Sagesse'],['De La Peau Dure'],['Du Pèlerin'],['Du Loup-garou'],['De La Justesse'],['De L`Art'],['De La Jouvence'],['De La Chance'],['Du Sang'],['De L`Habilité'],['De La Concentration'],['De La Lévitation'],['De L`Astuce'],['Du Dément'],['De La Facilitée']],
 				[['-'],['Du Délit'],['De La Beauté'],['Du Pouvoir'],['De La Force'],['Du Génie'],['De La Sagesse'],['De La Peau Dure'],['Du Loup-garou'],['De L`Art'],['De La Justesse'],['De La Jouvence'],['Du Renard'],['De La Chance'],['Du Sang'],['De La Chauve-souris'],['De La Concentration'],['De La Lévitation'],['De L`Astuce'],['Du Dément'],['De La Facilitée']],
 				[['-'],['Du Commandant'],['De La Secte'],['De La Douleur'],['Du Pouvoir'],['De L`Agilité'],['De La Puissance'],['De la Peste'],['Du Courage'],['De La Justesse'],['Des Ancêtres'],['Du Conquérant'],['De La Vengeance'],['De La Contusion'],['De La Vertu'],['De La Précision'],['Du Sang'],['Du Fer À Cheval'],['Du Suicidé'],['De Dracula'],['De La Vélocité'],['Du Clan'],['De L`Empereur']],
-				[['-'],['De La Trahison'],['De La Ruse'],['De La Douleur'],['Du Hasardeux'],['De Plomb'],['De La Puissance'],['De L`Inquisiteur'],['Du Buveur De Sang'],['Du Conquérant'],['Du Pouvoir'],['De La Vengeance'],['De la Peste'],['Du Fer À Cheval'],[' De L`Autocrate'],['Du Sang'],['Du Basilic'],['Du Suicidé'],['De Dracula']],
+				[['-'],['De La Trahison'],['De La Ruse'],['De La Douleur'],['Du Hasardeux'],['De Plomb'],['De La Puissance'],['De L`Inquisiteur'],['Du Buveur De Sang'],['Du Conquérant'],['Du Pouvoir'],['De La Vengeance'],['De la Peste'],['Du Fer À Cheval'],['De L`Autocrate'],['Du Sang'],['Du Basilic'],['Du Suicidé'],['De Dracula']],
 				[['-']],
 				[['-']],
 				[['-'],['De Longue Portée'],['De La Perfection'],['De La Précision'],['De La Vengeance'],['De La Réaction'],['Des Dryades'],['De Mitraillage'],['Du Loups']]
@@ -394,7 +394,7 @@ function SetCSS(){
 function GetListItem(){
 	var list = DOM._GetNodes("//div[@id='content-mid']//ul[@class='inv-select']/li"),
 		match = ["","",""],
-index = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]],
+		index = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]],
 		result = {};
 	// créé le pattern de recherche et l'index de correspondance
 	for (var i=2; i<5; i++){
@@ -416,13 +416,15 @@ index = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]],
 			r = new RegExp(itemMatch).exec(col);
 		if (r!=null){
 			var niv = r[6].replace(new RegExp('[()+]','g'),''),
-				grade = index[0][r[2].trim()]+(niv==""?0:Number(niv)),
-				type = index[1][r[3].trim()],
-				cat = type[0]+(r[1]==""?'':'L'),
-				pré = r[4]!=""?index[2][type[0]][r[4].trim()]:0,
-				suf = r[5]!=""?index[3][type[0]][r[5].trim()]:0;
-			if (!_Exist(result[cat])) result[cat] = [];
-			result[cat].push([grade,type[1],pré,suf]);
+				grade = r[2]!=''?_Exist(index[0][r[2].trim()])?index[0][r[2].trim()]+(niv==""?0:Number(niv)):-1:0,
+				type = (r[3]!=''&&_Exist(index[1][r[3].trim()]))?index[1][r[3].trim()]:null,
+				leg = r[1]!=''?'L':'',
+				pré = r[4]!=''?_Exist(index[2][type[0]][r[4].trim()])?index[2][type[0]][r[4].trim()]:-1:0,
+				suf = r[5]!=''?_Exist(index[3][type[0]][r[5].trim()])?index[3][type[0]][r[5].trim()]:-1:0;
+			if (type!=null){
+				if (!_Exist(result[type[0]+leg])) result[type[0]+leg] = [];
+				result[type[0]+leg].push([grade,type[1],pré,suf]);
+				}
 			}
 		}
 	return result;
@@ -430,7 +432,7 @@ index = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]],
 function Mix(a,b){
 	var r = [];
 	for (var i=0;i<4;i++){
-		if (a[i]!=0&&b[i]!=0){
+		if (a[i]>0&&b[i]>0){
 			var max = Math.max(a[i],b[i]),
 				min = Math.min(a[i],b[i]);
 			if (i==0) r[0] = min+((a[1]!=0&&a[1]==b[1]&&(min+1)<l[1].length)?1:0);
@@ -516,16 +518,20 @@ function UpdateSelect(){
 			if (i==tri[0]) IU._CreateElement('span',{'class':'BWMtriSelect'},[(tri[1]==1?"▲":"▼")],{},r['th1'+i]);
 			}
 		for (var k in x){
-			var newIU = {
-			'tr0':['tr',{'class':'tblheader'},,,nodesIU['table2']],
-			'th01':['th',{'colspan':'4'},[k],,'tr0']
-			};
-			if (x[k].length!=0) IU._CreateElements(newIU);
-			for (var i=0;i<x[k].length;i++){
-				var tr = IU._CreateElement('tr',{'class':'BWMTR2'+(i%2==0?'':' BWMeven')},[],{'click':[SetISelect,x[k][i]]},nodesIU['table2']);
-				for (var j=0;j<4;j++){
-					var v = j==0?l[j+1]:l[j+1][last['c']];
-					IU._CreateElement('td',{'class':'BWMcut'+(JSONS._Encode(x[k][i])==JSONS._Encode(list[last['c']+last['l']][last['n']][last['i']])?' atkHit':'')},[(x[k][i][j]==0?'-':(j==0?'':x[k][i][j]+':')+v[x[k][i][j]][0])],{},tr);
+			if (x[k].length!=0){
+				var newIU = {
+					'tr0':['tr',{'class':'tblheader'},,,nodesIU['table2']],
+					'th01':['th',{'colspan':'4'},[k],,'tr0']
+					};
+				IU._CreateElements(newIU);
+				for (var i=0;i<x[k].length;i++){
+					var tr = IU._CreateElement('tr',{'class':'BWMTR2'+(i%2==0?'':' BWMeven')},[],{'click':[SetISelect,x[k][i]]},nodesIU['table2']),
+						v = x[k][i];
+					for (var j=0;j<4;j++){
+						var t = j==0?l[j+1]:l[j+1][last['c']];
+						if (v[j]==-1) IU._CreateElement('td',{'class':'BWMcut atkHit'},['Inconnu !'],{},tr);
+						else IU._CreateElement('td',{'class':'BWMcut'+(JSONS._Encode(v)==JSONS._Encode(list[last['c']+last['l']][last['n']][last['i']])?' atkHit':'')},[(v[j]==0?'-':(j==0?'':v[j]+':')+t[v[j]][0])],{},tr);
+						}
 					}
 				}
 			}
@@ -685,10 +691,10 @@ function UpdateL(){
 			var newIU = {
 				'tr':['tr',{'class':'BWMTR2 BWMeven'},,,nodesIU['table3']],
 				'td0':['td',{'class':'BWMtd5 heal'},['='],,'tr'],
-				'td1':['td',{'class':'BWMcut BWMtd5 heal'},[v[j][0]==0?'-':l[1][v[j][0]]],,'tr'],
-				'td2':['td',{'class':'BWMcut BWMtd20 heal'},[v[j][1]==0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],,'tr'],
-				'td3':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][2]==0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],,'tr'],
-				'td4':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][3]==0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],,'tr'],
+				'td1':['td',{'class':'BWMcut BWMtd5 heal'},[v[j][0]<=0?'-':l[1][v[j][0]]],,'tr'],
+				'td2':['td',{'class':'BWMcut BWMtd20 heal'},[v[j][1]<=0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],,'tr'],
+				'td3':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][2]<=0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],,'tr'],
+				'td4':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][3]<=0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],,'tr'],
 				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,[j+1,j+1]]},'tr'],
 				'td6':['td',{'class':'BWMtd5'},,,'tr'],
 				'td7':['td',{'class':'BWMtd5 BWMselect atkHit'},["◄"],{'click':[FirstB,[j,root]]},'tr'],
@@ -702,10 +708,10 @@ function UpdateL(){
 			var newIU = {
 				'tr':['tr',{'class':'BWMTR2'},,,nodesIU['table3']],
 				'td0':['td',{'class':'BWMtd5'},[(j-root==0?'':'+')],{'click':[SetL,j]},'tr'],
-				'td1':['td',{'class':'BWMcut BWMtd5'+(last['i']==j?' disabled':'')},[v[j][0]==0?'-':l[1][v[j][0]]+" "],{'click':[SetL,j]},'tr'],
-				'td2':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][1]==0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],{'click':[SetL,j]},'tr'],
-				'td3':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][2]==0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],{'click':[SetL,j]},'tr'],
-				'td4':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][3]==0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],{'click':[SetL,j]},'tr'],
+				'td1':['td',{'class':'BWMcut BWMtd5'+(last['i']==j?' disabled':'')},[v[j][0]<=0?'-':l[1][v[j][0]]+" "],{'click':[SetL,j]},'tr'],
+				'td2':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][1]<=0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],{'click':[SetL,j]},'tr'],
+				'td3':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][2]<=0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],{'click':[SetL,j]},'tr'],
+				'td4':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][3]<=0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],{'click':[SetL,j]},'tr'],
 				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,[(j==root?j+1:j+2),j+1]]},'tr'],
 				'td6':['td',{'class':'BWMtd5'},,,'tr'],
 				'td7':['td',{'class':'BWMtd5'},,,'tr'],
