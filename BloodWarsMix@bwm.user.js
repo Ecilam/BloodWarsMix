@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.12a
+// @version		2015.08.13
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -415,15 +415,15 @@ function GetListItem(){
 			itemMatch = "^(Légendaire |)(Bon |Bonne |Parfait |Parfaite |)("+match[0]+")("+match[1]+")("+match[2]+")(\\(\\+[0-5]\\)|)$",
 			r = new RegExp(itemMatch).exec(col);
 		if (r!=null){
-			var niv = r[6].replace(new RegExp('[()+]','g'),''),
-				grade = r[2]!=''?_Exist(index[0][r[2].trim()])?index[0][r[2].trim()]+(niv==""?0:Number(niv)):-1:0,
+			var niv = r[6]!=''?Number(r[6].replace(new RegExp('[()+]','g'),'')):0,
+				grade = r[2]!=''?_Exist(index[0][r[2].trim()])?index[0][r[2].trim()]:-1:0,
 				type = (r[3]!=''&&_Exist(index[1][r[3].trim()]))?index[1][r[3].trim()]:null,
 				leg = r[1]!=''?'L':'',
 				pré = r[4]!=''?_Exist(index[2][type[0]][r[4].trim()])?index[2][type[0]][r[4].trim()]:-1:0,
 				suf = r[5]!=''?_Exist(index[3][type[0]][r[5].trim()])?index[3][type[0]][r[5].trim()]:-1:0;
 			if (type!=null){
 				if (!_Exist(result[type[0]+leg])) result[type[0]+leg] = [];
-				result[type[0]+leg].push([grade,type[1],pré,suf]);
+				result[type[0]+leg].push([grade+(grade!=-1?niv:0),type[1],pré,suf]);
 				}
 			}
 		}
