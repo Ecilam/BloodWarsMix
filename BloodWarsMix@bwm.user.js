@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.16
+// @version		2015.08.16a
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -756,7 +756,7 @@ var MutationObserver = window.MutationObserver || window.WebKitMutationObserver 
 if (!JSON) throw new Error("Erreur : le service JSON n\'est pas disponible.");
 else if (!MutationObserver) throw new Error("Erreur : le service MutationObserver n\'est pas disponible.");
 else if (!window.localStorage) throw new Error("Erreur : le service localStorage n\'est pas disponible.");
-else if (!window.Worker) throw new Error("Erreur : le service Worker n\'est pas disponible.");
+//else if (!window.Worker) throw new Error("Erreur : le service Worker n\'est pas disponible.");
 else{
 	var p = DATAS._GetPage(),
 		player = DATAS._PlayerName(),
