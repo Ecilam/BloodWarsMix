@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.13
+// @version		2015.08.16
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -22,6 +22,7 @@ function _Type(v){
 function _Exist(v){
 	return _Type(v)!='Undefined';
 	}
+
 /******************************************************
 * OBJET JSONS - JSON
 * - stringification des données
@@ -508,7 +509,7 @@ function UpdateSelect(){
 		r = IU._CreateElements(newIU);
 	if (mode==0){
 		var tri = PREF._Get('tri'),
-			x = {'Armurerie':Items[(last['c']+last['l'])],'Synthèse(s)':Items['result']};
+			x = {'Armurerie':_Exist(Items[(last['c']+last['l'])])?Items[(last['c']+last['l'])]:[],'Synthèse(s)':_Exist(Items['result'])?Items['result']:[]};
 		x['Armurerie'].sort(function(a,b){return a[tri[0]]<b[tri[0]]?-1:a[tri[0]]==b[tri[0]]?0:1;});
 		x['Synthèse(s)'].sort(function(a,b){return a[tri[0]]<b[tri[0]]?-1:a[tri[0]]==b[tri[0]]?0:1;});
 		if (tri[1]==0){ x['Armurerie'].reverse(); x['Synthèse(s)'].reverse()};
@@ -725,11 +726,24 @@ function UpdateL(){
 			}
 		}
 	}
+function UpdateR(){
+	/*
+	var myWorker = new window.Worker(URL.createObjectURL(new Blob(["self.onmessage = function(e) {",
+		"console.log('Message received from main script :'+e.data);",
+		"self.postMessage(e.data);"
+		,"}"],
+		{'type': 'text/javascript'})));
+	myWorker.onmessage = function(e){
+		console.debug('Message received from worker :',e.data);
+	}
+	myWorker.postMessage(50);*/
+	}
 function Update(){
 	UpdateTObj();
 	UpdateLObj();
 	UpdateML();
 	UpdateL();
+	UpdateR();
 	UpdateSelect();
 	}
 
@@ -742,6 +756,7 @@ var MutationObserver = window.MutationObserver || window.WebKitMutationObserver 
 if (!JSON) throw new Error("Erreur : le service JSON n\'est pas disponible.");
 else if (!MutationObserver) throw new Error("Erreur : le service MutationObserver n\'est pas disponible.");
 else if (!window.localStorage) throw new Error("Erreur : le service localStorage n\'est pas disponible.");
+else if (!window.Worker) throw new Error("Erreur : le service Worker n\'est pas disponible.");
 else{
 	var p = DATAS._GetPage(),
 		player = DATAS._PlayerName(),
