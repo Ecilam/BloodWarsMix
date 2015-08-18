@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.16a
+// @version		2015.08.18
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -417,14 +417,14 @@ function GetListItem(){
 			r = new RegExp(itemMatch).exec(col);
 		if (r!=null){
 			var niv = r[6]!=''?Number(r[6].replace(new RegExp('[()+]','g'),'')):0,
-				grade = r[2]!=''?_Exist(index[0][r[2].trim()])?index[0][r[2].trim()]:-1:0,
+				grade = _Exist(index[0][r[2].trim()])?index[0][r[2].trim()]:-1,
 				type = (r[3]!=''&&_Exist(index[1][r[3].trim()]))?index[1][r[3].trim()]:null,
 				leg = r[1]!=''?'L':'',
 				pré = r[4]!=''?_Exist(index[2][type[0]][r[4].trim()])?index[2][type[0]][r[4].trim()]:-1:0,
 				suf = r[5]!=''?_Exist(index[3][type[0]][r[5].trim()])?index[3][type[0]][r[5].trim()]:-1:0;
 			if (type!=null){
 				if (!_Exist(result[type[0]+leg])) result[type[0]+leg] = [];
-				result[type[0]+leg].push([grade+(grade!=-1?niv:0),type[1],pré,suf]);
+				result[type[0]+leg].push([(grade!=-1?grade+niv:-1),type[1],pré,suf]);
 				}
 			}
 		}
@@ -596,29 +596,36 @@ function SetL(e,i){
 	Update();
 	}
 function AddL(e,i){
-	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':i[0]});
-	list[last['c']+last['l']][last['n']].splice(i[1],0,[0,0,0,0],[0,0,0,0]);
+	var s = last['i'];
+	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':s+(s>i?2:0)});
+	list[last['c']+last['l']][last['n']].splice(i+1,0,[0,0,0,0],[0,0,0,0]);
 	LS._SetVar('BWM:LIST:'+ID,list);
 	Update();
 	}
 function MoveL(e,i){
 	var v = list[last['c']+last['l']][last['n']],
-		t = v[i[0]];
-	v[i[0]] = v[i[1]];
-	v[i[1]] = t;
+		s = last['i'];
+	v[i[0]] = [v[i[1]],v[i[1]]=v[i[0]]][0];//swap
+	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':(s==i[0]?i[1]:s==i[1]?i[0]:s)});
 	LS._SetVar('BWM:LIST:'+ID,list);
 	Update();
 	}
 function DelL(e,i){
 	var v = list[last['c']+last['l']][last['n']],
 		s = last['i'];
-	if (v[i[0]]==-1) v.splice(i[0],2,v[i[1]],[0,0,0,0]);
+	if (v[i[0]]==-1){
+		v.splice(i[0],2,v[i[1]],[0,0,0,0]);
+		s = s==i[0]+1?i[0]:s;
+		}
 	else if (i[0]==i[1]){
 		if (_Exist(v[i[0]+3])&&v[i[0]+3]!=-1){
 			v.splice(i[0],3,v[i[0]+1]);
-			s = s+(i[0]>s?0:-2);
+			s = (s<=i[0]?s:s>i[0]+1?s-2:i[0]);
 			}
-		else v.splice(i[0],2,v[i[0]+1],[0,0,0,0]);
+		else{
+			v.splice(i[0],2,v[i[0]+1],[0,0,0,0]);
+			s = (s<i[0]||s>i[0]+1?s:i[0]);
+			}
 		}
 	else {
 		v.splice(i[0],2);
@@ -636,35 +643,48 @@ function DelB(e,i){
 		if (!_Exist(v[i])) break;
 		else if (v[i]==-1) fin = true;
 		v.splice(i,1);
+		s = s+(s>i?-1:0);
 		}
-	if (v[v.length-1]==-1) v.splice(v.length-1,1);
-	if (v.length==0) v.push([0,0,0,0],[0,0,0,0],[0,0,0,0]);
-	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':(i>s?s:0)});
+	if (v[v.length-1]==-1){
+		v.splice(v.length-1,1);
+		s = s<i?s:0;
+		}
+	if (v.length==0){
+		v.push([0,0,0,0],[0,0,0,0],[0,0,0,0]);
+		s = 0;
+		}
+	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':s});
 	LS._SetVar('BWM:LIST:'+ID,list);
 	Update();
 	}
 function SepL(e,i){
-	var v = list[last['c']+last['l']][last['n']];
-	if (!_Exist(v[i+1])) v.splice(i+1,0,-1,[0,0,0,0],[0,0,0,0],[0,0,0,0]);
-	else if (!_Exist(v[i+3])||(_Exist(v[i+3])&&v[i+3]==-1)) v.splice(i+1,2,-1,v[i+1],[0,0,0,0],[0,0,0,0]);
-	else v.splice(i+1,2,-1,v[i+1]);
-	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':i+2});
+	var v = list[last['c']+last['l']][last['n']],
+		s = last['i'];
+	if (!_Exist(v[i+1])){
+		v.splice(i+1,0,-1,[0,0,0,0],[0,0,0,0],[0,0,0,0]);
+		}
+	else if (!_Exist(v[i+3])||(_Exist(v[i+3])&&v[i+3]==-1)){
+		v.splice(i+1,2,-1,v[i+1],[0,0,0,0],[0,0,0,0]);
+		s = s+(s>i?2:0);
+		}
+	else{
+		v.splice(i+1,2,-1,v[i+1]);
+		s = s+(s==i+1?1:0);
+		}
+	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':s});
 	LS._SetVar('BWM:LIST:'+ID,list);
 	Update();
 	}
-function FirstL(e,i){
-	var v = list[last['c']+last['l']][last['n']];
-	v.splice(0,i);
-	if (v.length<2||(_Exist(v[1])&&v[1]==-1)) v.splice(1,0,[0,0,0,0],[0,0,0,0]);
-	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':0});
-	LS._SetVar('BWM:LIST:'+ID,list);
-	Update();
-	}
-function FirstB(e,i){
-	var v = list[last['c']+last['l']][last['n']];
+function First(e,i){
+	var v = list[last['c']+last['l']][last['n']],
+		s = last['i'];
 	v.splice(i[1],i[0]-i[1]);
-	if (v.length-i[1]<2||(_Exist(v[i[1]+1])&&v[i[1]+1]==-1)) v.splice(i[1]+1,0,[0,0,0,0],[0,0,0,0]);
-	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':i[1]});
+	if (v.length-i[1]<2||(_Exist(v[i[1]+1])&&v[i[1]+1]==-1)){
+		v.splice(i[1]+1,0,[0,0,0,0],[0,0,0,0]);
+		s = s<i[1]?s:s<i[0]?i[1]:s-(i[0]-i[1])+2;
+		}
+	else s = s<i[1]?s:s<i[0]?i[1]:s-(i[0]-i[1]);
+	last = PREF._Set('last',{'c':last['c'],'l':last['l'],'n':last['n'],'i':s});
 	LS._SetVar('BWM:LIST:'+ID,list);
 	Update();
 	}
@@ -696,10 +716,10 @@ function UpdateL(){
 				'td2':['td',{'class':'BWMcut BWMtd20 heal'},[v[j][1]<=0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],,'tr'],
 				'td3':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][2]<=0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],,'tr'],
 				'td4':['td',{'class':'BWMcut BWMtd25 heal'},[v[j][3]<=0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],,'tr'],
-				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,[j+1,j+1]]},'tr'],
+				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,j]},'tr'],
 				'td6':['td',{'class':'BWMtd5'},,,'tr'],
-				'td7':['td',{'class':'BWMtd5 BWMselect atkHit'},["◄"],{'click':[FirstB,[j,root]]},'tr'],
-				'td8':['td',{'class':'BWMtd5 BWMselect atkHit'},["▲"],{'click':[FirstL,j]},'tr']
+				'td7':['td',{'class':'BWMtd5 BWMselect atkHit'},["◄"],{'click':[First,[j,root]]},'tr'],
+				'td8':['td',{'class':'BWMtd5 BWMselect atkHit'},["▲"],{'click':[First,[j,0]]},'tr']
 				};
 			if (!(_Exist(v[j+1])&&v[j+1]==-1)) newIU['td6'] = ['td',{'class':'BWMtd5 BWMselect'},["<>"],{'click':[SepL,j]},'tr'];
 			if (_Exist(lroot)) lroot.setAttribute('rowspan',j-root+1);
@@ -713,7 +733,7 @@ function UpdateL(){
 				'td2':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][1]<=0?'-':v[j][1]+':'+l[2][last['c']][v[j][1]][0]+" "],{'click':[SetL,j]},'tr'],
 				'td3':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][2]<=0?'-':v[j][2]+':'+l[3][last['c']][v[j][2]][0]+" "],{'click':[SetL,j]},'tr'],
 				'td4':['td',{'class':'BWMcut BWMtd25'+(last['i']==j?' disabled':'')},[v[j][3]<=0?'-':v[j][3]+':'+l[4][last['c']][v[j][3]][0]],{'click':[SetL,j]},'tr'],
-				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,[(j==root?j+1:j+2),j+1]]},'tr'],
+				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[AddL,j]},'tr'],
 				'td6':['td',{'class':'BWMtd5'},,,'tr'],
 				'td7':['td',{'class':'BWMtd5'},,,'tr'],
 				'td8':['td',{'class':'BWMtd5'},,,'tr']
@@ -726,24 +746,11 @@ function UpdateL(){
 			}
 		}
 	}
-function UpdateR(){
-	/*
-	var myWorker = new window.Worker(URL.createObjectURL(new Blob(["self.onmessage = function(e) {",
-		"console.log('Message received from main script :'+e.data);",
-		"self.postMessage(e.data);"
-		,"}"],
-		{'type': 'text/javascript'})));
-	myWorker.onmessage = function(e){
-		console.debug('Message received from worker :',e.data);
-	}
-	myWorker.postMessage(50);*/
-	}
 function Update(){
 	UpdateTObj();
 	UpdateLObj();
 	UpdateML();
 	UpdateL();
-	UpdateR();
 	UpdateSelect();
 	}
 
@@ -815,6 +822,7 @@ console.debug('BWMstart: %o %o',player,IDs);
 							'td011':['td',{'class':'BWMtd60'},,,'tr01'],
 							'table3':['table',{'class':'BWMtable1'},,,'td011'],
 							'hr2':['div',{'class':'hr720'},,,'div']},
+
 						nodesIU = IU._CreateElements(newIU);
 					Update();
 					r.insertBefore(nodesIU['div'],null);
