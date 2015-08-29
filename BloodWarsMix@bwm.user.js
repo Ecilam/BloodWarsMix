@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.08.18
+// @version		2015.08.29
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
