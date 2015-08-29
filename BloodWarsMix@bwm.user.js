@@ -214,7 +214,7 @@ var L = (function(){
 			[['-'],['S1'],['S2'],['S3'],['S4'],['S5'],['B0'],['B1'],['B2'],['B3'],['B4'],['B5'],['P0'],['P1'],['P2'],['P3'],['P4'],['P5']],
 			[ // 2 - sous-types
 				[['-'],['Casquette'],['Casque'],['Casque Militaire'],['Masque'],['Diadème'],['Cagoule'],['Chapeau'],['Fronteau'],['Bandana'],['Couronne']],
-				[['-'],['T-shirt'],['Veste'],['Veston'],['Gilet'],['Corset'],['Cape'],['Smoking'],['Haubert'],['Armure en Plate'],['Pleine Armure']],
+				[['-'],['T-shirt'],['Veste'],['Veston'],['Gilet'],['Corset'],['Cape'],['Smoking'],['Haubert'],['Armure En Plate'],['Pleine Armure']],
 				[['-'],['Short'],['Pantalon'],['Jupe'],['Kilt']],
 				[['-'],['Collier'],['Amulette'],['Chaîne'],['Foulard'],['Cravate']],
 				[['-'],['Anneau'],['Bracelet'],['Chevalière']],
