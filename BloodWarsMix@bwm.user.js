@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.11.08
+// @version		2015.11.18
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -183,28 +183,28 @@ var IU = (function(){
 		_addEvent: function(obj,type,fn,par){
 			var funcName = function(event){return fn.call(obj,event,par);};
 			obj.addEventListener(type,funcName,false);
-			if (!obj.BWEListeners) {obj.BWEListeners = {};}
-			if (!obj.BWEListeners[type]) obj.BWEListeners[type]={};
-			obj.BWEListeners[type][fn.name]=funcName;
+			if (!obj.BWMListeners) {obj.BWMListeners = {};}
+			if (!obj.BWMListeners[type]) obj.BWMListeners[type]={};
+			obj.BWMListeners[type][fn.name]=funcName;
 			},
 		_removeEvent: function(obj,type,fn){
-			if (obj.BWEListeners[type]&&obj.BWEListeners[type][fn.name]){
-				obj.removeEventListener(type,obj.BWEListeners[type][fn.name],false);
-				delete obj.BWEListeners[type][fn.name];
+			if (obj.BWMListeners[type]&&obj.BWMListeners[type][fn.name]){
+				obj.removeEventListener(type,obj.BWMListeners[type][fn.name],false);
+				delete obj.BWMListeners[type][fn.name];
 				}
 			},
 		_removeEvents: function(obj){
-			if (obj.BWEListeners){
-				for (var key in obj.BWEListeners){
-					if (obj.BWEListeners.hasOwnProperty(key)){
-						for (var key2 in obj.BWEListeners[key]){
-							if (obj.BWEListeners[key].hasOwnProperty(key2)){
-								obj.removeEventListener(key,obj.BWEListeners[key][key2],false);
+			if (obj.BWMListeners){
+				for (var key in obj.BWMListeners){
+					if (obj.BWMListeners.hasOwnProperty(key)){
+						for (var key2 in obj.BWMListeners[key]){
+							if (obj.BWMListeners[key].hasOwnProperty(key2)){
+								obj.removeEventListener(key,obj.BWMListeners[key][key2],false);
 								}
 							}
 						}
 					}
-				delete obj.BWEListeners;
+				delete obj.BWMListeners;
 				}
 			}
 		};
@@ -474,19 +474,17 @@ function objDiff(a,b){
 	for (var i=0;i<4;i++){d+=(b[i]===0?0:a[i]===0?100:Math.abs(a[i]-b[i]));}
 	return d;
 	}
-function fusion(a,b,c,i){ // a,b = x (a<=b), c = catégorie, i = 1:objet, 2:préfixe, 3:suffixe
-	if (c===0&&i==1&&a==1&&b==2) return 4; // exception casquette+casque = masque
-	else return a===b?a:(b==loc[i+1][c].length-1&&b-a<3)?b-a==1?b-2:b-1:b-a==1?b+1:b-Math.floor((b-a-2)/2);
+function fusion(a,b,c,i){ // a,b = x (a<=b), c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
+	if (c===0&&i===0&&a==1&&b==2) return 4; // exception casquette+casque = masque
+	else return a==b?a:(b==loc[i+2][c].length-1&&b-a<3)?b-a==1?b-2:b-1:b-a==1?b+1:b-Math.floor((b-a-2)/2);
 	}
 function objMix(a,b){
-	var v = [], min;
-	for (var i=0;i<4;i++){
+	var v = [],
+		min = Math.min(a[0],b[0]);
+	v[0] = min+((a[1]!==0&&a[1]==b[1]&&min<17)?1:0);
+	for (var i=1;i<4;i++){
 		if (a[i]===0||b[i]===0) v[i] = 0;
-		else if (i===0){
-			min = Math.min(a[i],b[i]);
-			v[0] = min+((a[1]!==0&&a[1]==b[1]&&(min+1)<mix[0])?1:0);
-			}
-		else v[i] = mix[i][a[i]][b[i]];
+		else v[i] = mix[i-1][a[i]][b[i]];
 		}
 	return v;
 	}
@@ -928,9 +926,8 @@ function upTabs(){
 		}
 	c = list[cat]; s = c[set[4]]; r = s.r[set[6]]; but = s.b;
 	// pré-calcule les fusions pour cette catégorie (hors qualité)
-	mix[0] = loc[2][set[3][0]].length;
-	for (var i=1; i<4; i++){
-		var t = loc[i+1][set[3][0]], len = t.length;
+	for (var i=0; i<3; i++){
+		var t = loc[i+2][set[3][0]], len = t.length;
 		mix[i] = [];
 		for (var j=0;j<len;j++){
 			mix[i][j]=[];
@@ -956,7 +953,7 @@ function upTabs(){
 		if (_Exist(tasks.s[j])) newIU.span1[1]['class'] += ' BWMblink';
 		if (_Exist(tasks.s[j+'L'])) newIU.span3[1]['class'] += ' BWMblink';
 		if (j!==0) newIU['span10'+j] = ['span',{},[', '],{},'td10'];
-		newIU['span11'+j] = ['span',{'class':'BWMselect'+(j==set[3][0]?' atkHit':'')+(_Exist(tasks.s[j+set[3][1]])?' BWMblink':'')},[loc[0][j]],{'click':[setT,j]},'td10'];
+		newIU['span11'+j+set[3][1]] = ['span',{'class':'BWMselect'+(j==set[3][0]?' atkHit':'')+(_Exist(tasks.s[j+set[3][1]])?' BWMblink':'')},[loc[0][j]],{'click':[setT,j]},'td10'];
 		}
 	var catNodes = IU._CreateElements(newIU);
 	// Main list
@@ -993,7 +990,6 @@ function upTabs(){
 					}
 				}
 			}
-		// a faire
 		var newIU = {
 			'tr':['tr',{'class':'tblheader'},[],{},nodesIU.tab4],
 			'th0':['th',{'colspan':'5'},[],{},'tr'],
