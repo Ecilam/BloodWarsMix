@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.11.18
+// @version		2015.11.26
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -466,7 +466,7 @@ function getListItem(){
 	return result;
 	}
 function objCmp(a,b){ //a==b = 0, a>b = -1, a<b = 1
-	for (var i=0;i<4 && a[i]===b[i];++i);
+	for (var i=0;i<4 && a[i]==b[i];++i);
 	return i===4?0:a[i]>b[i]? -1 : 1;
 	}
 function objDiff(a,b){
@@ -600,7 +600,7 @@ function setI(e,i){
 	upTabs();
 	}
 function addI(e,i){
-	if (set[7][0]>=0&&set[7][1]>i) set[7][1] = set[7][1]+2;
+	if (set[7][0]>=0) set[7][1] = i+1;
 	PREF._Set('set',set);
 	r.splice(i+1,0,[0,0,0,0],[0,0,0,0]);
 	LS._SetVar('BWM:LIST:'+ID,list);
@@ -619,7 +619,7 @@ function delI(e,i){
 		r.splice(i[0],2,r[i[1]],[0,0,0,0]);
 		v = v==i[0]+1?i[0]:v;
 		}
-	else if (i[0]==i[1]){
+	else if (i[0]==i[1]){// ==root
 		if (_Exist(r[i[0]+3])&&r[i[0]+3]!=-1){
 			r.splice(i[0],3,r[i[0]+1]);
 			v = (v<=i[0]?v:v>i[0]+1?v-2:i[0]);
@@ -629,14 +629,17 @@ function delI(e,i){
 			v = (v<i[0]||v>i[0]?v:i[0]);
 			}
 		}
-	else if (_Exist(r[i[0]+2])&&r[i[0]+2]!=-1||i[0]-2>i[1]){
-		r.splice(i[0],2);
-		v = v<=i[0]?v:v-2;
+	else if (i[0]-1==i[1]&&(!_Exist(r[i[0]+2])||r[i[0]+2]==-1)){
+		r.splice(i[0],2,[0,0,0,0],[0,0,0,0]);
+		v = v!=i[0]?v:v-1;
 		}
 	else{
-		r.splice(i[0],2,[0,0,0,0],[0,0,0,0]);
+		r.splice(i[0],2);
+		v = v<i[0]?v:v-2;
 		}
-	if (set[7][0]>=0) set[7][1] = v;
+	if (set[7][0]>=0){
+		set[7][1] = v;
+		}
 	PREF._Set('set',set);
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
@@ -846,11 +849,11 @@ function upSearch(){
 	if (keyA===null) IUsearch.td10.textContent = s.e[0]===0?'-':'Recherche '+(s.e[0]==1?'annulée':(s.e[0]==2?'stoppée : ':'terminée : ')+(s.e[0]>0?s.e[1]+' résultat'+(s.e[1]>1?'s':'')+(s.e[1]>0?' (écart '+s.e[2]+' en '+(s.e[3])+' fusion'+(s.e[3]>1?'s':'')+')':''):''));
 	else IUsearch.td10.textContent = 'Recherche en cours... '+tasks.w[keyA].r.length+' résultat'+(tasks.w[keyA].r.length>1?'s':'')+(tasks.w[keyA].r.length>0?' (écart '+tasks.w[keyA].d+' en '+(tasks.w[keyA].r[0].length/3)+' fusion'+(tasks.w[keyA].r[0].length/3>1?'s':'')+')':'');
 	var t = (new Date(keyA===null?s.t===0?0:s.t:Date.now()-keyA)).getTime(),
-		sec = t / 1000,
-		d = Math.floor(sec / 86400) % 24,
-		hh = ('0'+Math.floor(sec / 3600)).slice(-2),
-		mm = ('0'+Math.floor(sec / 60) % 60).slice(-2),
-		ss = ('0'+Math.floor(sec) % 60).slice(-2);
+		sec = t/1000,
+		d = Math.floor(sec/86400),
+		hh = ('0'+Math.floor(sec/3600)%24).slice(-2),
+		mm = ('0'+Math.floor(sec/60)%60).slice(-2),
+		ss = ('0'+Math.floor(sec)%60).slice(-2);
 	IUsearch.td11.textContent = (d>0?d+'j ':'')+hh+':'+mm+':'+ss;
 	}
 function search(){
@@ -1095,8 +1098,8 @@ function upTabs(){
 				'td2':['td',{'class':'BWMcut BWMtd25'+((set[7][0]>=0&&set[7][1]==j)?' atkHit':'')},[r[j][1]<=0?'-':r[j][1]+':'+loc[2][set[3][0]][r[j][1]][0]+" "],{'click':[setI,[set[6],j]]},'tr'],
 				'td3':['td',{'class':'BWMcut BWMtd25'+((set[7][0]>=0&&set[7][1]==j)?' atkHit':'')},[r[j][2]<=0?'-':r[j][2]+':'+loc[3][set[3][0]][r[j][2]][0]+" "],{'click':[setI,[set[6],j]]},'tr'],
 				'td4':['td',{'class':'BWMcut BWMtd25'+((set[7][0]>=0&&set[7][1]==j)?' atkHit':'')},[r[j][3]<=0?'-':r[j][3]+':'+loc[4][set[3][0]][r[j][3]][0]],{'click':[setI,[set[6],j]]},'tr'],
-				'td5':['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[addI,j]},'tr']
 				};
+			newIU.td5 = (j-root===0)?['td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[addI,j]},'tr']:['td',{'class':'BWMtd5'},[],{},'tr'];
 			newIU.td6 = (j-root>0)?['td',{'class':'BWMtd5 BWMselect'},["▲"],{'click':[moveI,[j,(j-root>2?j-2:j-1)]]},'tr']:['td',{'class':'BWMtd5'},[],{},'tr'];
 			newIU.td7 = (_Exist(r[j+2])&&r[j+2]!=-1)?['td',{'class':'BWMtd5 BWMselect'},["▼"],{'click':[moveI,[j,(j==root?j+1:j+2)]]},'tr']:['td',{'class':'BWMtd5'},[],{},'tr'];
 			newIU.td8 = ['td',{'class':'BWMselect atkHit'},['X'],{'click':[delI,[j,root]]},'tr'];
