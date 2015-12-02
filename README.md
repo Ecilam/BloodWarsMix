@@ -7,8 +7,8 @@ Ensemble de Userscripts améliorant le jeu [Blood Wars](http://www.fr.bloodwars.
 * [BloodWarsItemTest](https://github.com/Ecilam/BloodWarsItemTest)
 * [BloodWarsMix](https://github.com/Ecilam/BloodWarsMix) (celui-ci)
 
-Ce script est compatible uniquement avec les serveurs Français et les navigateurs Firefox, Chrome et Opéra.
-Testé pincipalement avec Firefox v40.0 sur serveur R3FR v1.7.3b.
+Ce script est compatible uniquement avec les serveurs Français et les navigateurs Firefox (>3.6), Chrome (>8) et Opéra (>11.50).
+Testé pincipalement avec Firefox v40.0 sur serveur R3FR v1.7.4b.
 
 Pour tout contact passer par mon [topic](http://forum.fr.bloodwars.net/index.php?page=Thread&threadID=204323/) sur le forum BloodWars.
 Pour les bugs, GitHub propose une section [Issues](https://github.com/Ecilam/BloodWarsToolBox/issues).
@@ -43,7 +43,8 @@ L'interface est décomposée en plusieurs zones :
 	1. **Recherche** permet de chercher des solutions automatiquement. Il comprend une **Sélection** d'objets et un **Objectif** à atteindre.  
 		- ►► : lance une recherche (désactivée si la **Sélection** est insuffisante).
 		- X : annule la recherche sans sauvegarder les résultats trouvés.
-		- ▼ : stop la recherche et ajoute les résultats déjà trouvés.  
+		- X▼ : stop la recherche et ajoute les résultats intermédiaires.  
+		- ▼ : affiche les résultats en cours (sans stopper la recherche).  
 
 	2. **Résultats** permet aussi bien d'afficher les solutions trouvées par la **Recherche** que de chercher manuellement vos propres synthèses.  
 
