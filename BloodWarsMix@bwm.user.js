@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.12.02
+// @version		2015.12.05
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -772,30 +772,6 @@ function setTri(e,i){
 	PREF._Set('set',set);
 	upTabs();
 	}
-// adapté de http://codes-sources.commentcamarche.net/source/100582-c-le-compte-est-bon-ou-presque
-function workSearch(data,tmp){
-	var n1=data.length,n2=n1-2;
-	for (var i=0,a=data[i];i<n1;a=data[++i]){
-		var nb=data.concat();
-		nb.splice(i,1);
-		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
-			if (objCmp(b,a)===1){
-				var v=objMix(a,b),d=objDiff(v,but);
-				if (d===0){
-					if (n2>niv){niv=n2;self.postMessage({'cmd':'new','key':key,'diff':0});}
-					self.postMessage({'cmd':'add','key':key,'fusion':tmp.concat([b,a,v])});
-					}
-				else if (n2>niv){
-					if ((niv<0)&&(d<=diff)){
-						if ((d<diff)||(n2>nid)){diff=d;nid=n2;self.postMessage({'cmd':'new','key':key,'diff':d});}
-						if (n2===nid){self.postMessage({'cmd':'add','key':key,'fusion':tmp.concat([b,a,v])});}
-						}
-					nb[j]=v;workSearch(nb,(tmp.concat([b,a,v])));nb[j]=b;
-					}
-				}
-			}
-		}
-	}
 function cmdSearch(e,i){ // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|res 3|fin 4)
 	var keyA = (_Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]))?tasks.s[cat][set[4]]:null,
 		key = i[0]===null?keyA:i[0];
@@ -818,7 +794,7 @@ function cmdSearch(e,i){ // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|
 			if (set[7][0]>=0) set[7] = [set[6],0];
 			PREF._Set('set',set);
 			}
-		if (i[1]<3){
+		if (i[1]<4){
 			v.id.terminate();
 			s.e = [i[1],v.r.length,v.d,v.r.length>0?v.r[0].length/3:0];
 			s.t = Date.now()-key;
@@ -852,6 +828,30 @@ function upSearch(){
 		ss = ('0'+Math.floor(sec)%60).slice(-2);
 	searchIU.td11.textContent = (d>0?d+'j. ':'')+hh+':'+mm+':'+ss;
 	}
+// adapté de http://codes-sources.commentcamarche.net/source/100582-c-le-compte-est-bon-ou-presque
+function workSearch(data,tmp){
+	var n1=data.length,n2=n1-2;
+	for (var i=0,a=data[i];i<n1;a=data[++i]){
+		var nb=data.concat();
+		nb.splice(i,1);
+		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
+			if (objCmp(b,a)===1){
+				var v=objMix(a,b),d=objDiff(v,but);
+				if (d===0){
+					if (n2>niv){niv=n2;self.postMessage({'cmd':'new','key':key,'diff':0});}
+					self.postMessage({'cmd':'add','key':key,'fusion':tmp.concat([b,a,v])});
+					}
+				else if (n2>niv){
+					if ((niv<0)&&(d<=diff)){
+						if ((d<diff)||(n2>nid)){diff=d;nid=n2;self.postMessage({'cmd':'new','key':key,'diff':d});}
+						if (n2===nid){self.postMessage({'cmd':'add','key':key,'fusion':tmp.concat([b,a,v])});}
+						}
+					nb[j]=v;workSearch(nb,(tmp.concat([b,a,v])));nb[j]=b;
+					}
+				}
+			}
+		}
+	}
 function search(){
 	var k = Date.now();
 	if (!_Exist(tasks.s[cat])) tasks.s[cat] = {};
@@ -865,7 +865,8 @@ function search(){
 			objDiff.toString(),
 			objMix.toString(),
 			workSearch.toString(),
-		"	var d = e.data, key = d['k'], mix = d['m'], but = d['b'], nid = -1, niv = -1, diff = 1000;",
+		"	var d = e.data, key = d['k'], mix = d['m'], but = d['b'],",
+		"		nid = -1, niv = -1, diff = 1000;",
 		"	workSearch(d.d,[]);",
 		"	self.postMessage({'cmd':'end','key':key});",
 		"	};"],
@@ -881,7 +882,7 @@ function search(){
 				w.r.push(e.data.fusion);
 				break;
 			case 'end':
-				cmdSearch(null,[e.data.key,4]);
+				cmdSearch(null,[e.data.key,3]);
 				break;
 			}
 		};
@@ -1042,7 +1043,7 @@ function upTabs(){
 				'td05':['td',{'colspan':'5','class':(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'tr0'],
 				'td06':['td',{'colspan':'1','class':'BWMselect atkHit','onmouseout':'nd();','onmouseover':"return overlib('Stop la recherche',HAUTO,WRAP);"},['X'],{'click':[cmdSearch,[null,1]]},'tr0'],
 				'td07':['td',{'colspan':'2','class':'BWMselect atkHit','onmouseout':'nd();','onmouseover':"return overlib('Stop la recherche et affiche les résultats intermédiaires',HAUTO,WRAP);"},['X▼'],{'click':[cmdSearch,[null,2]]},'tr0'],
-				'td08':['td',{'colspan':'2','class':'BWMselect','onmouseout':'nd();','onmouseover':"return overlib('Affiche les résultats en cours',HAUTO,WRAP);"},['▼'],{'click':[cmdSearch,[null,3]]},'tr0'],
+				'td08':['td',{'colspan':'2','class':'BWMselect','onmouseout':'nd();','onmouseover':"return overlib('Affiche les résultats en cours',HAUTO,WRAP);"},['▼'],{'click':[cmdSearch,[null,4]]},'tr0'],
 				'tr1':['tr',{'class':'BWMTR2'},[],{},nodesIU.tab4],
 				'td10':['td',{'colspan':'5'},[],{},'tr1'],
 				'td11':['td',{'colspan':'5'},[],{},'tr1']});
