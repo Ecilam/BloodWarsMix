@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2015.12.13
+// @version		2015.12.14
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2015, Ecilam
@@ -383,9 +383,11 @@ function setCss(){
 		".BWMtab0{border-collapse: collapse;width: 100%;}",
 		".BWMtab0 td{vertical-align: top;padding: 4px;}",
 		".BWMtab1{border-collapse: collapse;width: 100%;text-align: center;}",
-		".BWMtab1 td,.BWMtab1 th{vertical-align: middle;border: 1px solid black;margin: 0;padding: 2px;}",
+		".BWMtab1 td,.BWMtab1 th{border: 1px solid black;margin: 0;padding: 2px;}",
 		".BWMtab3{border-collapse: collapse;width: 100%;text-align: center;}",
-		".BWMtab3 td,.BWMtab3 th{vertical-align: middle;border: 0px;margin: 0;padding: 2px;}",
+		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 2px;}",
+		".BWMtab1 th,.BWMtab3 th{vertical-align: top;}",
+		".BWMtab1 td,.BWMtab3 td{vertical-align: middle}",
 		".BWMcut,.BWMcut2{text-align: left;max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
 		".BWMtriSelect{color:lime;}",
 		".BWMtd5{width:5%;}",
@@ -776,7 +778,7 @@ function optSearch(e,i){
 		s.o[i] = v;
 		PREF._Set('set',set);
 		LS._SetVar('BWM:LIST:'+ID,list);
-		rootIU['t5_span110'].textContent = 'Options ('+(s.o[0]===''?'∞':s.o[0])+','+(s.o[1]===''?'∞':s.o[1])+','+(s.o[2]===''?'∞':s.o[2])+')';
+		rootIU.t5_span111.textContent = 'Options ('+(s.o[0]===''?'∞':s.o[0])+','+(s.o[1]===''?'∞':s.o[1])+','+(s.o[2]===''?'∞':s.o[2])+')';
 		}
 	else e.target.classList.add('BWMerror');
 	}
@@ -1493,7 +1495,9 @@ function upTabs(){
 			+"<tr><td>▼ ou ▲ : déplace la ligne.</td></tr>"
 			+"<tr><td><span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"],
 		't5_span115':['Cible',
-			"<tr><td><span class='heal'>►►</span><span> : lance le recherche.</span></td></tr>"
+			"<tr><td>Laisser la case vide si un élément n'a pas d'importance dans la recherche.</td></tr>"
+			+"<tr><td><hr></hr></td></tr>"
+			+"<tr><td><span class='heal'>►►</span><span> : lance le recherche.</span></td></tr>"
 			+"<tr><td><span class='atkHit'>X</span><span> : stop la recherche.</span></td></tr>"
 			+"<tr><td><span class='atkHit'>X▼</span><span> : stop la recherche et ajoute les résultats trouvés.</span></td></tr>"
 			+"<tr><td>▼ : ajoute les résultats trouvés.</td></tr>"],
