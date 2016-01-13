@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.01.11
+// @version		2016.01.13
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -392,7 +392,7 @@ function setCss(){
 		".BWMtab1 td,.BWMtab1 th{border: 1px solid black;margin: 0;padding: 0px;}",
 		".BWMtab3{border-collapse: collapse;width: 100%;text-align: center;}",
 		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px;}",
-		".BWMtab1 th,.BWMtab3 th{vertical-align: top;}",
+		".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
 		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span, .BWMinput{vertical-align: middle;}",
 		".BWMcut,.BWMcut2{text-align: left;max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
 		".BWMtriSelect{color:lime;}",
@@ -484,7 +484,7 @@ function objDiff(a,b){
 	return d;
 	}
 function fusion(a,b,c,i){ // a,b = x (a<=b), c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
-	if (c===0&&i===0&&a==1&&b==2) return 4; // exception casquette+casque = masque
+	if (c===0&&i===0&&a==1&&b==3) return 4; // exception casquette+Casque Militaire = masque
 	else return a==b?a:(b==loc[i+2][c].length-1&&b-a<3)?b-a==1?b-2:b-1:b-a==1?b+1:b-Math.floor((b-a-2)/2);
 	}
 function objMix(a,b){
@@ -1480,20 +1480,24 @@ function upTabs(){
 			}
 		}
 	// colorisation des objets sélectionnés/identiques
+console.debug('BWM :',set,target,link);
 	for (var key in link){
 		if (link.hasOwnProperty(key)){
 			var v = set[7][0]==-1?'but':set[7][0]==-2?'sel':'res';
 			if (_Exist(link[key][v])){
-				v = link[key][v];
-				for (var i=0;i<v.length;i++){
-					var x = _Exist(link[key].s0)&&_Exist(link[key].s0[i])?link[key].s0[i]:null;
+				for (var i=0;i<link[key][v].length;i++){
+					var x = _Exist(link[key].s0)&&_Exist(link[key].s0[i])?link[key].s0[i]:null,
+						y = _Exist(link[key].sel)&&_Exist(link[key].sel[i])?link[key].sel[i]:null;
 					if (target[0]==key&&target[1]==i){
-						itemAddClass(v[i],'disabled');
+						itemAddClass(link[key][v][i],'disabled');
 						if (x!==null) itemAddClass(x,'disabled');
 						}
 					else if (x!==null){
-						itemAddClass(v[i],'item-link');
+						itemAddClass(link[key][v][i],'item-link');
 						itemAddClass(x,'item-link');
+						}
+					if (set[5]==-2&&v=='res'&&y!==null){
+						itemAddClass(y,'item-link');
 						}
 					}
 				}
