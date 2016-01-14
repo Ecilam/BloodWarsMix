@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.01.13
+// @version		2016.01.14
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -394,7 +394,8 @@ function setCss(){
 		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px;}",
 		".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
 		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span, .BWMinput{vertical-align: middle;}",
-		".BWMcut,.BWMcut2{text-align: left;max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
+		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
+		".BWMcut,.BWMcut2{text-align: left;}",
 		".BWMtriSelect{color:lime;}",
 		".BWMtd5{width:5%;}",
 		".BWMtd10{width:10%;}",
@@ -780,6 +781,15 @@ function delSel(e,i){
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
+function addSelR(e,i){
+	if (set[7][0]>=0){
+		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1) r.splice(set[7][1]+1,0,s.s[i],[0,0,0,0]);
+		else r.splice(set[7][1]+2,0,s.s[i],[0,0,0,0]);
+		}
+	else r.push(s.s[i],[0,0,0,0]);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
 function optSearch(e,i){
 	var v = new RegExp("^(|[0-9]+)$").exec(e.target.value);
 	if (v!=null){
@@ -940,31 +950,6 @@ function upSearch(){
 			}
 		}
 	}
-// adapté de http://codes-sources.commentcamarche.net/source/100582-c-le-compte-est-bon-ou-presque
-/*function workSearch(data,tmp){
-	var n1=data.length,n2=n1-2;
-	for (var i=0,a=data[i];i<n1;a=data[++i]){
-		var nb=data.concat();
-		nb.splice(i,1);
-		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
-			if (objCmp(b,a)===1){
-				var v=objMix(a,b),d=objDiff(v,but);
-				if (d===0){
-					if (n2>niv){niv=n2;self.postMessage({'cmd':'new','key':key,'diff':0});}
-					self.postMessage({'cmd':'add','key':key,'fusion':tmp[0].concat([b,a,v])});
-					}
-				else if (n2>niv){
-					if ((niv<0)&&(d<=diff)){
-						if ((d<diff)||(n2>nid)){diff=d;nid=n2;self.postMessage({'cmd':'new','key':key,'diff':d});}
-						if (n2===nid){self.postMessage({'cmd':'add','key':key,'fusion':tmp[0].concat([b,a,v])});}
-						}
-					if (tmp[0].length<f){nb[j]=v;workSearch(nb,[tmp[0].concat([b,a,v]),0]);nb[j]=b};
-					}
-				}
-			}
-		}
-	}*/
-
 function workSearch(data,tmp){
 	var n1=data.length,n2=n1-2;
 	for (var i=0,a=data[i];i<n1;a=data[++i]){
@@ -1178,8 +1163,8 @@ function upTabs(){
 		['t2_td11','td',{'class':'BWMtd60'},[],{},'t2_tr1'],
 		['t5','table',{'class':'BWMtab1'},[],{},'t2_td11'], // simulations
 		['t5_tr0','tr',{'class':'tblheader'},[],{},'t5'],
-		['t5_th0','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][3]?'enabled':'disabled')},['['+(set[0][3]?'-':'+')+']'],{'click':[show,3]},'t5_tr0'],
-		['t5_th1','th',{'colspan':'3','class':'BWMtd65'},[],{},'t5_tr0'],
+		['t5_th0','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][3]?'enabled':'BWMcutth disabled')},['['+(set[0][3]?'-':'+')+']'],{'click':[show,3]},'t5_tr0'],
+		['t5_th1','th',{'colspan':'3','class':'BWMtd65'+(set[0][3]?'':' BWMcutth')},[],{},'t5_tr0'],
 		['t5_span0','span',{},['Simulations : '],{},'t5_th1'],
 		['t5_th2','th',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addS]},'t5_tr0'],
 		(set[4]>0?['t5_th3','th',{'class':'BWMtd5 BWMselect'},['◄'],{'click':[moveS,-1]},'t5_tr0']:['t5_th3a','th',{'class':'BWMtd5'},[],{},'t5_tr0']),
@@ -1272,16 +1257,18 @@ function upTabs(){
 						if (isGo){
 							IU._CreateElements([
 								['t5_td3'+j+'_5','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_5','th',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_5','th',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_6','td',{'colspan':'2','class':'BWMtd10'},[],{},'t5_tr3'+j]],rootIU);
+								['t5_td3'+j+'_6','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
+								['t5_td3'+j+'_7','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
+								['t5_td3'+j+'_8','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
+								['t5_td3'+j+'_9','td',{'class':'BWMtd5 BWMselect'},['►'],{'click':[addSelR,j]},'t5_tr3'+j]],rootIU);
 							}
 						else{
 							IU._CreateElements([
 								['t5_td3'+j+'_5','td',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addNewSel,j]},'t5_tr3'+j],
-								(j<s.s.length-1?['t5_td3'+j+'_6','th',{'class':'BWMtd5 BWMselect'},['▼'],{'click':[moveSel,[j,j+1]]},'t5_tr3'+j]:['t5_td3'+j+'_6','th',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
-								(j>0?['t5_td3'+j+'_7','th',{'class':'BWMtd5 BWMselect'},['▲'],{'click':[moveSel,[j,j-1]]},'t5_tr3'+j]:['t5_td3'+j+'_7','th',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
-								['t5_td3'+j+'_8','td',{'colspan':'2','class':'BWMtd10 BWMselect atkHit'},['X'],{'click':[delSel,j]},'t5_tr3'+j]],rootIU);
+								(j<s.s.length-1?['t5_td3'+j+'_6','td',{'class':'BWMtd5 BWMselect'},['▼'],{'click':[moveSel,[j,j+1]]},'t5_tr3'+j]:['t5_td3'+j+'_6','td',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
+								(j>0?['t5_td3'+j+'_7','td',{'class':'BWMtd5 BWMselect'},['▲'],{'click':[moveSel,[j,j-1]]},'t5_tr3'+j]:['t5_td3'+j+'_7','td',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
+								['t5_td3'+j+'_8','td',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delSel,j]},'t5_tr3'+j],
+								['t5_td3'+j+'_9','td',{'class':'BWMtd5 BWMselect'},['►'],{'click':[addSelR,j]},'t5_tr3'+j]],rootIU);
 							}
 						}
 					}
@@ -1342,7 +1329,7 @@ function upTabs(){
 		IU._CreateElements([
 			['t5_tr5','tr',{'class':'tblheader'},[],{},'t5'],
 			['t5_th50','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][5]?'enabled':'disabled')},['['+(set[0][5]?'-':'+')+']'],{'click':[show,5]},'t5_tr5'],
-			['t5_th51','th',{'colspan':'3','class':'BWMtd65'},[],{},'t5_tr5'],
+			['t5_th51','th',{'colspan':'3','class':'BWMtd65'+(set[0][5]?'':' BWMcutth')},[],{},'t5_tr5'],
 			['t5_span510','span',{},['Résultats : '],{},'t5_th51'],
 			['t5_th52','th',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addR]},'t5_tr5'],
 			(set[6]>0?['t5_th53','th',{'class':'BWMtd5 BWMselect'},['◄'],{'click':[moveR,-1]},'t5_tr5']:['t5_th53a','th',{'class':'BWMtd5'},[],{},'t5_tr5']),
@@ -1480,7 +1467,6 @@ function upTabs(){
 			}
 		}
 	// colorisation des objets sélectionnés/identiques
-console.debug('BWM :',set,target,link);
 	for (var key in link){
 		if (link.hasOwnProperty(key)){
 			var v = set[7][0]==-1?'but':set[7][0]==-2?'sel':'res';
@@ -1515,17 +1501,12 @@ console.debug('BWM :',set,target,link);
 	// Bulles d'aide
 	if (set[0][2]){
 		var aides = {
-			't5_th0':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
-			't5_th10':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
-			't5_th50':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
-			't4_th0':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
-			't4_th00_0':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
-			't4_th01_0':['Commande',"<tr><td>Affiche/masque cette zone.</td></tr>"],
 			't1_td2':['Aide',
 				"<tr><td>Ce script est basé sur les réflexions d'un post sur le forum. Le lien est disponible sur la page Github de ce script.</td></tr>"
-				+"<tr><td>Chaque élément est classé par ordre de rareté/valeur dont on se sert pour connaitre les résultats.</td></tr>"
+				+"<tr><td>Passer la souris sur l'un des titres des tableaux pour plus de détails.</td></tr>"
 				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>Partant du principe que X est un élément et X-1 l'élément juste en dessous etc... il se dégage les relations suivantes:</td></tr>"
+				+"<tr><td>Chaque élément est classé par ordre de rareté/valeur dont on se sert pour connaitre le résultat.</td></tr>"
+				+"<tr><td>X étant un élément et X-1 l'élément juste en dessous etc... il se dégage les relations suivantes:</td></tr>"
 				+"<tr><td>X + (X-1) = X+1 (bonus)</td></tr>"
 				+"<tr><td>X + (X-2) = X (neutre)</td></tr>"
 				+"<tr><td>X + (X-3) = X (neutre)</td></tr>"
@@ -1535,77 +1516,98 @@ console.debug('BWM :',set,target,link);
 				+"<tr><td>etc...</td></tr>"
 				+"<tr><td>Exception : casquette + casque militaire = masque</td></tr>"
 				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>Passer la souris sur un titre affiche l'aide correspondante.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td>Cliquer ici pour activer/désactiver l'affichage des bulles d'aides.</td></tr>"],
 			't1_td0':['Interface',
 				"<tr><td>Cliquer ici pour déplacer l'interface dans zone haute ou basse du jeu.</td></tr>"],
 			't1_span0':['Titre',
 				"<tr><td>Cliquer ici permet de masquer/afficher l'interface.</td></tr>"],
 			't4_span10':['Saisie',
-				"<tr><td>Cette zone permet la saisie des objets. Vous devez dans un premier temps sélectionner l'objet (la ligne) que vous souhaitez modifier dans l'une des zones de droite.</td></tr>"
-				+"<tr><td>Vous pouvez choisir entre une saisie par listes ou manuelle.</td></tr>"],
-			't4_span11':['Saisie par listes',
-				"<tr><td>Vous pouvez trier le tableau en cliquant sur l'en-tête.</td></tr>"
-				+"<tr><td><b>Armurerie</b> affiche la liste de vos objets correspondant à la Catégorie sélectionnée.</td></tr>"
-				+"<tr><td><b>Synthèses</b> reprend les fusions apparaissant dans le Résultat de droite.</td></tr>"
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Cette zone permet la saisie des objets.</td></tr>"
+				+"<tr><td>- Vous devez dans un premier temps sélectionner l'objet (la ligne) que vous souhaitez modifier dans l'une des zones de droite.</td></tr>"
 				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>All</b> : transfert tous les éléments dans l'Index de recherche.</td></tr>"
-				+"<tr><td>► : transfert l'objet dans l'Index de recherche.</td></tr>"],
+				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
+			't4_span11':['Saisie par listes',
+				"<tr><td><b>Armurerie :</b></td></tr>"
+				+"<tr><td>- Affiche la liste de vos objets correspondant à la Catégorie sélectionnée.</td></tr>"
+				+"<tr><td><b>Synthèses :</b></td></tr>"
+				+"<tr><td>- Reprend les fusions obtenues dans le Résultat de droite.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>▼ ▲</span><span> : tri le tableau suivant cette colonne.</span></td></tr>"
+				+"<tr><td>- <b>All</b> : transfert tous les éléments dans l'Index de recherche.</td></tr>"
+				+"<tr><td>- ► : transfert l'objet dans l'Index de recherche.</td></tr>"],
 			't4_span13':['Saisie manuelle',
-				"<tr><td>Dans cette partie vous saisissez librement chaque élément de l'objet.</td></tr>"],
+				"<tr><td>Permet de saisir librement chaque élément de l'objet.</td></tr>"],
 			't5_span0':['Simulations',
-				"<tr><td>Une simulation est décomposée en deux parties :</td></tr>"
-				+"<tr><td>- la Recheche laissant le soin au script de chercher la ou les meilleurs solutions.</td></tr>"
-				+"<tr><td>- les Résultats reprenant les solutions ci-dessus mais permettant aussi de saisir manuellement vos solutions.</td></tr>"],
-			't5_th2':['Commande',"<tr><td>Ajoute une simulation.</td></tr>"],
-			't5_th3':['Commande',"<tr><td>Déplace la simulation.</td></tr>"],
-			't5_th4':['Commande',"<tr><td>Déplace la simulation.</td></tr>"],
-			't5_th5':['Commande',"<tr><td>Supprime la simulation.</td></tr>"],
-			't5_th6':['Commande',"<tr><td>Supprime toutes les simulations.</td></tr>"],
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Une simulation comprend l'ensemble des éléments permettant de chercher une solution.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une simulation.</span></td></tr>"
+				+"<tr><td>- ◄ ► : déplace la simulation.</td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la simulation.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime toutes les simulations.</span></td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
 			't5_span110':['Recherche',
-				"<tr><td>Permet de chercher automatiquement une Cible.</td></tr>"
-				+"<tr><td>Vous devez saisir une liste d`objets dans l`Index et une Cible qui servira de base de recherche.</td></tr>"
-				+"<tr><td>Les Options permettent de limiter soit le nombre de résultats soit le temps de recherche.</td></tr>"
-				+"<tr><td>L'écart représente la différence de points entre le résultat et la cible.</td></tr>"],
-			't5_th13':['Commande',"<tr><td>Supprime les éléments de la zone sélectionnée.</td></tr>"],
-			't5_th14':['Commande',"<tr><td>Supprime l`ensemble des éléments de la Recherche.</td></tr>"],
-			't6_span00':['Résultats max',"<tr><td>Limite le nombre de résultats. Cette valeur ne réduit pas le temps de recherche.</td></tr>"],
-			't6_span01':['Ecart max',"<tr><td>Limite la différence de points entre le résultat et la cible. Cette valeur ne réduit pas le temps de recherche.</td></tr>"],
-			't6_span02':['Fusions max',"<tr><td>Limite le nombre de fusions. Cette valeur diminue le temps de recherche !</td></tr>"],
-			't6_span03':['Post-traitement',"<tr><td>Supprime en fin de recherche les solutions ayant un même résultat avec un ensemble d'objets identique mais des permutations différentes.</td></tr>"],
-			't5_td21a':['Commande',"<tr><td>Charge les valeurs par défaut.</td></tr>"],
-			't5_td22a':['Commande',"<tr><td>Sauvegarde en tant que valeurs par défaut.</td></tr>"],
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Permet au script de rechercher la ou les meilleurs solutions. L'Index permet aussi de créer une liste perso.</td></tr>"
+				+"<tr><td>- Vous devez saisir une liste d`objets dans l`Index et une Cible qui servira de base de recherche.</td></tr>"
+				+"<tr><td>- Les Options permettent de limiter soit le nombre de résultats soit le temps de recherche.</td></tr>"
+				+"<tr><td>- L'écart représente la différence de points entre le résultat et la cible.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime les éléments de la zone sélectionnée.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime l`ensemble des éléments de la Recherche.</span></td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
 			't5_span111':['Index',
-				"<tr><td>L'Index reprend la liste des objets utilisés dans le cadre de la recherche. Tri manuel possible sur les colonnes. L'ordre des objets peut avoir une influence sur le temps de recherche.</td></tr>"
-				+"<tr><td>A noter une colonne supplémentaire à gauche indiquant la différence de points entre l'objet et la cible. Un objet n'ayant pas un des éléments de la cible, n'étant pas élligible pour la recherche, indique une valeur infinie, .</td></tr>"],
-			't5_td25a':['Commandes',"<tr><td><span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
-				+"<tr><td>▼ ou ▲ : déplace la ligne.</td></tr>"
-				+"<tr><td><span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"],
-			't5_span113':['Cible',"<tr><td>Ici vous indiquez la cible recherchée. Un élément vide n'est pas pris en compte pour la recherche.</td></tr>"],
-			't5_td35':['Commande',"<tr><td>Lance la recherche. Au moins deux objets doivent être saisie dans l'Index.</td></tr>"],
-			't5_td36':['Commande',"<tr><td>Stop la recherche.</td></tr>"],
-			't5_td37':['Commande',"<tr><td>Stop la recherche et ajoute les résultats trouvés.</td></tr>"],
-			't5_td38':['Commande',"<tr><td>Ajoute les résultats trouvés.</td></tr>"],
-			't5_span510':['Résultats',"<tr><td>Ajoute ici les solutions trouvées par la Recherche et permet aussi une saisie manuelle.</td></tr>"],
-			't5_th52':['Commande',"<tr><td>Ajoute un résultat.</td></tr>"],
-			't5_th53':['Commande',"<tr><td>Déplace le résultat.</td></tr>"],
-			't5_th54':['Commande',"<tr><td>Déplace le résultat.</td></tr>"],
-			't5_th55':['Commande',"<tr><td>Supprime le résultat.</td></tr>"],
-			't5_th56':['Commande',"<tr><td>Supprime tous les résultats.</td></tr>"],
-			't5_th64':['Commandes',
-				"<tr><td><span class='heal'>+</span><span> : ajoute une ligne.</span></td></tr>"
-				+"<tr><td>▼ ou ▲ : déplace la ligne.</td></tr>"
-				+"<tr><td><> : ajoute un nouveau bloc indépendant du précédent.</td></tr>"
-				+"<tr><td><span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
-				+"<tr><td><span class='atkHit'>◄</span><span> : supprime tous les éléments précédents du bloc.</span></td></tr>"
-				+"<tr><td><span class='atkHit'>▲</span><span> : supprime tous les éléments précédents.</span></td></tr>"
-				+"<tr><td><span class='atkHit'>B</span><span> : supprime le bloc.</span></td></tr>"],
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Reprend la liste des objets utilisés dans le cadre de la recherche.</td></tr>"
+				+"<tr><td>- Tri manuel possible sur les colonnes. L'ordre des objets peut avoir une influence sur le temps de recherche.</td></tr>"
+				+"<tr><td>- La colonne de gauche indique la différence de points entre l'objet et la cible. Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
+				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
+				+"<tr><td>- ► : ajoute cet objet après l'objet sélectionné du résultat en cours ou sinon en fin du résultat.</span></td></tr>"],
+			't5_span113':['Cible',
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Ici vous indiquez la cible recherchée.</td></tr>"
+				+"<tr><td>- Un élément vide n'est pas pris en compte pour la recherche.</td></tr>"
+				+"<tr><td><b>Options :</b></td></tr>"
+				+"<tr><td>- 'Rés. max' : limite le nombre de résultats. Cette valeur ne réduit pas le temps de recherche.</td></tr>"
+				+"<tr><td>- 'Ecart max' : limite la différence de points entre le résultat et la cible. Cette valeur ne réduit pas le temps de recherche.</td></tr>"
+				+"<tr><td>- 'Fus. max' : limite le nombre de fusions. Cette valeur diminue le temps de recherche !</td></tr>"
+				+"<tr><td>- 'Post' : supprime en fin de recherche les solutions ayant un même résultat avec un ensemble d'objets identique mais des permutations différentes.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>▼</span><span> : charge les valeurs par défaut.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>▲</span><span> : sauvegarde en tant que valeurs par défaut.</span></td></tr>"
+				+"<tr><td>- <span class='heal'>►►</span><span> : lance la recherche. Au moins deux objets doivent être saisie dans l'Index.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : stop la recherche.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>X▼</span><span> : stop la recherche et ajoute les résultats trouvés.</span></td></tr>"
+				+"<tr><td>- ▼ : ajoute les résultats trouvés sans stopper la recherche.</td></tr>"],
+			't5_span510':['Résultats',
+				"<tr><td><b>Informations générales :</b></td></tr>"
+				+"<tr><td>- Reprend les solutions trouvées par la Recherche. Permet aussi de saisir manuellement vos solutions.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>+</span><span> : ajoute un résultat.</span></td></tr>"
+				+"<tr><td>- ◄ ► : déplace le résultat.</td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime le résultat.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime tous les résultats.</span></td></tr>"
+				+"<tr><td><b>Commandes sur les objets :</b></td></tr>"
+				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne.</span></td></tr>"
+				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
+				+"<tr><td>- <> : ajoute un nouveau bloc indépendant du précédent.</td></tr>"
+				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>◄</span><span> : supprime tous les éléments précédents du bloc.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>▲</span><span> : supprime tous les éléments précédents.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'>B</span><span> : supprime le bloc.</span></td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
 			};
 		for (var key in aides){
 			if (_Exist(rootIU[key])){
 				rootIU[key].setAttribute('onmouseout','nd();');
-				rootIU[key].setAttribute('onmouseover',"return overlib('<table class=\"BWMoverlib\">"+addslashes(aides[key][1])+"</table>',CAPTION,'"+aides[key][0]+"',CAPTIONFONTCLASS,'action-caption',WIDTH,300,HAUTO,VAUTO);");
+				rootIU[key].setAttribute('onmouseover',"return overlib('<table class=\"BWMoverlib\">"+addslashes(aides[key][1])+"</table>',CAPTION,'"+aides[key][0]+"',CAPTIONFONTCLASS,'action-caption',WIDTH,300,VAUTO,HAUTO);");
 				}
 			}
 		}
