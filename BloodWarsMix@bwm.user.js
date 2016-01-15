@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.01.14
+// @version		2016.01.15
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -526,7 +526,7 @@ function setS(e,i){
 	PREF._Set('set',set);
 	upTabs();
 	}
-function addS(e,i){
+function addS(e){
 	set[4] = c.length; set[6] = 0; set[7] = [0,0];
 	PREF._Set('set',set);
 	c.push({'b':[0,0,0,0],'e':[0,0,null,0],'o':clone(set[8]),'t':0,'s':[],'r':[[[0,0,0,0],[0,0,0,0],[0,0,0,0]]]});
@@ -738,7 +738,7 @@ function setMode(e,i){
 	}
 function addSel(e,i){
 	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
-		s.s.push(i);
+		s.s.push(clone(i));
 		LS._SetVar('BWM:LIST:'+ID,list);
 		upTabs();
 		}
@@ -746,7 +746,7 @@ function addSel(e,i){
 function selAll(e,i){
 	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
 		for (var j=0; j<i.length;j++){
-			s.s.push(i[j]);
+			s.s.push(clone(i[j]));
 			}
 		LS._SetVar('BWM:LIST:'+ID,list);
 		upTabs();
@@ -782,11 +782,12 @@ function delSel(e,i){
 	upTabs();
 	}
 function addSelR(e,i){
+	var v = clone(s.s[i]);
 	if (set[7][0]>=0){
-		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1) r.splice(set[7][1]+1,0,s.s[i],[0,0,0,0]);
-		else r.splice(set[7][1]+2,0,s.s[i],[0,0,0,0]);
+		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1) r.splice(set[7][1]+1,0,v,[0,0,0,0]);
+		else r.splice(set[7][1]+2,0,v,[0,0,0,0]);
 		}
-	else r.push(s.s[i],[0,0,0,0]);
+	else r.push(v,[0,0,0,0]);
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
@@ -854,15 +855,16 @@ function setSelect(e,i){
 	upTabs();
 	}
 function setISelect(e,i){
+	var v = clone(i);
 	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
 		if (set[7][0]==-1){
-			s.b = [i[0],i[1],i[2],i[3]];
+			s.b = v;
 			}
 		else if (set[7][0]==-2){
-			s.s[set[7][1]] = [i[0],i[1],i[2],i[3]];
+			s.s[set[7][1]] = v;
 			}
 		}
-	if (set[7][0]>=0) r[set[7][1]] = [i[0],i[1],i[2],i[3]];
+	if (set[7][0]>=0) r[set[7][1]] = v;
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
