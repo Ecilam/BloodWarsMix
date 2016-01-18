@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.01.15
+// @version		2016.01.18
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -322,7 +322,7 @@ var DATAS = (function(){
 var PREF = (function(){
 	// préfèrences par défaut
 	var index = 'BWM:O:',
-		defPrefs = {'set':[[true,true,true,true,true,true,true,true,true],0,[2,0],[0,''],0,-1,0,[0,0],['','','',true]]};
+		defPrefs = {'set':[[true,true,true,true,true,true,true,true,true,true],0,[2,0],[0,''],0,-1,0,[0,0],['','','',true]]};
 		//0:show (true/false)-> titre,position,aide,sim,search,res,saisie,armurerie,synthèse
 		//1:mode,2:tri,3:cat,4:sim,5:search,6:result,7:saisie
 		//8:options -> max rés,max écart,max fusion
@@ -382,6 +382,7 @@ function setCss(){
 	var css = [
 		".BWMbox{width: 100%;margin:0 auto;}",
 		".BWMtitle,.BWMcut,.BWMselect{cursor: pointer}",
+		".BWMcut2{cursor: default}",
 		".BWMselect:hover{text-decoration: underline;}",
 		".BMWfield{margin: 0;padding: 1px;text-align: left;}",
 		".BWMlegend{font-size: 11px;font-weight: bold;}",
@@ -397,18 +398,20 @@ function setCss(){
 		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
 		".BWMcut,.BWMcut2{text-align: left;}",
 		".BWMtriSelect{color:lime;}",
-		".BWMtd5{width:5%;}",
-		".BWMtd10{width:10%;}",
-		".BWMtd15{width:15%;}",
-		".BWMtd20{width:20%;}",
-		".BWMtd25{width:25%;}",
-		".BWMtd30{width:30%;}",
-		".BWMtd40{width:40%;}",
-		".BWMtd60{width:60%;}",
-		".BWMtd65{width:65%;}",
-		".BWMtd80{width:80%;}",
-		".BWMtd90{width:90%;}",
-		".BWMtd100{width:100%;}",
+		".BWMtextarea {width: 99%; height: auto; resize: none; border: 0px; outline: none; white-space: pre; word-wrap: normal; overflow: hidden;}",   
+		".BWM5{width:5%;}",
+		".BWM10{width:10%;}",
+		".BWM15{width:15%;}",
+		".BWM20{width:20%;}",
+		".BWM25{width:25%;}",
+		".BWM30{width:30%;}",
+		".BWM40{width:40%;}",
+		".BWM50{width:50%;}",
+		".BWM60{width:60%;}",
+		".BWM65{width:65%;}",
+		".BWM80{width:80%;}",
+		".BWM90{width:90%;}",
+		".BWM100{width:100%;}",
 		".BWMa1{display: block;}",
 		".BWMinput{width: 20px;height: 11px;margin: 0px 0px 0px 5px;text-align: right;font-weight: bold;}",
 		".BWMerror{color:#FFF;background-color:red;}",
@@ -423,7 +426,7 @@ function setCss(){
 	if (head!==null){
 		var even = getCssRules('.even'),
 			selectedItem = getCssRules('.selectedItem');
-		if (even!==null&&selectedItem!==null) css.push('.BWMeven{'+even.cssText+'}','.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut){'+selectedItem.cssText+'}');
+		if (even!==null&&selectedItem!==null) css.push('.BWMeven{'+even.cssText+'}','.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut),.BWMTR:hover .BWMcut2:hover,.BWMTR2:hover .BWMcut2{'+selectedItem.cssText+'}');
 		IU._CreateElement('style',{'type':'text/css'},[css.join('')],{},head);
 		}
 	}
@@ -431,11 +434,8 @@ function setCss(){
 /******************************************************
 * FUNCTIONS
 ******************************************************/
-
-function show(e,i){
-	set[0][i] = !set[0][i];
-	PREF._Set('set',set);
-	upTabs();
+function addslashes(str){
+	return (str + '').replace(/[\\"']/g,'\\$&').replace(/\u0000/g,'\\0');
 	}
 function getListItem(){
 	var list = DOM._GetNodes("//div[@id='content-mid']//ul[@class='inv-select']/li"),
@@ -511,6 +511,12 @@ function tabTri(c){ // c : [élément, sens]
 		return (v===0)?0:(v==1)?y:0-y;
 		}
 	}
+// commandes d'interface
+function show(e,i){
+	set[0][i] = !set[0][i];
+	PREF._Set('set',set);
+	upTabs();
+	}
 function setT(e,i){
 	set[3][0] = i; set[4] = 0; set[6] = 0; set[7] = [0,0];
 	PREF._Set('set',set);
@@ -521,6 +527,92 @@ function setL(e,i){
 	PREF._Set('set',set);
 	upTabs();
 	}
+// commandes Saisie
+function selectMode(e,i){
+	set[1] = i;
+	PREF._Set('set',set);
+	upTabs();
+	}
+function selectTri(e,i){
+	set[2][1] = (i==set[2][0]&&set[2][1]==1)?0:1;
+	set[2][0] = i;
+	PREF._Set('set',set);
+	upTabs();
+	}
+function selectSet(e,i){
+	var v = clone(i);
+	if (set[7][0]==-1){
+		s.b = v;
+		}
+	else if (set[7][0]==-2){
+		s.s[set[7][1]] = v;
+		}
+	else r[set[7][1]] = v;
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function selectMSet(e,i){
+	if (set[7][0]==-1){
+		but[i[0]] = i[1];
+		}
+	else if (set[7][0]==-2){
+		s.s[set[7][1]][i[0]] = i[1];
+		}
+	else r[set[7][1]][i[0]] = i[1];
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function selectAdd(e,i){
+	var v = clone(i);
+	if (set[7][0]==-2){
+		s.s.splice(set[7][1]+1,0,v);
+		set[7] = [-2,set[7][1]+1];
+		}
+	else if (set[7][0]>=0){
+		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1){
+			r.splice(set[7][1]+1,0,v,[0,0,0,0]);
+			set[7] = [set[7][0],set[7][1]+1];
+			}
+		else{
+			r.splice(set[7][1]+2,0,v,[0,0,0,0]);
+			set[7] = [set[7][0],set[7][1]+2];
+			}
+		}
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function selectAll(e,i){
+	for (var j=0; j<i.length;j++){
+		var v = clone(i[j]);
+		if (set[7][0]==-2){
+			s.s.splice(set[7][1]+1,0,v);
+			set[7] = [-2,set[7][1]+1];
+			}
+		else if (set[7][0]>=0){
+			if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1){
+				r.splice(set[7][1]+1,0,v,[0,0,0,0]);
+				set[7] = [set[7][0],set[7][1]+1];
+				}
+			else{
+				r.splice(set[7][1]+2,0,v,[0,0,0,0]);
+				set[7] = [set[7][0],set[7][1]+2];
+				}
+			}
+		}
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function selectArea(e,i){
+	var v = e.target.value.replace(/[\t]/gm,' ').trim().split(/\s*[\r\n]+\s*/g),
+		x = e.target.value.split(/[\r\n]/g);
+console.debug('selectArea :',JSONS._Encode(v),JSONS._Encode(x),e);
+ //   e.target.style.height = "auto";
+ //   e.target.style.height = (e.target.scrollHeight)+"px";
+	e.target.setAttribute('rows',x.length<9?9:x.length);
+	}
+// commandes Simulations
 function setS(e,i){
 	set[4] = i; set[6] = 0; set[7] = [0,0];
 	PREF._Set('set',set);
@@ -585,13 +677,100 @@ function resetS(e){
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
+// commandes Recherche
 function setO(e,i){
 	set[5] = i;
-	if (i==-3||(i==-2&&s.s.length===0)) set[7] = [0,0];
-	else set[7] = [i,0];
+	set[7] = [i,0];
 	PREF._Set('set',set);
 	upTabs();
 	}
+function triSel(e,i){
+	s.s.sort(tabTri(i));
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function addNewSel(e,i){
+	s.s.splice(i+1,0,[0,0,0,0]);
+	if (set[7][0]==-2) set[7][1] = i+1;
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function moveSel(e,i){
+	s.s[i[0]] = [s.s[i[1]],s.s[i[1]]=s.s[i[0]]][0];//swap
+	if (set[7][0]==-2) set[7][1] = set[7][1]==i[0]?i[1]:set[7][1]==i[1]?i[0]:set[7][1];
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function delSel(e,i){
+	s.s.splice(i,1);
+	if (set[7][0]==-2){
+		if (set[7][1]>=i) set[7][1]+= (set[7][1]>0?-1:0);
+		PREF._Set('set',set);
+		}
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function optPost(e){
+	s.o[3] = !s.o[3];
+	LS._SetVar('BWM:LIST:'+ID,list);
+	}
+function getOpt(e){
+	s.o = clone(set[8]);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function setOpt(e){
+	set[8] = clone(s.o);
+	PREF._Set('set',set);
+	}
+function delSearch(e){
+	if (set[5]==-2){
+		s.s = [];
+		}
+	else{
+		s.b = [0,0,0,0];
+		s.e = [0,0,null,0];
+		s.o = clone(set[8]);
+		s.t = 0;
+		}
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function razSearch(e){
+	cmdSearch(null,[null,1]);
+	s.b = [0,0,0,0];
+	s.e = [0,0,null,0];
+	s.o = clone(set[8]);
+	s.t = 0;
+	s.s = [];
+	PREF._Set('set',set);
+	LS._SetVar('BWM:LIST:'+ID,list);
+	upTabs();
+	}
+function optSearch(e,i){
+	var v = new RegExp("^(|[0-9]+)$").exec(e.target.value);
+	if (v!=null){
+		e.target.classList.remove('BWMerror');
+		v = v[1]===''?'':Number(v[1]);
+		s.o[i] = v;
+		LS._SetVar('BWM:LIST:'+ID,list);
+		}
+	else e.target.classList.add('BWMerror');
+	}
+function actSearch(e,i){
+	cmdSearch(null,[null,i]);
+	if (i>1){
+		set[6] = s.r.length-1;
+		set[7] = [set[6],0];
+		PREF._Set('set',set);
+		}
+	upTabs();
+	}
+// commandes Résultats
 function setR(e,i){
 	set[6] = i; set[7] = [i,0];
 	PREF._Set('set',set);
@@ -731,160 +910,9 @@ function firstI(e,i){
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
-function setMode(e,i){
-	set[1] = i;
-	PREF._Set('set',set);
-	upTabs();
-	}
-function addSel(e,i){
-	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
-		s.s.push(clone(i));
-		LS._SetVar('BWM:LIST:'+ID,list);
-		upTabs();
-		}
-	}
-function selAll(e,i){
-	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
-		for (var j=0; j<i.length;j++){
-			s.s.push(clone(i[j]));
-			}
-		LS._SetVar('BWM:LIST:'+ID,list);
-		upTabs();
-		}
-	}
-function triSel(e,i){
-	s.s.sort(tabTri(i));
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function addNewSel(e,i){
-	s.s.splice(i+1,0,[0,0,0,0]);
-	if (set[7][0]==-2) set[7][1] = i+1;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function moveSel(e,i){
-	s.s[i[0]] = [s.s[i[1]],s.s[i[1]]=s.s[i[0]]][0];//swap
-	if (set[7][0]==-2) set[7][1] = set[7][1]==i[0]?i[1]:set[7][1]==i[1]?i[0]:set[7][1];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delSel(e,i){
-	s.s.splice(i,1);
-	if (set[7][0]==-2){
-		if (set[7][1]>=i) set[7][1]+= (set[7][1]>0?-1:0);
-		PREF._Set('set',set);
-		}
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function addSelR(e,i){
-	var v = clone(s.s[i]);
-	if (set[7][0]>=0){
-		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1) r.splice(set[7][1]+1,0,v,[0,0,0,0]);
-		else r.splice(set[7][1]+2,0,v,[0,0,0,0]);
-		}
-	else r.push(v,[0,0,0,0]);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function optSearch(e,i){
-	var v = new RegExp("^(|[0-9]+)$").exec(e.target.value);
-	if (v!=null){
-		e.target.classList.remove('BWMerror');
-		v = v[1]===''?'':Number(v[1]);
-		s.o[i] = v;
-		LS._SetVar('BWM:LIST:'+ID,list);
-		}
-	else e.target.classList.add('BWMerror');
-	}
-function optPost(e){
-	s.o[3] = !s.o[3];
-	LS._SetVar('BWM:LIST:'+ID,list);
-	}
-function getOpt(e){
-	s.o = clone(set[8]);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setOpt(e){
-	set[8] = clone(s.o);
-	PREF._Set('set',set);
-	}
-function delSearch(e){
-	if (set[5]==-3){
-		s.o = ['','',''];
-		}
-	else if (set[5]==-2){
-		s.s = [];
-		}
-	else{
-		s.b = [0,0,0,0];
-		s.e = [0,0,null,0];
-		s.t = 0;
-		}
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function razSearch(e){
-	cmdSearch(null,[null,1]);
-	s.o = clone(set[8]);
-	s.s = [];
-	s.b = [0,0,0,0];
-	s.e = [0,0,null,0];
-	s.t = 0;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setSelect(e,i){
-	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
-		if (set[7][0]==-1){
-			but[i[0]] = i[1];
-			}
-		else if (set[7][0]==-2){
-			s.s[set[7][1]][i[0]] = i[1];
-			}
-		}
-	if (set[7][0]>=0) r[set[7][1]][i[0]] = i[1];
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setISelect(e,i){
-	var v = clone(i);
-	if (!_Exist(tasks.s[cat])||(_Exist(tasks.s[cat])&&!_Exist(tasks.s[cat][set[4]]))){
-		if (set[7][0]==-1){
-			s.b = v;
-			}
-		else if (set[7][0]==-2){
-			s.s[set[7][1]] = v;
-			}
-		}
-	if (set[7][0]>=0) r[set[7][1]] = v;
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setTri(e,i){
-	set[2][1] = (i==set[2][0]&&set[2][1]==1)?0:1;
-	set[2][0] = i;
-	PREF._Set('set',set);
-	upTabs();
-	}
-function actSearch(e,i){
-	cmdSearch(null,[null,i]);
-	if (i>1){
-		set[6] = s.r.length-1;
-		set[7] = [set[6],0];
-		PREF._Set('set',set);
-		}
-	upTabs();
-	}
+// fonctions de recherche
 function cmdSearch(e,i){ // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|fin 3|res 4)
-	var keyA = (_Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]))?tasks.s[cat][set[4]]:null,
+	var keyA = isGo?tasks.s[cat][set[4]]:null,
 		key = i[0]===null?keyA:i[0];
 	if (key!==null){
 		var v = tasks.w[key],
@@ -924,7 +952,7 @@ function upSearch(){
 			ss = ('0'+Math.floor(sec)%60).slice(-2);
 		return (d>0?d+'j. ':'')+hh+':'+mm+':'+ss;
 		}
-	var keyA = (_Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]))?tasks.s[cat][set[4]]:null,
+	var keyA = isGo?tasks.s[cat][set[4]]:null,
 		cible = set[0][3]&&set[0][4]&&set[5]==-1;
 	if (keyA!==null&&cible){
 		if (tasks.t===null) tasks.t = window.setInterval(upSearch,500);
@@ -1063,6 +1091,7 @@ function search(){
 	s.t = 0;
 	upTabs();
 	}
+// fonctions de colorisation
 function itemAddClass(node,v){
 	for (var j=1;j<5;j++){
 		rootIU[node+'_'+j].classList.add(v);
@@ -1083,9 +1112,7 @@ function unselectSameItem(e,i){
 		itemDelClass(i[j],'selectedItem');
 		}
 	}
-function addslashes(str){
-	return (str + '').replace(/[\\"']/g,'\\$&').replace(/\u0000/g,'\\0');
-	}
+// création de l'interface
 function upTabs(){
 	var link = {}, target = [null,null], results = [], root = 0, lroot = null;
 	if (_Exist(list['0'])&&Array.isArray(list['0'][0])){ // patch 2015.08.29 -> 2015.11.05
@@ -1117,8 +1144,13 @@ function upTabs(){
 		if (set[7][0]>=0) set[7] = [0,0];
 		PREF._Set('set',set);
 		}
-	if (list[cat][set[4]].s.length===0){list[cat][set[4]].s = [[0,0,0,0]];}
+	if (list[cat][set[4]].s.length===0){
+		list[cat][set[4]].s = [[0,0,0,0]];
+		if (set[7][0]==-2) set[7] = [-2,0];
+		PREF._Set('set',set);
+		}
 	c = list[cat]; s = c[set[4]]; r = s.r[set[6]]; but = s.b;
+	isGo = _Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]);
 	// pré-calcule les fusions pour cette catégorie (hors qualité)
 	for (var i=0; i<3; i++){
 		var t = loc[i+2][set[3][0]], len = t.length;
@@ -1130,7 +1162,6 @@ function upTabs(){
 				}
 			}
 		}
-//console.debug('upTabs',JSON.stringify(s),JSON.stringify(set));
 	// reconstruit l'interface
 	if (_Exist(rootIU.root)) rootIU.root.parentNode.removeChild(rootIU.root); 
 	rootIU.root = IU._CreateElement('div',{'align':'center'},[],{},null);
@@ -1141,15 +1172,15 @@ function upTabs(){
 		['hr','div',{'class':'hr720'},[],{},'root'],
 		['t1','table',{'class':'BWMtab3'},[],{},'root'],
 		['t1_tr','tr',{},[],{},'t1'],
-		['t1_td0','td',{'class':'BWMtd10 BWMtitle'},['Interface '+(set[0][1]?'▲':'▼')],{'click':[show,1]},'t1_tr'],
-		['t1_td1','td',{'class':'BWMtd80'},[],{},'t1_tr'],
+		['t1_td0','td',{'class':'BWM10 BWMtitle'},['Interface '+(set[0][1]?'▲':'▼')],{'click':[show,1]},'t1_tr'],
+		['t1_td1','td',{'class':'BWM80'},[],{},'t1_tr'],
 		['t1_span0','span',{'class':'BWMtitle '+(set[0][0]?'enabled':'disabled')},[((typeof(GM_info)=='object')?GM_info.script.name:'?')+' : '],{'click':[show,0]},'t1_td1'],
 		['t1_a','a',{'href':'https://github.com/Ecilam/BloodWarsMix','TARGET':'_blank'},[((typeof(GM_info)=='object')?GM_info.script.version:'?')],{},'t1_td1'],
-		['t1_td2','td',{'class':'BWMtd10 BWMtitle '+(set[0][2]?'enabled':'disabled')},['Aide'],{'click':[show,2]},'t1_tr'],
+		['t1_td2','td',{'class':'BWM10 BWMtitle '+(set[0][2]?'enabled':'disabled')},['Aide'],{'click':[show,2]},'t1_tr'],
 		['box','div',{'class':'BWMbox','style':'display:'+(set[0][0]?'block;':'none;')},[],{},'root'],
 		['t2','table',{'class':'BWMtab0'},[],{},'box'],
 		['t2_tr0','tr',{},[],{},'t2'],
-		['t2_td0','td',{'colspan':'3','class':'BWMtd100'},[],{},'t2_tr0'],
+		['t2_td0','td',{'colspan':'3','class':'BWM100'},[],{},'t2_tr0'],
 		['t3','table',{'class':'BWMtab1'},[],{},'t2_td0'], // Catégorie et Légendaire
 		['t3_tr0','tr',{'class':'tblheader'},[],{},'t3'],
 		['t3_th0','th',{},[],{},'t3_tr0'],
@@ -1160,19 +1191,19 @@ function upTabs(){
 		['t3_tr1','tr',{},[],{},'t3'],
 		['t3_td0','td',{'colspan':'2'},[],{},'t3_tr1'],
 		['t2_tr1','tr',{},[],{},'t2'],
-		['t2_td10','td',{'class':'BWMtd40'},[],{},'t2_tr1'],
+		['t2_td10','td',{'class':'BWM40'},[],{},'t2_tr1'],
 		['t4','table',{'class':'BWMtab1'},[],{},'t2_td10'],
-		['t2_td11','td',{'class':'BWMtd60'},[],{},'t2_tr1'],
+		['t2_td11','td',{'class':'BWM60'},[],{},'t2_tr1'],
 		['t5','table',{'class':'BWMtab1'},[],{},'t2_td11'], // simulations
 		['t5_tr0','tr',{'class':'tblheader'},[],{},'t5'],
-		['t5_th0','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][3]?'enabled':'BWMcutth disabled')},['['+(set[0][3]?'-':'+')+']'],{'click':[show,3]},'t5_tr0'],
-		['t5_th1','th',{'colspan':'3','class':'BWMtd65'+(set[0][3]?'':' BWMcutth')},[],{},'t5_tr0'],
+		['t5_th0','th',{'colspan':'2','class':'BWM10 BWMselect '+(set[0][3]?'enabled':'BWMcutth disabled')},['['+(set[0][3]?'-':'+')+']'],{'click':[show,3]},'t5_tr0'],
+		['t5_th1','th',{'colspan':'3','class':'BWM65'+(set[0][3]?'':' BWMcutth')},[],{},'t5_tr0'],
 		['t5_span0','span',{},['Simulations : '],{},'t5_th1'],
-		['t5_th2','th',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addS]},'t5_tr0'],
-		(set[4]>0?['t5_th3','th',{'class':'BWMtd5 BWMselect'},['◄'],{'click':[moveS,-1]},'t5_tr0']:['t5_th3a','th',{'class':'BWMtd5'},[],{},'t5_tr0']),
-		(set[4]<c.length-1?['t5_th4','th',{'class':'BWMtd5 BWMselect'},['►'],{'click':[moveS,+1]},'t5_tr0']:['t5_th4a','th',{'class':'BWMtd5'},[],{},'t5_tr0']),
-		['t5_th5','th',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delS]},'t5_tr0'],
-		['t5_th6','th',{'class':'BWMtd5 BWMselect atkHit'},['R'],{'click':[resetS]},'t5_tr0']],rootIU);
+		['t5_th2','th',{'class':'BWM5 BWMselect heal'},['+'],{'click':[addS]},'t5_tr0'],
+		(set[4]>0?['t5_th3','th',{'class':'BWM5 BWMselect'},['◄'],{'click':[moveS,-1]},'t5_tr0']:['t5_th3a','th',{'class':'BWM5'},[],{},'t5_tr0']),
+		(set[4]<c.length-1?['t5_th4','th',{'class':'BWM5 BWMselect'},['►'],{'click':[moveS,+1]},'t5_tr0']:['t5_th4a','th',{'class':'BWM5'},[],{},'t5_tr0']),
+		['t5_th5','th',{'class':'BWM5 BWMselect atkHit'},['X'],{'click':[delS]},'t5_tr0'],
+		['t5_th6','th',{'class':'BWM5 BWMselect atkHit'},['R'],{'click':[resetS]},'t5_tr0']],rootIU);
 	// Catégorie
 	for (var j=0;j<loc[0].length;j++){
 		if (_Exist(tasks.s[j])) rootIU.t3_span1.classList.add('BWMblink');
@@ -1203,32 +1234,31 @@ function upTabs(){
 				}
 			}
 		if (set[0][3]){ // Recherche
-			var isGo = _Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]);
 			IU._CreateElements([
 				['t5_tr1','tr',{'class':'tblheader'},[],{},'t5'],
-				['t5_th10','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][4]?'enabled':'disabled')},['['+(set[0][4]?'-':'+')+']'],{'click':[show,4]},'t5_tr1'],
-				['t5_th11','th',{'colspan':'3','class':'BWMtd65'},[],{},'t5_tr1'],
+				['t5_th10','th',{'colspan':'2','class':'BWM10 BWMselect '+(set[0][4]?'enabled':'disabled')},['['+(set[0][4]?'-':'+')+']'],{'click':[show,4]},'t5_tr1'],
+				['t5_th11','th',{'colspan':'3','class':'BWM65'},[],{},'t5_tr1'],
 				['t5_span110','span',{},['Recherche : '],{},'t5_th11'],
 				['t5_span111','span',{'class':'BWMselect'+(set[5]==-2?' disabled':'')},['Index ('+s.s.length+')'],{'click':[setO,-2]},'t5_th11'],
 				['t5_span112','span',{},[', '],{},'t5_th11'],
 				['t5_span113','span',{'class':'BWMselect'+(set[5]==-1?' disabled':'')},['Cible'],{'click':[setO,-1]},'t5_th11'],
-				['t5_th12','th',{'colspan':'3','class':'BWMtd15'},[],{},'t5_tr1'],
-				(isGo?['t5_th13a','th',{'class':'BWMtd5'},[],{},'t5_tr1']:['t5_th13','th',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delSearch]},'t5_tr1']),
-				['t5_th14','th',{'class':'BWMtd5 BWMselect atkHit'},['R'],{'click':[razSearch]},'t5_tr1']],rootIU);
+				['t5_th12','th',{'colspan':'3','class':'BWM15'},[],{},'t5_tr1'],
+				(isGo?['t5_th13a','th',{'class':'BWM5'},[],{},'t5_tr1']:['t5_th13','th',{'class':'BWM5 BWMselect atkHit'},['X'],{'click':[delSearch]},'t5_tr1']),
+				['t5_th14','th',{'class':'BWM5 BWMselect atkHit'},['R'],{'click':[razSearch]},'t5_tr1']],rootIU);
 			if (set[0][4]){
 				if (set[5]==-2){ // bloc Index
 					IU._CreateElements([
 						['t5_tr2','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td20','th',{'class':'BWMtd5'},[],{},'t5_tr2'],
-						['t5_td21','th',{'class':'BWMtd5'},[],{},'t5_tr2'],
+						['t5_td20','th',{'class':'BWM5'},[],{},'t5_tr2'],
+						['t5_td21','th',{'class':'BWM5'},[],{},'t5_tr2'],
 						['t5_span21a','span',{},[],{},'t5_td21'],
-						['t5_td22','th',{'class':'BWMtd20'},[],{},'t5_tr2'],
+						['t5_td22','th',{'class':'BWM20'},[],{},'t5_tr2'],
 						['t5_span22a','span',{},['Objet'],{},'t5_td22'],
-						['t5_td23','th',{'class':'BWMtd20'},[],{},'t5_tr2'],
+						['t5_td23','th',{'class':'BWM20'},[],{},'t5_tr2'],
 						['t5_span23a','span',{},['Préfixe'],{},'t5_td23'],
-						['t5_td24','th',{'class':'BWMtd25'},[],{},'t5_tr2'],
+						['t5_td24','th',{'class':'BWM25'},[],{},'t5_tr2'],
 						['t5_span24a','span',{},['Suffixe'],{},'t5_td24'],
-						['t5_td25a','th',{'colspan':'5','class':'BWMtd25'},['Actions'],{},'t5_tr2']],rootIU);
+						['t5_td25a','th',{'colspan':'5','class':'BWM25'},['Actions'],{},'t5_tr2']],rootIU);
 					if (!isGo){
 						IU._CreateElements([
 							['t5_span20b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[5,0]]},'t5_td20'],
@@ -1251,26 +1281,20 @@ function upTabs(){
 						v = objDiff(s.s[j],but);
 						IU._CreateElements([
 							['t5_tr3'+j,'tr',{'class':'BWMTR2'+(j%2===0?'':' BWMeven')},[],{},'t5'],
-							['t5_td3'+j+'_0','td',{'class':'BWMtd5 BWMcut'},[v==Infinity?'∞':v],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_1','td',{'class':'BWMtd5 BWMcut'},[s.s[j][0]<1?'-':loc[1][s.s[j][0]]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_2','td',{'class':'BWMtd20 BWMcut'},[s.s[j][1]<1?'-':s.s[j][1]+':'+loc[2][set[3][0]][s.s[j][1]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_3','td',{'class':'BWMtd20 BWMcut'},[s.s[j][2]<1?'-':s.s[j][2]+':'+loc[3][set[3][0]][s.s[j][2]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_4','td',{'class':'BWMtd25 BWMcut'},[s.s[j][3]<1?'-':s.s[j][3]+':'+loc[4][set[3][0]][s.s[j][3]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j]],rootIU);
+							['t5_td3'+j+'_0','td',{'class':'BWM5 BWMcut'},[v==Infinity?'∞':v],{'click':[setI,[-2,j]]},'t5_tr3'+j],
+							['t5_td3'+j+'_1','td',{'class':'BWM5 BWMcut'},[s.s[j][0]<1?'-':loc[1][s.s[j][0]]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
+							['t5_td3'+j+'_2','td',{'class':'BWM20 BWMcut'},[s.s[j][1]<1?'-':s.s[j][1]+':'+loc[2][set[3][0]][s.s[j][1]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
+							['t5_td3'+j+'_3','td',{'class':'BWM20 BWMcut'},[s.s[j][2]<1?'-':s.s[j][2]+':'+loc[3][set[3][0]][s.s[j][2]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
+							['t5_td3'+j+'_4','td',{'class':'BWM25 BWMcut'},[s.s[j][3]<1?'-':s.s[j][3]+':'+loc[4][set[3][0]][s.s[j][3]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j]],rootIU);
 						if (isGo){
-							IU._CreateElements([
-								['t5_td3'+j+'_5','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_6','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_7','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_8','td',{'class':'BWMtd5'},[],{},'t5_tr3'+j],
-								['t5_td3'+j+'_9','td',{'class':'BWMtd5 BWMselect'},['►'],{'click':[addSelR,j]},'t5_tr3'+j]],rootIU);
+							IU._CreateElements([['t5_td3'+j+'_5','td',{'colspan':'5','class':'BWM25'},[],{},'t5_tr3'+j]],rootIU);
 							}
 						else{
 							IU._CreateElements([
-								['t5_td3'+j+'_5','td',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addNewSel,j]},'t5_tr3'+j],
-								(j<s.s.length-1?['t5_td3'+j+'_6','td',{'class':'BWMtd5 BWMselect'},['▼'],{'click':[moveSel,[j,j+1]]},'t5_tr3'+j]:['t5_td3'+j+'_6','td',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
-								(j>0?['t5_td3'+j+'_7','td',{'class':'BWMtd5 BWMselect'},['▲'],{'click':[moveSel,[j,j-1]]},'t5_tr3'+j]:['t5_td3'+j+'_7','td',{'class':'BWMtd5 BWMselect'},[],{},'t5_tr3'+j]),
-								['t5_td3'+j+'_8','td',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delSel,j]},'t5_tr3'+j],
-								['t5_td3'+j+'_9','td',{'class':'BWMtd5 BWMselect'},['►'],{'click':[addSelR,j]},'t5_tr3'+j]],rootIU);
+								['t5_td3'+j+'_5','td',{'class':'BWM5 BWMselect heal'},['+'],{'click':[addNewSel,j]},'t5_tr3'+j],
+								(j<s.s.length-1?['t5_td3'+j+'_6','td',{'class':'BWM5 BWMselect'},['▼'],{'click':[moveSel,[j,j+1]]},'t5_tr3'+j]:['t5_td3'+j+'_6','td',{'class':'BWM5 BWMselect'},[],{},'t5_tr3'+j]),
+								(j>0?['t5_td3'+j+'_7','td',{'class':'BWM5 BWMselect'},['▲'],{'click':[moveSel,[j,j-1]]},'t5_tr3'+j]:['t5_td3'+j+'_7','td',{'class':'BWM5 BWMselect'},[],{},'t5_tr3'+j]),
+								['t5_td3'+j+'_8','td',{'colspan':'2','class':'BWM10 BWMselect atkHit'},['X'],{'click':[delSel,j]},'t5_tr3'+j]],rootIU);
 							}
 						}
 					}
@@ -1281,7 +1305,7 @@ function upTabs(){
 					if (set[7][0]==-1){target = [v,0];}
 					IU._CreateElements([
 						['t5_tr2','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td20','td',{'colspan':'5','class':'BWMtd65'},[],{},'t5_tr2'],
+						['t5_td20','td',{'colspan':'5','class':'BWM65'},[],{},'t5_tr2'],
 						['t6','table',{'class':'BWMtab3'},[],{},'t5_td20'],
 						['t6_tr0','tr',{},[],{},'t6'],
 						['t6_td00','td',{},[],{},'t6_tr0'],
@@ -1293,15 +1317,15 @@ function upTabs(){
 						['t6_td03','td',{},[],{},'t6_tr0'],
 						['t6_span03','span',{},['Post'],{},'t6_td03'],
 						['t5_tr3','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td3_0','td',{'class':'BWMtd5 BWMcut'},[],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_1','td',{'class':'BWMtd5 BWMcut'},[but[0]<=0?'-':loc[1][but[0]]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_2','td',{'class':'BWMtd20 BWMcut'},[but[1]<=0?'-':but[1]+':'+loc[2][set[3][0]][but[1]][0]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_3','td',{'class':'BWMtd20 BWMcut'},[but[2]<=0?'-':but[2]+':'+loc[3][set[3][0]][but[2]][0]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_4','td',{'class':'BWMtd25 BWMcut'},[but[3]<=0?'-':but[3]+':'+loc[4][set[3][0]][but[3]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td35','td',{'colspan':'5','class':'BWMtd25 '+(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'t5_tr3'],
-						['t5_td36','td',{'colspan':'1','class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[actSearch,1]},'t5_tr3'],
-						['t5_td37','td',{'colspan':'2','class':'BWMtd10 BWMselect atkHit'},['X▼'],{'click':[actSearch,2]},'t5_tr3'],
-						['t5_td38','td',{'colspan':'2','class':'BWMtd10 BWMselect'},['▼'],{'click':[actSearch,4]},'t5_tr3'],
+						['t5_td3_0','td',{'class':'BWM5 BWMcut'},[],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_1','td',{'class':'BWM5 BWMcut'},[but[0]<=0?'-':loc[1][but[0]]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_2','td',{'class':'BWM20 BWMcut'},[but[1]<=0?'-':but[1]+':'+loc[2][set[3][0]][but[1]][0]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_3','td',{'class':'BWM20 BWMcut'},[but[2]<=0?'-':but[2]+':'+loc[3][set[3][0]][but[2]][0]+" "],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_4','td',{'class':'BWM25 BWMcut'},[but[3]<=0?'-':but[3]+':'+loc[4][set[3][0]][but[3]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td35','td',{'colspan':'5','class':'BWM25 '+(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'t5_tr3'],
+						['t5_td36','td',{'colspan':'1','class':'BWM5 BWMselect atkHit'},['X'],{'click':[actSearch,1]},'t5_tr3'],
+						['t5_td37','td',{'colspan':'2','class':'BWM10 BWMselect atkHit'},['X▼'],{'click':[actSearch,2]},'t5_tr3'],
+						['t5_td38','td',{'colspan':'2','class':'BWM10 BWMselect'},['▼'],{'click':[actSearch,4]},'t5_tr3'],
 						['t5_tr4','tr',{'class':'BWMTR2'},[],{},'t5'],
 						['t5_td40','td',{'colspan':'5'},[],{},'t5_tr4'],
 						['t5_td41','td',{'colspan':'5'},[],{},'t5_tr4']],rootIU);
@@ -1311,7 +1335,7 @@ function upTabs(){
 							['t6_ecart','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[1]},[],{},'t6_td01'],
 							['t6_fusion','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[2]},[],{},'t6_td02'],
 							['t6_post','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[3]},[],{},'t6_td03'],
-							['t5_td21','td',{'colspan':'3','class':'BWMtd15'},[],{},'t5_tr2']],rootIU);
+							['t5_td21','td',{'colspan':'3','class':'BWM15'},[],{},'t5_tr2']],rootIU);
 						}
 					else{
 						IU._CreateElements([
@@ -1319,9 +1343,9 @@ function upTabs(){
 							['t6_ecart','input',{'class':'inputbox BWMinput','type':'text','value':s.o[1],'onfocus':"this.select();"},[],{'change':[optSearch,1],'keyup':[optSearch,1]},'t6_td01'],
 							['t6_fusion','input',{'class':'inputbox BWMinput','type':'text','value':s.o[2],'onfocus':"this.select();"},[],{'change':[optSearch,2],'keyup':[optSearch,2]},'t6_td02'],
 							['t6_post','input',{'class':'BWMinput','type':'checkbox','checked':s.o[3]},[],{'change':[optPost]},'t6_td03'],
-							['t5_td21a','td',{'colspan':'3','class':'BWMtd15 BWMselect heal'},['▼'],{'click':[getOpt]},'t5_tr2']],rootIU);
+							['t5_td21a','td',{'colspan':'3','class':'BWM15 BWMselect heal'},['▼'],{'click':[getOpt]},'t5_tr2']],rootIU);
 						}
-					IU._CreateElements([['t5_td22a','td',{'colspan':'2','class':'BWMtd10 BWMselect atkHit'},['▲'],{'click':[setOpt]},'t5_tr2']],rootIU);
+					IU._CreateElements([['t5_td22a','td',{'colspan':'2','class':'BWM10 BWMselect atkHit'},['▲'],{'click':[setOpt]},'t5_tr2']],rootIU);
 					upSearch();
 					}
 				}
@@ -1330,14 +1354,14 @@ function upTabs(){
 	if (set[0][3]){ // Résultats
 		IU._CreateElements([
 			['t5_tr5','tr',{'class':'tblheader'},[],{},'t5'],
-			['t5_th50','th',{'colspan':'2','class':'BWMtd10 BWMselect '+(set[0][5]?'enabled':'disabled')},['['+(set[0][5]?'-':'+')+']'],{'click':[show,5]},'t5_tr5'],
-			['t5_th51','th',{'colspan':'3','class':'BWMtd65'+(set[0][5]?'':' BWMcutth')},[],{},'t5_tr5'],
+			['t5_th50','th',{'colspan':'2','class':'BWM10 BWMselect '+(set[0][5]?'enabled':'disabled')},['['+(set[0][5]?'-':'+')+']'],{'click':[show,5]},'t5_tr5'],
+			['t5_th51','th',{'colspan':'3','class':'BWM65'+(set[0][5]?'':' BWMcutth')},[],{},'t5_tr5'],
 			['t5_span510','span',{},['Résultats : '],{},'t5_th51'],
-			['t5_th52','th',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addR]},'t5_tr5'],
-			(set[6]>0?['t5_th53','th',{'class':'BWMtd5 BWMselect'},['◄'],{'click':[moveR,-1]},'t5_tr5']:['t5_th53a','th',{'class':'BWMtd5'},[],{},'t5_tr5']),
-			(set[6]<s.r.length-1?['t5_th54','th',{'class':'BWMtd5 BWMselect'},['►'],{'click':[moveR,+1]},'t5_tr5']:['t5_th54a','th',{'class':'BWMtd5'},[],{},'t5_tr5']),
-			['t5_th55','th',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delR]},'t5_tr5'],
-			['t5_th56','th',{'class':'BWMtd5 BWMselect atkHit'},['R'],{'click':[resetR]},'t5_tr5']],rootIU);
+			['t5_th52','th',{'class':'BWM5 BWMselect heal'},['+'],{'click':[addR]},'t5_tr5'],
+			(set[6]>0?['t5_th53','th',{'class':'BWM5 BWMselect'},['◄'],{'click':[moveR,-1]},'t5_tr5']:['t5_th53a','th',{'class':'BWM5'},[],{},'t5_tr5']),
+			(set[6]<s.r.length-1?['t5_th54','th',{'class':'BWM5 BWMselect'},['►'],{'click':[moveR,+1]},'t5_tr5']:['t5_th54a','th',{'class':'BWM5'},[],{},'t5_tr5']),
+			['t5_th55','th',{'class':'BWM5 BWMselect atkHit'},['X'],{'click':[delR]},'t5_tr5'],
+			['t5_th56','th',{'class':'BWM5 BWMselect atkHit'},['R'],{'click':[resetR]},'t5_tr5']],rootIU);
 		for (var j=0;j<s.r.length;j++){
 			IU._CreateElements([['t5_span41a'+j,'span',{'class':'BWMselect'+(j==set[6]?' disabled':'')},[j],{'click':[setR,j]},'t5_th51']],rootIU);
 			if (j<s.r.length-1) IU._CreateElements([['t5_span41b'+j,'span',{},[', '],{},'t5_th51']],rootIU);
@@ -1345,11 +1369,11 @@ function upTabs(){
 		if (set[0][5]){
 			IU._CreateElements([
 				['t5_tr6','tr',{'class':'tblheader'},[],{},'t5'],
-				['t5_th60','th',{'colspan':'2','class':'BWMtd10'},[],{},'t5_tr6'],
-				['t5_th61','th',{'class':'BWMtd20'},['Objet'],{},'t5_tr6'],
-				['t5_th62','th',{'class':'BWMtd20'},['Préfixe'],{},'t5_tr6'],
-				['t5_th63','th',{'class':'BWMtd25'},['Suffixe'],{},'t5_tr6'],
-				['t5_th64','th',{'colspan':'5','class':'BWMtd25'},['Actions'],{},'t5_tr6']],rootIU);
+				['t5_th60','th',{'colspan':'2','class':'BWM10'},[],{},'t5_tr6'],
+				['t5_th61','th',{'class':'BWM20'},['Objet'],{},'t5_tr6'],
+				['t5_th62','th',{'class':'BWM20'},['Préfixe'],{},'t5_tr6'],
+				['t5_th63','th',{'class':'BWM25'},['Suffixe'],{},'t5_tr6'],
+				['t5_th64','th',{'colspan':'5','class':'BWM25'},['Actions'],{},'t5_tr6']],rootIU);
 			for (var j=0;j<r.length;j++){
 				if (r[j]==-1){ // séparateur
 					if (lroot!==null) lroot.setAttribute('rowspan',j-root);
@@ -1371,15 +1395,15 @@ function upTabs(){
 						}
 					IU._CreateElements([
 						['t5_tr6'+j,'tr',{'class':'BWMTR2 BWMeven'},[],{},'t5'],
-						['t5_td6'+j+'_0','td',{'class':'BWMcut2 BWMtd5 heal'},['='],{},'t5_tr6'+j],
-						['t5_td6'+j+'_1','td',{'class':'BWMcut2 BWMtd5 heal'},[r[j][0]<=0?'-':loc[1][r[j][0]]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_2','td',{'class':'BWMcut2 BWMtd20 heal'},[r[j][1]<=0?'-':r[j][1]+':'+loc[2][set[3][0]][r[j][1]][0]+" "],{},'t5_tr6'+j],
-						['t5_td6'+j+'_3','td',{'class':'BWMcut2 BWMtd20 heal'},[r[j][2]<=0?'-':r[j][2]+':'+loc[3][set[3][0]][r[j][2]][0]+" "],{},'t5_tr6'+j],
-						['t5_td6'+j+'_4','td',{'class':'BWMcut2 BWMtd25 heal'},[r[j][3]<=0?'-':r[j][3]+':'+loc[4][set[3][0]][r[j][3]][0]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_5','td',{'class':'BWMtd5 BWMselect heal'},['+'],{'click':[addI,j]},'t5_tr6'+j],
-						(!(_Exist(r[j+1])&&r[j+1]==-1))?['t5_td6'+j+'_6','td',{'class':'BWMtd5 BWMselect'},["<>"],{'click':[sepI,j]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{'class':'BWMtd5'},[],{},'t5_tr6'+j],
-						['t5_td6'+j+'_7','td',{'class':'BWMtd5 BWMselect atkHit'},['◄'],{'click':[firstI,[j,root]]},'t5_tr6'+j],
-						['t5_td6'+j+'_8','td',{'class':'BWMtd5 BWMselect atkHit'},['▲'],{'click':[firstI,[j,0]]},'t5_tr6'+j]],rootIU);
+						['t5_td6'+j+'_0','td',{'class':'BWMcut2 BWM5 heal'},['='],{},'t5_tr6'+j],
+						['t5_td6'+j+'_1','td',{'class':'BWMcut2 BWM5 heal'},[r[j][0]<=0?'-':loc[1][r[j][0]]],{},'t5_tr6'+j],
+						['t5_td6'+j+'_2','td',{'class':'BWMcut2 BWM20 heal'},[r[j][1]<=0?'-':r[j][1]+':'+loc[2][set[3][0]][r[j][1]][0]+" "],{},'t5_tr6'+j],
+						['t5_td6'+j+'_3','td',{'class':'BWMcut2 BWM20 heal'},[r[j][2]<=0?'-':r[j][2]+':'+loc[3][set[3][0]][r[j][2]][0]+" "],{},'t5_tr6'+j],
+						['t5_td6'+j+'_4','td',{'class':'BWMcut2 BWM25 heal'},[r[j][3]<=0?'-':r[j][3]+':'+loc[4][set[3][0]][r[j][3]][0]],{},'t5_tr6'+j],
+						['t5_td6'+j+'_5','td',{'class':'BWM5 BWMselect heal'},['+'],{'click':[addI,j]},'t5_tr6'+j],
+						(!(_Exist(r[j+1])&&r[j+1]==-1))?['t5_td6'+j+'_6','td',{'class':'BWM5 BWMselect'},["<>"],{'click':[sepI,j]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{'class':'BWM5'},[],{},'t5_tr6'+j],
+						['t5_td6'+j+'_7','td',{'class':'BWM5 BWMselect atkHit'},['◄'],{'click':[firstI,[j,root]]},'t5_tr6'+j],
+						['t5_td6'+j+'_8','td',{'class':'BWM5 BWMselect atkHit'},['▲'],{'click':[firstI,[j,0]]},'t5_tr6'+j]],rootIU);
 					if (lroot!==null) lroot.setAttribute('rowspan',j-root+1);
 					}
 				else { // objets
@@ -1390,16 +1414,16 @@ function upTabs(){
 					if (set[7][0]>=0&&set[7][1]==j){target = [v,link[v]['res'].length-1];}
 					IU._CreateElements([
 						['t5_tr6'+j,'tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td6'+j+'_0','td',{'class':'BWMcut BWMtd5'},[(j-root===0?'':'+')],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_1','td',{'class':'BWMcut BWMtd5'},[r[j][0]<=0?'-':loc[1][r[j][0]]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_2','td',{'class':'BWMcut BWMtd20'},[r[j][1]<=0?'-':r[j][1]+':'+loc[2][set[3][0]][r[j][1]][0]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_3','td',{'class':'BWMcut BWMtd20'},[r[j][2]<=0?'-':r[j][2]+':'+loc[3][set[3][0]][r[j][2]][0]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_4','td',{'class':'BWMcut BWMtd25'},[r[j][3]<=0?'-':r[j][3]+':'+loc[4][set[3][0]][r[j][3]][0]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						(j-root===0)?['t5_td6'+j+'_5','td',{'class':'BWMtd5 BWMselect heal'},["+"],{'click':[addI,j]},'t5_tr6'+j]:['t5_td6'+j+'_5','td',{'class':'BWMtd5'},[],{},'t5_tr6'+j],
-						(_Exist(r[j+2])&&r[j+2]!=-1)?['t5_td6'+j+'_7','td',{'class':'BWMtd5 BWMselect'},['▼'],{'click':[moveI,[j,(j==root?j+1:j+2)]]},'t5_tr6'+j]:['t5_td6'+j+'_7','td',{'class':'BWMtd5'},[],{},'t5_tr6'+j],
-						(j-root>0)?['t5_td6'+j+'_6','td',{'class':'BWMtd5 BWMselect'},['▲'],{'click':[moveI,[j,(j-root>2?j-2:j-1)]]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{'class':'BWMtd5'},[],{},'t5_tr6'+j],
-						['t5_td6'+j+'_8','td',{'class':'BWMtd5 BWMselect atkHit'},['X'],{'click':[delI,[j,root]]},'t5_tr6'+j]],rootIU);
-					if (j==root) lroot = IU._CreateElement('td',{'class':'BWMtd5 BWMselect atkHit'},['B'],{'click':[delB,root]},rootIU['t5_tr6'+j]);
+						['t5_td6'+j+'_0','td',{'class':'BWMcut BWM5'},[(j-root===0?'':'+')],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
+						['t5_td6'+j+'_1','td',{'class':'BWMcut BWM5'},[r[j][0]<=0?'-':loc[1][r[j][0]]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
+						['t5_td6'+j+'_2','td',{'class':'BWMcut BWM20'},[r[j][1]<=0?'-':r[j][1]+':'+loc[2][set[3][0]][r[j][1]][0]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
+						['t5_td6'+j+'_3','td',{'class':'BWMcut BWM20'},[r[j][2]<=0?'-':r[j][2]+':'+loc[3][set[3][0]][r[j][2]][0]+" "],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
+						['t5_td6'+j+'_4','td',{'class':'BWMcut BWM25'},[r[j][3]<=0?'-':r[j][3]+':'+loc[4][set[3][0]][r[j][3]][0]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
+						(j-root===0)?['t5_td6'+j+'_5','td',{'class':'BWM5 BWMselect heal'},["+"],{'click':[addI,j]},'t5_tr6'+j]:['t5_td6'+j+'_5','td',{'class':'BWM5'},[],{},'t5_tr6'+j],
+						(_Exist(r[j+2])&&r[j+2]!=-1)?['t5_td6'+j+'_7','td',{'class':'BWM5 BWMselect'},['▼'],{'click':[moveI,[j,(j==root?j+1:j+2)]]},'t5_tr6'+j]:['t5_td6'+j+'_7','td',{'class':'BWM5'},[],{},'t5_tr6'+j],
+						(j-root>0)?['t5_td6'+j+'_6','td',{'class':'BWM5 BWMselect'},['▲'],{'click':[moveI,[j,(j-root>2?j-2:j-1)]]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{'class':'BWM5'},[],{},'t5_tr6'+j],
+						['t5_td6'+j+'_8','td',{'class':'BWM5 BWMselect atkHit'},['X'],{'click':[delI,[j,root]]},'t5_tr6'+j]],rootIU);
+					if (j==root) lroot = IU._CreateElement('td',{'class':'BWM5 BWMselect atkHit'},['B'],{'click':[delB,root]},rootIU['t5_tr6'+j]);
 					}
 				}
 			}
@@ -1407,33 +1431,36 @@ function upTabs(){
 	// Saisie
 	IU._CreateElements([
 		['t4_tr','tr',{'class':'tblheader'},[],{},'t4'],
-		['t4_th0','th',{'colspan':'1','class':'BWMtd10 BWMselect '+(set[0][6]?'enabled':'disabled')},['['+(set[0][6]?'-':'+')+']'],{'click':[show,6]},'t4_tr'],
-		['t4_th1','th',{'colspan':'4','class':'BWMtd90'},[],{},'t4_tr'],
+		['t4_th0','th',{'class':'BWM10 BWMselect '+(set[0][6]?'enabled':'disabled')},['['+(set[0][6]?'-':'+')+']'],{'click':[show,6]},'t4_tr'],
+		['t4_th1','th',{'colspan':'4','class':'BWM90'},[],{},'t4_tr'],
 		['t4_span10','span',{},['Saisie : '],{},'t4_th1'],
-		['t4_span11','span',{'class':'BWMselect'+(set[1]===0?' disabled':'')},['listes ('+arm.length+'+'+results.length+')'],{'click':[setMode,0]},'t4_th1'],
+		['t4_span11','span',{'class':'BWMselect'+(set[1]===0?' disabled':'')},['listes ('+arm.length+'+'+results.length+')'],{'click':[selectMode,0]},'t4_th1'],
 		['t4_span12','span',{},[', '],{},'t4_th1'],
-		['t4_span13','span',{'class':'BWMselect'+(set[1]==1?' disabled':'')},['manuelle'],{'click':[setMode,1]},'t4_th1']],rootIU);
+		['t4_span13','span',{'class':'BWMselect'+(set[1]==1?' disabled':'')},['libre'],{'click':[selectMode,1]},'t4_th1'],
+/*		['t4_span14','span',{},[', '],{},'t4_th1'],
+		['t4_span15','span',{'class':'BWMselect'+(set[1]==2?' disabled':'')},['copie'],{'click':[selectMode,2]},'t4_th1']*/
+		],rootIU);
 	if (set[0][6]){
 		if (set[1]===0){ // saisie par liste
-			var sel = [arm,results];
+			var sel = [[arm,'Armurerie'],[clone(s.s),'Index'],[results,'Synthèses']];
 			for (var k=0;k<sel.length;k++){
-				if (sel[k].length>0){
-					sel[k].sort(tabTri(set[2]));
+				if (sel[k][0].length>0){
+					sel[k][0].sort(tabTri(set[2]));
 					IU._CreateElements([
 						['t4_tr0'+k,'tr',{'class':'tblheader'},[],{},'t4'],
-						['t4_th0'+k+'_0','th',{'colspan':'1','class':'BWMtd10 BWMselect '+(set[0][7+k]?'enabled':'disabled')},['['+(set[0][7+k]?'-':'+')+']'],{'click':[show,7+k]},'t4_tr0'+k],
-						['t4_th0'+k+'_1','th',{'colspan':'4','class':'BWMtd90'},[(k===0?'Armurerie':'Synthèses')+' ('+sel[k].length+')'],{},'t4_tr0'+k]],rootIU);
+						['t4_th0'+k+'_0','th',{'class':'BWM10 BWMselect '+(set[0][7+k]?'enabled':'disabled')},['['+(set[0][7+k]?'-':'+')+']'],{'click':[show,7+k]},'t4_tr0'+k],
+						['t4_th0'+k+'_1','th',{'colspan':'4','class':'BWM90'},[sel[k][1]+' ('+sel[k][0].length+')'],{},'t4_tr0'+k]],rootIU);
 					if (set[0][7+k]){
 						IU._CreateElements([
 							['t4_tr1'+k,'tr',{'class':'tblheader'},[],{},'t4'],
-							['t4_th1'+k+'_0','th',{'class':'BWMtd10 BWMtitle'},[],{'click':[setTri,0]},'t4_tr1'+k],
-							['t4_th1'+k+'_1','th',{'class':'BWMtd25 BWMtitle'},['Objet'],{'click':[setTri,1]},'t4_tr1'+k],
-							['t4_th1'+k+'_2','th',{'class':'BWMtd25 BWMtitle'},['Préfixe'],{'click':[setTri,2]},'t4_tr1'+k],
-							['t4_th1'+k+'_3','th',{'class':'BWMtd30 BWMtitle'},['Suffixe'],{'click':[setTri,3]},'t4_tr1'+k],
-							['t4_th1'+k+'_4','th',{'class':'BWMtd10 BWMselect'},['All'],{'click':[selAll,sel[k]]},'t4_tr1'+k],
+							['t4_th1'+k+'_0','th',{'class':'BWM10 BWMtitle'},[],{'click':[selectTri,0]},'t4_tr1'+k],
+							['t4_th1'+k+'_1','th',{'class':'BWM25 BWMtitle'},['Objet'],{'click':[selectTri,1]},'t4_tr1'+k],
+							['t4_th1'+k+'_2','th',{'class':'BWM25 BWMtitle'},['Préfixe'],{'click':[selectTri,2]},'t4_tr1'+k],
+							['t4_th1'+k+'_3','th',{'class':'BWM30 BWMtitle'},['Suffixe'],{'click':[selectTri,3]},'t4_tr1'+k],
+							(set[7][0]==-1||(isGo&&set[7][0]<0))?['t4_th1'+k+'_4','th',{'class':'BWM10'},[],{},'t4_tr1'+k]:['t4_th1'+k+'_4','th',{'class':'BWM10 BWMselect heal'},['►►'],{'click':[selectAll,sel[k][0]]},'t4_tr1'+k],
 							['t4_span11'+k,'span',{'class':'BWMtriSelect'},[(set[2][1]==1?'▲':'▼')],{},'t4_th1'+k+'_'+(set[2][0])]],rootIU);
-						for (var i=0;i<sel[k].length;i++){
-							var x = sel[k][i],
+						for (var i=0;i<sel[k][0].length;i++){
+							var x = sel[k][0][i],
 								v = JSONS._Encode(x);
 							if (!_Exist(link[v])) link[v] = {};
 							if (!_Exist(link[v]['s'+k])) link[v]['s'+k] = [];
@@ -1441,20 +1468,22 @@ function upTabs(){
 							IU._CreateElements([['t4_tr2'+k+'_'+i,'tr',{'class':'BWMTR2'+(i%2===0?'':' BWMeven')},[],{},'t4']],rootIU);
 							for (var j=0;j<4;j++){
 								var t = j===0?loc[j+1]:loc[j+1][set[3][0]];
-								if (x[j]==-1) IU._CreateElements([['t4_td2'+k+'_'+i+'_'+(j+1),'td',{'class':'BWMcut disabled'},['Inconnu !'],{'click':[setISelect,x]},'t4_tr2'+k+'_'+i]],rootIU);
-								else IU._CreateElements([['t4_td2'+k+'_'+i+'_'+(j+1),'td',{'class':'BWMcut'},[(x[j]===0?'-':(j===0?'':x[j]+':')+t[x[j]][0])],{'click':[setISelect,x]},'t4_tr2'+k+'_'+i]],rootIU);
+								if (x[j]==-1) IU._CreateElements([['t4_td2'+k+'_'+i+'_'+(j+1),'td',{'class':'BWMcut disabled'},['Inconnu !'],{},'t4_tr2'+k+'_'+i]],rootIU);
+								else if (isGo&&set[7][0]<0) IU._CreateElements([['t4_td2'+k+'_'+i+'_'+(j+1),'td',{'class':'BWMcut2'},[(x[j]===0?'-':(j===0?'':x[j]+':')+t[x[j]][0])],{},'t4_tr2'+k+'_'+i]],rootIU);
+								else IU._CreateElements([['t4_td2'+k+'_'+i+'_'+(j+1),'td',{'class':'BWMcut'},[(x[j]===0?'-':(j===0?'':x[j]+':')+t[x[j]][0])],{'click':[selectSet,x]},'t4_tr2'+k+'_'+i]],rootIU);
 								}
-							IU._CreateElements([['t4_td2'+k+'_'+i+'_5','td',{'class':'BWMselect'},['►'],{'click':[addSel,x]},'t4_tr2'+k+'_'+i]],rootIU);
+							if (set[7][0]==-1||(isGo&&set[7][0]<0)) IU._CreateElements([['t4_td2'+k+'_'+i+'_5','td',{},[],{},'t4_tr2'+k+'_'+i]],rootIU);
+							else IU._CreateElements([['t4_td2'+k+'_'+i+'_5','td',{'class':'BWMselect heal'},['►'],{'click':[selectAdd,x]},'t4_tr2'+k+'_'+i]],rootIU);
 							}
 						}
 					}
 				}
 			}
-		else { // saisie manuelle
+		else if (set[1]==1){ // saisie manuelle
 			var max = Math.max(loc[1].length,loc[2][set[3][0]].length,loc[3][set[3][0]].length,loc[4][set[3][0]].length);
 			IU._CreateElements([
 				['t4_tr0','tr',{'class':'tblheader'},[],{},'t4'],
-				['t4_th00','th',{'class':'BWMtd10'},[],{},'t4_tr0'],
+				['t4_th00','th',{'class':'BWM10'},[],{},'t4_tr0'],
 				['t4_th01','th',{},['Objet'],{},'t4_tr0'],
 				['t4_th02','th',{},['Préfixe'],{},'t4_tr0'],
 				['t4_th03','th',{},['Suffixe'],{},'t4_tr0']],rootIU);
@@ -1462,10 +1491,19 @@ function upTabs(){
 				IU._CreateElements([['t4_tr1'+i,'tr',{'class':'BWMTR'},[],{},'t4']],rootIU);
 				for (var j=0;j<4;j++){
 					var x = j===0?loc[j+1]:loc[j+1][set[3][0]];
-					if (i<x.length) IU._CreateElements([['t4_td1'+i+'_'+j,'td',{'class':'BWMcut BWMselect'+((set[7][0]==-1?but[j]:set[7][0]==-2?s.s[set[7][1]][j]:r[set[7][1]][j])==i?' disabled':'')},[(i===0?'-':(j===0?'':i+':')+x[i][0])],{'click':[setSelect,[j,i]]},'t4_tr1'+i]],rootIU);
+					if (i<x.length) IU._CreateElements([['t4_td1'+i+'_'+j,'td',{'class':(isGo&&set[7][0]<0?'BWMcut2':'BWMcut')+((set[7][0]==-1?but[j]:set[7][0]==-2?s.s[set[7][1]][j]:r[set[7][1]][j])==i?' disabled':'')},[(i===0?'-':(j===0?'':i+':')+x[i][0])],(isGo&&set[7][0]<0?{}:{'click':[selectMSet,[j,i]]}),'t4_tr1'+i]],rootIU);
 					else IU._CreateElements([['t4_td1'+i+'_'+j,'td',{},[],{},'t4_tr1'+i]],rootIU);
 					}
 				}
+			}
+		else { // copier/coller
+			IU._CreateElements([
+				['t4_tr0','tr',{},[],{},'t4'],
+				['t4_td00','td',{'colspan':'3','class':'BWM50 BWMselect heal'},['◄◄'],{},'t4_tr0'],
+				['t4_td01','td',{'colspan':'2','class':'BWM50 BWMselect atkHit'},['►►'],{},'t4_tr0'],
+				['t4_tr1','tr',{},[],{},'t4'],
+				['t4_td01','td',{'colspan':'5','class':'BWM100'},[],{},'t4_tr1'],
+				['t4_textarea','textarea',{'class':'BWMtextarea textarea','rows':'9','placeholder':"Copier ici votre liste d'objets"},[],{'input':[selectArea]},'t4_td01']],rootIU);
 			}
 		}
 	// colorisation des objets sélectionnés/identiques
@@ -1475,17 +1513,19 @@ function upTabs(){
 			if (_Exist(link[key][v])){
 				for (var i=0;i<link[key][v].length;i++){
 					var x = _Exist(link[key].s0)&&_Exist(link[key].s0[i])?link[key].s0[i]:null,
-						y = _Exist(link[key].sel)&&_Exist(link[key].sel[i])?link[key].sel[i]:null;
+						y = _Exist(link[key].s1)&&_Exist(link[key].s1[i])?link[key].s1[i]:null,
+						z = _Exist(link[key].s2)&&_Exist(link[key].s2[i])?link[key].s2[i]:null;
 					if (target[0]==key&&target[1]==i){
 						itemAddClass(link[key][v][i],'disabled');
 						if (x!==null) itemAddClass(x,'disabled');
+						if (y!==null) itemAddClass(y,'disabled');
+						if (z!==null) itemAddClass(z,'disabled');
 						}
-					else if (x!==null){
+					else if (x!==null||y!==null||z!==null){
 						itemAddClass(link[key][v][i],'item-link');
-						itemAddClass(x,'item-link');
-						}
-					if (set[5]==-2&&v=='res'&&y!==null){
-						itemAddClass(y,'item-link');
+						if (x!==null) itemAddClass(x,'item-link');
+						if (y!==null) itemAddClass(y,'item-link');
+						if (z!==null) itemAddClass(z,'item-link');
 						}
 					}
 				}
@@ -1520,7 +1560,7 @@ function upTabs(){
 				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td>Cliquer ici pour activer/désactiver l'affichage des bulles d'aides.</td></tr>"],
 			't1_td0':['Interface',
-				"<tr><td>Cliquer ici pour déplacer l'interface dans zone haute ou basse du jeu.</td></tr>"],
+				"<tr><td>Cliquer ici pour déplacer l'interface dans la zone haute ou basse du jeu.</td></tr>"],
 			't1_span0':['Titre',
 				"<tr><td>Cliquer ici permet de masquer/afficher l'interface.</td></tr>"],
 			't4_span10':['Saisie',
@@ -1531,15 +1571,24 @@ function upTabs(){
 				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
 			't4_span11':['Saisie par listes',
 				"<tr><td><b>Armurerie :</b></td></tr>"
-				+"<tr><td>- Affiche la liste de vos objets correspondant à la Catégorie sélectionnée.</td></tr>"
+				+"<tr><td>- Liste des objets de votre armurerie correspondant à la Catégorie sélectionnée.</td></tr>"
+				+"<tr><td><b>Index :</b></td></tr>"
+				+"<tr><td>- Copie de l'Index de recherche utilisable en saisie.</td></tr>"
 				+"<tr><td><b>Synthèses :</b></td></tr>"
-				+"<tr><td>- Reprend les fusions obtenues dans le Résultat de droite.</td></tr>"
+				+"<tr><td>- Copie des fusions obtenues dans le Résultat de droite.</td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>▼ ▲</span><span> : tri le tableau suivant cette colonne.</span></td></tr>"
-				+"<tr><td>- <b>All</b> : transfert tous les éléments dans l'Index de recherche.</td></tr>"
-				+"<tr><td>- ► : transfert l'objet dans l'Index de recherche.</td></tr>"],
-			't4_span13':['Saisie manuelle',
-				"<tr><td>Permet de saisir librement chaque élément de l'objet.</td></tr>"],
+				+"<tr><td>- Clic en-tête : tri le tableau suivant cette colonne.</td></tr>"
+				+"<tr><td>- <span class='heal'><b>►►</b></span> : ajoute tous les objets à la zone sélectionnée. Le dernier objet ajouté devient la sélection en cours.</td></tr>"
+				+"<tr><td>- Clic objet : remplace la sélection dans la zone de droite par cet objet.</td></tr>"
+				+"<tr><td>- <span class='heal'>►</span> : ajoute l'objet à la zone sélectionnée qui devient la sélection en cours.</td></tr>"],
+			't4_span13':['Saisie libre',
+				"<tr><td>Permet de saisir indépendamment chaque élément de la sélection.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"],
+			't4_span15':['Saisie par copie',
+				"<tr><td>Permet de copier/coller manuellement une liste d'objet.</td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"],
 			't5_span0':['Simulations',
 				"<tr><td><b>Informations générales :</b></td></tr>"
 				+"<tr><td>- Une simulation comprend l'ensemble des éléments permettant de chercher une solution.</td></tr>"
@@ -1556,6 +1605,7 @@ function upTabs(){
 				+"<tr><td>- Vous devez saisir une liste d`objets dans l`Index et une Cible qui servira de base de recherche.</td></tr>"
 				+"<tr><td>- Les Options permettent de limiter soit le nombre de résultats soit le temps de recherche.</td></tr>"
 				+"<tr><td>- L'écart représente la différence de points entre le résultat et la cible.</td></tr>"
+				+"<tr><td>- Les éléments de cette zone ne peuvent être modifiés en cours de recherche.</td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime les éléments de la zone sélectionnée.</span></td></tr>"
 				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime l`ensemble des éléments de la Recherche.</span></td></tr>"
@@ -1657,7 +1707,7 @@ console.debug('BWMstart: %o %o',player,IDs);
 						list = LS._GetVar('BWM:LIST:'+ID,{}),
 						items = getListItem(),
 						tasks = {'t':null,'k':{},'s':{},'w':{}},
-						mix = [], cat, arm, but, c, s, r,
+						mix = [], cat, arm, but, c, s, r, isGo,
 						rootIU = {};
 					if (!Array.isArray(set[0])){ // patch 2015.12.05 -> 2015.12.07
 						set[0] = PREF._GetDef('set')[0];
