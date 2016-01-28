@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.01.18
+// @version		2016.01.28
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -28,10 +28,13 @@ function clone(o){
 	for(var i in o)	newObjet[i] = clone(o[i]);
 	return newObjet;
 	}
+
 /******************************************************
-* Debug
+* DEBUG
 ******************************************************/
-var debug_time = Date.now();
+var debug = false,
+	debug_time = Date.now();
+
 /******************************************************
 * OBJET JSONS - JSON
 * - stringification des données
@@ -395,10 +398,10 @@ function setCss(){
 		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px;}",
 		".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
 		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span, .BWMinput{vertical-align: middle;}",
-		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden;white-space: nowrap;text-overflow: ellipsis}",
+		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden; white-space: nowrap;text-overflow: ellipsis}",
 		".BWMcut,.BWMcut2{text-align: left;}",
 		".BWMtriSelect{color:lime;}",
-		".BWMtextarea {width: 99%; height: auto; resize: none; border: 0px; outline: none; white-space: pre; word-wrap: normal; overflow: hidden;}",   
+		".BWMdivarea {width: 100%; height: auto; min-height: 2em;padding: 4px; text-align: left; border: 0px;overflow-x: auto;}",
 		".BWM5{width:5%;}",
 		".BWM10{width:10%;}",
 		".BWM15{width:15%;}",
@@ -426,7 +429,7 @@ function setCss(){
 	if (head!==null){
 		var even = getCssRules('.even'),
 			selectedItem = getCssRules('.selectedItem');
-		if (even!==null&&selectedItem!==null) css.push('.BWMeven{'+even.cssText+'}','.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut),.BWMTR:hover .BWMcut2:hover,.BWMTR2:hover .BWMcut2{'+selectedItem.cssText+'}');
+		if (even!==null&&selectedItem!==null) css.push('.BWMeven{'+even.cssText+'}','.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut),.BWMTR:hover .BWMcut2:hover,.BWMTR2:hover .BWMcut2,.BWMdivarea:hover{'+selectedItem.cssText+'}');
 		IU._CreateElement('style',{'type':'text/css'},[css.join('')],{},head);
 		}
 	}
@@ -437,36 +440,19 @@ function setCss(){
 function addslashes(str){
 	return (str + '').replace(/[\\"']/g,'\\$&').replace(/\u0000/g,'\\0');
 	}
-function getListItem(){
+function getArmItems(){
 	var list = DOM._GetNodes("//div[@id='content-mid']//ul[@class='inv-select']/li"),
-		match = ["","",""],
-		index = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]],
 		result = {};
-	// créé le pattern de recherche et l'index de correspondance
-	for (var i=2; i<5; i++){
-		for (var j=0; j<loc[i].length; j++){
-			if (i!=2) index[i-1][j] = {};
-			for (var k=1; k<loc[i][j].length; k++){
-				for (var x=0; x<loc[i][j][k].length; x++){
-					match[i-2] = match[i-2]+loc[i][j][k][x]+'(?:[ ]|$)|';
-					if (i==2) index[1][loc[i][j][k][x]] = [j,k];
-					else index[i-1][j][loc[i][j][k][x]] = k;
-					}
-				}
-			}
-		}
-	// recherche
 	for (var i=0; i<list.snapshotLength; i++){
 		var col = DOM._GetFirstNodeTextContent("./div/span",'',list.snapshotItem(i)),
-			itemMatch = "^(Légendaire |)(Bon |Bonne |Parfait |Parfaite |)("+match[0]+")("+match[1]+")("+match[2]+")(\\(\\+[0-5]\\)|)$",
-			v = new RegExp(itemMatch).exec(col);
+			v = new RegExp("^("+pat[0]+")("+pat[1]+")("+pat[2]+")("+pat[3]+")("+pat[4]+")("+pat[5]+")$").exec(col);
 		if (v!==null){
 			var niv = v[6]!==''?Number(v[6].replace(new RegExp('[()+]','g'),'')):0,
-				grade = _Exist(index[0][v[2].trim()])?index[0][v[2].trim()]:-1,
-				type = (v[3]!==''&&_Exist(index[1][v[3].trim()]))?index[1][v[3].trim()]:null,
+				grade = _Exist(indexPat[0][v[2].trim()])?indexPat[0][v[2].trim()]:-1,
+				type = (v[3]!==''&&_Exist(indexPat[1][v[3].trim()]))?indexPat[1][v[3].trim()]:null,
 				leg = v[1]!==''?'L':'',
-				pre = v[4]!==''?_Exist(index[2][type[0]][v[4].trim()])?index[2][type[0]][v[4].trim()]:-1:0,
-				suf = v[5]!==''?_Exist(index[3][type[0]][v[5].trim()])?index[3][type[0]][v[5].trim()]:-1:0;
+				pre = v[4]!==''?_Exist(indexPat[2][type[0]][v[4].trim()])?indexPat[2][type[0]][v[4].trim()]:-1:0,
+				suf = v[5]!==''?_Exist(indexPat[3][type[0]][v[5].trim()])?indexPat[3][type[0]][v[5].trim()]:-1:0;
 			if (type!==null){
 				if (!_Exist(result[type[0]+leg])) result[type[0]+leg] = [];
 				result[type[0]+leg].push([(grade!=-1?grade+niv:-1),type[1],pre,suf]);
@@ -604,13 +590,35 @@ function selectAll(e,i){
 	LS._SetVar('BWM:LIST:'+ID,list);
 	upTabs();
 	}
+// commandes Copie
 function selectArea(e,i){
-	var v = e.target.value.replace(/[\t]/gm,' ').trim().split(/\s*[\r\n]+\s*/g),
-		x = e.target.value.split(/[\r\n]/g);
-console.debug('selectArea :',JSONS._Encode(v),JSONS._Encode(x),e);
+//	var v = e.target.value.replace(/[\t]/gm,' ').trim().split(/\s*[\r\n]+\s*/g),
+//		x = e.target.value.split(/[\r\n]/g);
+console.debug('selectArea :',rootIU['t4_div']);
  //   e.target.style.height = "auto";
  //   e.target.style.height = (e.target.scrollHeight)+"px";
-	e.target.setAttribute('rows',x.length<9?9:x.length);
+//	e.target.setAttribute('rows',x.length<9?9:x.length);
+	}
+function selectCopy(e){
+	DOM._CleanNode(rootIU['t4_div']);
+	var v = set[7][0]==-1?[but]:set[7][0]==-2?s.s:r;
+	for (var j=0;j<v.length;j++){
+		var text = v[j][0]>0?loc[1][v[j][0]]:'-';
+		text += ' '+(v[j][1]>0?v[j][1]+':'+loc[2][set[3][0]][v[j][1]][0]:'-');
+		text += ' '+(v[j][2]>0?v[j][2]+':'+loc[3][set[3][0]][v[j][2]][0]:'-');
+		text += ' '+(v[j][3]>0?v[j][3]+':'+loc[4][set[3][0]][v[j][3]][0]:'-');
+		IU._CreateElement('div',{},[text],{},rootIU['t4_div']);
+		}
+	}
+function selectPaste(e){
+	var list = DOM._GetNodes("./text()",rootIU['t4_div']);
+	var list2 = DOM._GetNodes("./div/text()",rootIU['t4_div']);
+console.debug('selectPaste :',rootIU['t4_div'],list,list2);
+	if (list!=null){
+		for (var j=0;j<list.snapshotLength;j++){
+console.debug('selectPaste :',list.snapshotItem(j));
+			}
+		}
 	}
 // commandes Simulations
 function setS(e,i){
@@ -1496,15 +1504,16 @@ function upTabs(){
 					}
 				}
 			}
-		else { // copier/coller
+/*		else { // copier/coller
 			IU._CreateElements([
 				['t4_tr0','tr',{},[],{},'t4'],
-				['t4_td00','td',{'colspan':'3','class':'BWM50 BWMselect heal'},['◄◄'],{},'t4_tr0'],
-				['t4_td01','td',{'colspan':'2','class':'BWM50 BWMselect atkHit'},['►►'],{},'t4_tr0'],
+				['t4_td00','td',{'colspan':'3','class':'BWM50 BWMselect heal'},['◄◄'],{'click':[selectCopy]},'t4_tr0'],
+				['t4_td01','td',{'colspan':'2','class':'BWM50 BWMselect atkHit'},['►►'],{'click':[selectPaste]},'t4_tr0'],
 				['t4_tr1','tr',{},[],{},'t4'],
-				['t4_td01','td',{'colspan':'5','class':'BWM100'},[],{},'t4_tr1'],
-				['t4_textarea','textarea',{'class':'BWMtextarea textarea','rows':'9','placeholder':"Copier ici votre liste d'objets"},[],{'input':[selectArea]},'t4_td01']],rootIU);
-			}
+				['t4_td10','td',{'colspan':'5','class':'BWM100 BWMcut2 BWMeven'},[],{},'t4_tr1'],
+				['t4_div','div',{'class':'BWMdivarea','contenteditable':'true','spellcheck':'false'},[],{'input':[selectArea]},'t4_td10'],
+				],rootIU);
+			}*/
 		}
 	// colorisation des objets sélectionnés/identiques
 	for (var key in link){
@@ -1677,12 +1686,11 @@ else{
 		player = DATAS._PlayerName(),
 		IDs = LS._GetVar('BWM:IDS',{}),
         ID = null;
-console.debug('BWMpage :',p);
+if (debug) console.debug('BWMstart: ',player,IDs,p);
 	// Pages gérées par le script
 	if (['null','pServerDeco','pServerUpdate','pServerOther'].indexOf(p)==-1&&player!==null){
-console.debug('BWMstart: %o %o',player,IDs);
 		if (p=='pMain'){
-			var node = DOM._GetFirstNodeTextContent("//div[@class='throne-maindiv']/div/span[@class='reflink']",null);
+			var node = DOM._GetFirstNodeTextContent("//div[@id='content-mid']/div[@id='reflink']/span[@class='reflink']",null);
 			if (node!==null){
 				var r2 = /r\.php\?r=([0-9]+)/.exec(node);
                 if (_Exist(r2[1])){ ID = r2[1];}
@@ -1702,18 +1710,35 @@ console.debug('BWMstart: %o %o',player,IDs);
 				var bwIU = DOM._GetFirstNode("//div[@id='content-mid']"),
 					bwTop = DOM._GetFirstNode("./div[@class='top-options']",bwIU);
 				if (bwIU!==null&&bwTop!==null){
+					// datas
 					var loc = L._Get("listes"),
 						set = PREF._Get('set'),
-						list = LS._GetVar('BWM:LIST:'+ID,{}),
-						items = getListItem(),
-						tasks = {'t':null,'k':{},'s':{},'w':{}},
-						mix = [], cat, arm, but, c, s, r, isGo,
-						rootIU = {};
+						list = LS._GetVar('BWM:LIST:'+ID,{});
+					// pattern de recherche et index de correspondance
+					var	pat = ["Légendaire |","Bon |Bonne |Parfait |Parfaite |","","","","\\(\\+[0-5]\\)|"],
+						indexPat = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]];
+					for (var i=2; i<5; i++){
+						for (var j=0; j<loc[i].length; j++){
+							if (i!=2) indexPat[i-1][j] = {};
+							for (var k=1; k<loc[i][j].length; k++){
+								for (var x=0; x<loc[i][j][k].length; x++){
+									pat[i] += loc[i][j][k][x]+'(?:[ ]|$)|';
+									if (i==2) indexPat[1][loc[i][j][k][x]] = [j,k];
+									else indexPat[i-1][j][loc[i][j][k][x]] = k;
+									}
+								}
+							}
+						}
+					var	items = getArmItems();
+if (debug) console.debug('BWM:',pat,indexPat,items);
 					if (!Array.isArray(set[0])){ // patch 2015.12.05 -> 2015.12.07
 						set[0] = PREF._GetDef('set')[0];
 						set[8] = PREF._GetDef('set')[8];
 						}
 					if (!_Exist(set[8][3])) set[8][3] = PREF._GetDef('set')[8][3]; // patch 2015.12.20
+					// Création de l'interface
+					var tasks = {'t':null,'k':{},'s':{},'w':{}},
+						mix = [], cat, arm, but, c, s, r, isGo, rootIU = {};
 					upTabs();
 					}
 				}
@@ -1721,5 +1746,5 @@ console.debug('BWMstart: %o %o',player,IDs);
 		else alert(L._Get("sUnknowID"));
 		}
 	}
-console.debug('BWMend - time %oms',Date.now()-debug_time);
+if (debug) console.debug('BWMend - time %oms',Date.now()-debug_time);
 })();
