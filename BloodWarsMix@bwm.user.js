@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.03.30
+// @version		2016.03.30a
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -1068,14 +1068,15 @@ function workSearch(data,tmp){
 		var nb=data.concat();
 		nb.splice(i,1);
 		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
+			if (res==max&&!best){return;}
 			if (tmp[1]===0) self.postMessage({'cmd':'adv','key':key,'e':Math.floor((100/n1)*i+((100/n1)/(n2+1))*j)});
-			if (objCmp(b,a)===1){
+			if (objCmp(b,a)==1||!best){
 				var v=objMix(a,b).concat(0),d=objDiff(v,but),p=tmp[1]+a[4]+b[4];
 				if (d<=diff){
-					if ((d<diff||p<niv)&&best){diff=d;niv=p;self.postMessage({'cmd':'new','key':key,'diff':d});}
-					if (p==niv||!best) self.postMessage({'cmd':'add','key':key,'diff':d,'fusion':tmp[0].concat([b,a,v])});
+					if ((d<diff||p<niv)&&best){res=0;diff=d;niv=p;self.postMessage({'cmd':'new','key':key,'diff':d});}
+					if ((p==niv&&res<max)||!best){res++;self.postMessage({'cmd':'add','key':key,'diff':d,'fusion':tmp[0].concat([b,a,v])});}
 					}
-				if (d>0&&tmp[0].length<f){nb[j]=v;workSearch(nb,[tmp[0].concat([b,a,v]),p]);nb[j]=b;}
+				if (d>0&&tmp[0].length<fus){nb[j]=v;workSearch(nb,[tmp[0].concat([b,a,v]),p]);nb[j]=b;}
 				}
 			}
 		}
@@ -1129,10 +1130,11 @@ function search(){
 			postSearch.toString(),
 		"	var d = e.data, key = d.k;",
 		"	if (d.cmd=='start'){",
-		"		var f = d.o[2]===''?Infinity:(d.o[2]-1)*3,",
+		"		var max = d.o[0]===''?Infinity:d.o[0],",
 		"			diff = d.o[1]===''?Infinity:d.o[1],",
+		"			fus = d.o[2]===''?Infinity:(d.o[2]-1)*3,",
 		"			best = !!d.o[3],",
-		"			mix = d.m, but = d.b, niv = -1;",
+		"			res = 0, mix = d.m, but = d.b, niv = -1;",
 		"		workSearch(d.d,[[],0]);",
 		"		self.postMessage({'cmd':'end1','key':key});}",
 		"	else if (d.cmd=='post'){",
@@ -1153,14 +1155,11 @@ function search(){
 				w.f = [Infinity,0];
 				break;
 			case 'add':
-				var x = list[tasks.k[d.key][0]][tasks.k[d.key][1]].o[0];
-				if (x===''||w.r.length<x){
-					w.r.push(d.fusion);
-					w.d[0] = d.diff<w.d[0]?d.diff:w.d[0];
-					w.d[1] = d.diff>w.d[1]?d.diff:w.d[1];
-					w.f[0] = d.fusion.length<w.f[0]?d.fusion.length:w.f[0];
-					w.f[1] = d.fusion.length>w.f[1]?d.fusion.length:w.f[1];
-					}
+				w.r.push(d.fusion);
+				w.d[0] = d.diff<w.d[0]?d.diff:w.d[0];
+				w.d[1] = d.diff>w.d[1]?d.diff:w.d[1];
+				w.f[0] = d.fusion.length<w.f[0]?d.fusion.length:w.f[0];
+				w.f[1] = d.fusion.length>w.f[1]?d.fusion.length:w.f[1];
 				break;
 			case 'end1':
 				if (list[tasks.k[d.key][0]][tasks.k[d.key][1]].o[4]) w.id.postMessage({'cmd':'post','k':d.key,'d':w.r});
@@ -1804,11 +1803,11 @@ function upTabs(){
 				+"<tr><td>- Ici vous indiquez la cible recherchée.</td></tr>"
 				+"<tr><td>- Un élément vide n'est pas pris en compte.</td></tr>"
 				+"<tr><td><b>Options :</b></td></tr>"
-				+"<tr><td>- 'Résultats' : limite le nombre de résultats.</td></tr>"
+				+"<tr><td>- 'Résultats' : limite le nombre de résultats (avant suppression des doublons par l'option concernée).</td></tr>"
 				+"<tr><td>- 'Ecart' : limite l'écart de points entre le résultat et la cible.</td></tr>"
 				+"<tr><td>- 'Fusions' : limite le nombre de fusions. Cette valeur permet de diminuer le temps de recherche.</td></tr>"
 				+"<tr><td>- <span class='atkHit'>'Meilleurs résultats'</span><span> : ne garde que les meilleurs résultats. Désactiver cette option permet de voir toutes les permutations mais consomme énormément de mémoires ce qui peut bloquer votre navigateur !!</span></td></tr>"
-				+"<tr><td>- 'Sans doublons' : supprime les doublons en fin de recherche (résultats identiques avec des permutations différentes).</td></tr>"
+				+"<tr><td>- 'Sans doublons' : supprime les doublons en fin de recherche (emsembles d'objets et résultats identiques avec des permutations différentes).</td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>▼</span><span> : charge les valeurs par défaut.</span></td></tr>"
 				+"<tr><td>- <span class='atkHit'>▲</span><span> : sauvegarde en tant que valeurs par défaut.</span></td></tr>"
