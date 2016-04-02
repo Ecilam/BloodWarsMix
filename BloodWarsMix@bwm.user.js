@@ -3,7 +3,7 @@
 // ==UserScript==
 // @author		Ecilam
 // @name		Blood Wars Mix
-// @version		2016.03.30a
+// @version		2016.04.02
 // @namespace	BWM
 // @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -23,7 +23,7 @@ function _Exist(v){
 	return _Type(v)!='Undefined';
 	}
 function clone(o){
-	if(typeof o!='object'||o==null) return o;
+	if(typeof o!='object'||o===null) return o;
 	var newObjet = o.constructor();
 	for(var i in o)	newObjet[i] = clone(o[i]);
 	return newObjet;
@@ -324,7 +324,7 @@ var DATAS = (function(){
 var PREF = (function(){
 	// préfèrences par défaut
 	var index = 'BWM:O:',
-		defPrefs = {'set':[[true,true,true,true,true,true,true,true,true,true],0,[2,0],[0,''],0,-1,0,[0,0],['','','',true,true]]};
+		defPrefs = {'set':[[true,true,true,true,true,true,true,true,true,true],0,[2,0],[0,''],0,-1,0,[0,0],['','','',true,true,true]]};
 		//0:show (true/false)-> titre,position,aide,sim,search,res,saisie,armurerie,synthèse
 		//1:mode,2:tri,3:cat,4:sim,5:search,6:result,7:saisie
 		//8:options -> max rés,max écart,max fusion, best, post
@@ -389,17 +389,20 @@ function setCss(){
 		".BMWfield{margin: 0;padding: 1px;text-align: left;}",
 		".BWMlegend{font-size: 11px;font-weight: bold;}",
 		".BWMdiv1{margin: 0px;padding: 0px;}",
-		".BWMtab0,.BWMtab1,.BWMtab2,.BWMtab3{border-collapse: collapse;width: 100%; table-layout: fixed;}",
+		".BWMtab0,.BWMtab1,.BWMtab3{border-collapse: collapse;width: 100%; table-layout: fixed;}",
+		".BWMtab2{border-collapse: collapse;width: 100%}",
 		".BWMtab1,.BWMtab2,.BWMtab3{text-align: center;}",
 		".BWMtab0 td{vertical-align: top;padding: 4px;}",
 		".BWMtab1 td,.BWMtab1 th{border: 1px solid black;margin: 0;padding: 0px; word-wrap: break-word;}",
-		".BWMtab3 td,.BWMtab2 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px; word-wrap: break-word;}",
+		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px; word-wrap: break-word;}",
+		".BWMtab2 td{border: 0px;margin: 0px;padding: 2px;}",
 		".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
-		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span,.BWMinput{vertical-align: middle;}",
+		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span{vertical-align: middle;}",
+		".BWMinput{vertical-align: middle;width: 30px;height: 11px;margin: 0;text-align: right;font-weight: bold;}",
 		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden; white-space: nowrap;text-overflow: ellipsis}",
 		".BWMcut,.BWMcut2{text-align: left;}",
 		".BWMtriSelect{color:lime;}",
-		".BWMdivarea {width: 100%; resize:none; overflow: hidden; white-space: pre; height: auto; min-height: 2em;padding: 4px; text-align: left; border: 0px;}",
+		".BWMdivarea{width: 100%; resize:none; overflow-y: hidden; white-space: pre; height: auto; min-height: 2em;padding: 0px; text-align: left; border: 0px;}",
 		".BWM5{width:5%;}",
 		".BWM10{width:10%;}",
 		".BWM20{width:20%;}",
@@ -410,7 +413,6 @@ function setCss(){
 		".BWM80{width:80%;}",
 		".BWM100{width:100%;}",
 		".BWMa1{display: block;}",
-		".BWMinput{width: 20px;height: 11px;margin: 0px 15px 0px 5px;text-align: right;font-weight: bold;}",
 		".BWMerror{color:#FFF;background-color:red;}",
 		".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
 		// blink
@@ -427,7 +429,7 @@ function setCss(){
 		IU._CreateElement('style',{'type':'text/css'},[css.join('')],{},head);
 		}
 	}
-	
+
 /******************************************************
 * FUNCTIONS
 ******************************************************/
@@ -488,7 +490,7 @@ function tabTri(c){ // c : [élément, sens]
 			v = objCmp([a[x[0]],a[x[1]],a[x[2]],a[x[3]]],[b[x[0]],b[x[1]],b[x[2]],b[x[3]]]);
 			}
 		return (v===0)?0:(v==1)?y:0-y;
-		}
+		};
 	}
 // commandes d'interface
 function show(e,i){
@@ -585,8 +587,8 @@ function selectAll(e,i){
 	}
 // commandes Copie
 function chgArea(e,cmd){
-	var area0 = rootIU['t4_area0'],
-		area1 = rootIU['t4_area1'],
+	var area0 = rootIU.t4_area0,
+		area1 = rootIU.t4_area1,
 		linesOk = [], linesBad = [];
 	area0.value = "";
 	if (cmd=='clean'||cmd=='copy'){
@@ -599,7 +601,7 @@ function chgArea(e,cmd){
 			if (v[j]==-1){text += '-'; root = j+1;}
 			else{
 				if (set[7][0]>=0) text += j-root>0&&(j-root)%2===0?'= ':j-root===0?'':'+ ';
-				if (objCmp(v[j],[0,0,0,0])!=0){
+				if (objCmp(v[j],[0,0,0,0])!==0){
 					var grade = {0:['',''],1:['Bon ','Bonne '],2:['Parfait ','Parfaite ']};
 					text += set[3][1]=='L'?'Légendaire ':'';
 					text += v[j][0]>0?grade[Math.floor(v[j][0]/6)][_Exist(loc[2][set[3][0]][v[j][1]][1])?1:0]:'';
@@ -617,11 +619,11 @@ function chgArea(e,cmd){
 		}
 	var	v = area1.value.split(/[\r\n]/g), lines = '',
 		pattern = "^(?:(\\+[ ]*|=[ ]*|)("+pat[0]+")("+pat[1]+")("+pat[2]+")("+pat[3]+")("+pat[4]+")("+pat[5]+"))$";
-// analyse objets
+	// analyse objets
 	for (var j=0;j<v.length;j++){
 		var w = new RegExp(pattern).exec(v[j]);
 		if (v[j]=='-'){v[j] = ['-',-1];}
-		else if (w!=null){
+		else if (w!==null){
 			var op = w[1]!==''?w[1].trim():-1,
 				leg = w[2].trim()==set[3][1]?set[3][1]:-1,
 				grade = w[3]!==''?indexPat[0][w[3].trim()]:0,
@@ -634,19 +636,18 @@ function chgArea(e,cmd){
 			}
 		else{v[j] = false;}
 		lines += (j+1)+(j<v.length-1?'\n':'');
-		
 		}
 	area0.value = lines;
 	area0.setAttribute('style','height:auto');
-	area0.setAttribute('style','height:'+(area0.scrollTop+area0.scrollHeight)+'px');
 	area1.setAttribute('style','height:auto');
-	area1.setAttribute('style','height:'+(area1.scrollTop+area1.scrollHeight)+'px');
-// analyse du format
+	area0.setAttribute('style','height:'+(area1.scrollHeight+area1.offsetHeight-area1.clientHeight+area1.scrollTop+1)+'px');
+	area1.setAttribute('style','height:'+(area1.scrollHeight+area1.offsetHeight-area1.clientHeight+area1.scrollTop+1)+'px');
+	// analyse du format
 	var	root = 0;
 	for (var j=0;j<v.length;j++){
-		if (v[j]!=false){
+		if (v[j]!==false){
 			if (v[j][0]=='-'&&j>2&&v[j-1][0]=='='){root = j+1;}
-			else if (v[j][0]==-1&&(j-root==0||(root==0&&j>0&&v[j-1][0]==-1))){}
+			else if (v[j][0]==-1&&(j-root===0||(root===0&&j>0&&v[j-1][0]==-1))){}
 			else if (v[j][0]=='+'&&((j-root==1&&v[j-1][0]==-1)||(j-root>1&&v[j-1][0]=='='))){}
 			else if (v[j][0]=='='&&j-root>1&&v[j-1][0]=='+'){}
 			else {v[j] = false;}
@@ -654,11 +655,10 @@ function chgArea(e,cmd){
 		if (v[j]===false) linesBad.push(j+1);
 		else linesOk.push(j+1);
 		}
-	rootIU['t4_td00'].textContent = 'Lignes valides : '+(linesOk.length>0?linesOk.toString():'-');
-	rootIU['t4_td10'].textContent = 'Lignes invalides : '+(linesBad.length>0?linesBad.toString():'-');
+	rootIU.t4_td00.textContent = 'Lignes valides : '+(linesOk.length>0?linesOk.toString():'-');
+	rootIU.t4_td10.textContent = 'Lignes invalides : '+(linesBad.length>0?linesBad.toString():'-');
 	if (v.indexOf(false)==-1&&(v.length==1||(v.length>1&&((set[7][0]==-2&&v[1][0]==-1)||(set[7][0]>=0&&v[1][0]=='+'))))){
-		rootIU.t4_td22.style.display = 'table-cell';
-		rootIU.t4_td23.style.display = 'none';
+		rootIU.t4_div220.style.display = 'block';
 		if (cmd=='paste'){
 			if (set[7][0]==-1) s.b = v[0][1];
 			else {
@@ -678,8 +678,7 @@ function chgArea(e,cmd){
 			}
 		}
 	else {
-		rootIU.t4_td22.style.display = 'none';
-		rootIU.t4_td23.style.display = 'table-cell';
+		rootIU.t4_div220.style.display = 'none';
 		}
 	}
 // commandes Simulations
@@ -810,7 +809,7 @@ function razSearch(e){
 	}
 function optSearch(e,i){
 	var v = new RegExp("^(|[0-9]+)$").exec(e.target.value);
-	if (v!=null){
+	if (v!==null){
 		e.target.classList.remove('BWMerror');
 		v = v[1]===''?'':Number(v[1]);
 		s.o[i] = v;
@@ -818,12 +817,8 @@ function optSearch(e,i){
 		}
 	else e.target.classList.add('BWMerror');
 	}
-function optBest(e){
-	s.o[3] = !s.o[3];
-	LS._SetVar('BWM:LIST:'+ID,list);
-	}
-function optPost(e){
-	s.o[4] = !s.o[4];
+function optCheck(e,i){
+	s.o[i] = !s.o[i];
 	LS._SetVar('BWM:LIST:'+ID,list);
 	}
 function getOpt(e){
@@ -998,8 +993,8 @@ function cmdSearch(e,i){ // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|
 				for (var k=0,y=v.r[j];k<y.length;k=k+3){
 					var a = y[k].slice(0,4), b = y[k+1].slice(0,4), c = y[k+2].slice(0,4);
 					if (k===0) x.r[x.r.length-1].push(a,b,c);
-					else if (objCmp(a,y[k-1].slice(0,4))==0) x.r[x.r.length-1].push(b,c);
-					else if (objCmp(b,y[k-1].slice(0,4))==0) x.r[x.r.length-1].push(a,c);
+					else if (objCmp(a,y[k-1].slice(0,4))===0) x.r[x.r.length-1].push(b,c);
+					else if (objCmp(b,y[k-1].slice(0,4))===0) x.r[x.r.length-1].push(a,c);
 					else x.r[x.r.length-1].push(-1,a,b,c);
 					}
 				}
@@ -1037,22 +1032,21 @@ function upSearch(){
 		}
 	if (cible){
 		if (keyA===null){
-			rootIU.t5_td55.style.display = 'table-cell';
-			rootIU.t5_td56.style.display = 'none';
-			rootIU.t5_td57.style.display = 'none';
-			rootIU.t5_td58.style.display = 'none';
-			rootIU.t5_td60.textContent = s.e[0]===0?'-':(s.e[0]==1?'Annulée':(s.e[0]==2?'Stoppée : ':'Terminée : ')+(s.e[0]>0?s.e[1]+' résultat'+(s.e[1]>1?'s':'')+(s.e[1]>0?' (écart '+(s.o[3]?s.e[2][0]:s.e[2][0]+(s.e[2][1]>s.e[2][0]?'-'+s.e[2][1]:''))+' en '+s.e[3][0]/3+(s.o[3]?'':(s.e[3][1]>s.e[3][0]?'-'+s.e[3][1]/3:''))+' fusion'+(s.o[3]&&s.e[3][0]>3||!s.o[3]&&s.e[3][1]>3?'s':'')+')':''):''));
-			rootIU.t5_td61.textContent = upTime(new Date(s.t).getTime());
+			rootIU.t5_td35.style.display = 'table-cell';
+			rootIU.t5_td36.style.display = 'none';
+			rootIU.t5_td37.style.display = 'none';
+			rootIU.t5_td38.style.display = 'none';
+			rootIU.t5_td40.textContent = s.e[0]===0?'-':(s.e[0]==1?'Annulée':(s.e[0]==2?'Stoppée : ':'Terminée : ')+(s.e[0]>0?s.e[1]+' résultat'+(s.e[1]>1?'s':'')+(s.e[1]>0?' (écart '+s.e[2][0]+(s.e[2][1]>s.e[2][0]?'-'+s.e[2][1]:'')+' en '+s.e[3][0]/3+(s.e[3][1]>s.e[3][0]?'-'+s.e[3][1]/3:'')+' fusion'+(s.e[3][0]>3||s.e[3][1]>3?'s':'')+')':''):''));
+			rootIU.t5_td41.textContent = upTime(new Date(s.t).getTime());
 			}
 		else{
-			var v = tasks.w[keyA],
-				x = list[tasks.k[keyA][0]][tasks.k[keyA][1]].o[3];
-			rootIU.t5_td55.style.display = 'none';
-			rootIU.t5_td56.style.display = 'table-cell';
-			rootIU.t5_td57.style.display = 'table-cell';
-			rootIU.t5_td58.style.display = 'table-cell';
-			rootIU.t5_td60.textContent = 'En cours '+v.e+'% : '+v.r.length+' résultat'+(v.r.length>1?'s':'')+(v.r.length>0?' (écart '+(x?v.d[0]:v.d[0]+(v.d[1]>v.d[0]?'-'+v.d[1]:''))+' en '+v.f[0]/3+(x?'':(v.f[1]>v.f[0]?'-'+v.f[1]/3:''))+' fusion'+(x&&v.f[0]>3||!x&&v.f[1]>3?'s':'')+')':'');
-			rootIU.t5_td61.textContent = upTime(new Date(Date.now()-keyA).getTime());
+			var v = tasks.w[keyA];
+			rootIU.t5_td35.style.display = 'none';
+			rootIU.t5_td36.style.display = 'table-cell';
+			rootIU.t5_td37.style.display = 'table-cell';
+			rootIU.t5_td38.style.display = 'table-cell';
+			rootIU.t5_td40.textContent = 'En cours '+v.e+'% : '+v.r.length+' résultat'+(v.r.length>1?'s':'')+(v.r.length>0?' (écart '+v.d[0]+(v.d[1]>v.d[0]?'-'+v.d[1]:'')+' en '+v.f[0]/3+(v.f[1]>v.f[0]?'-'+v.f[1]/3:'')+' fusion'+(v.f[0]>3||v.f[1]>3?'s':'')+')':'');
+			rootIU.t5_td41.textContent = upTime(new Date(Date.now()-keyA).getTime());
 			}
 		}
 	}
@@ -1068,20 +1062,25 @@ function workSearch(data,tmp){
 		var nb=data.concat();
 		nb.splice(i,1);
 		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
-			if (res==max&&!best){return;}
+			if (res==max&&!bpoids&&!becart){return;}
 			if (tmp[1]===0) self.postMessage({'cmd':'adv','key':key,'e':Math.floor((100/n1)*i+((100/n1)/(n2+1))*j)});
-			if (objCmp(b,a)==1||!best){
+			if (objCmp(b,a)>=0||!becart){
 				var v=objMix(a,b).concat(0),d=objDiff(v,but),p=tmp[1]+a[4]+b[4];
 				if (d<=diff){
-					if ((d<diff||p<niv)&&best){res=0;diff=d;niv=p;self.postMessage({'cmd':'new','key':key,'diff':d});}
-					if ((p==niv&&res<max)||!best){res++;self.postMessage({'cmd':'add','key':key,'diff':d,'fusion':tmp[0].concat([b,a,v])});}
+					if ((d<diff&&becart)||(p<niv&&bpoids)){
+						if (becart){diff=d;}
+						if (bpoids){niv=p;}
+						res=0;
+						self.postMessage({'cmd':'new','key':key,'diff':d});
+						}
+					if ((((p==niv&&bpoids)||(!bpoids&&becart))&&res<max)||(!bpoids&&!becart)){res++;self.postMessage({'cmd':'add','key':key,'diff':d,'fusion':tmp[0].concat([b,a,v])});}
 					}
 				if (d>0&&tmp[0].length<fus){nb[j]=v;workSearch(nb,[tmp[0].concat([b,a,v]),p]);nb[j]=b;}
 				}
 			}
 		}
 	}
-// élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes). 
+// élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
 function postSearch(data){
 	function dataReduce(p,c,i,t){
 		var j = 0, k = c.length-1;//k = 1;//
@@ -1106,7 +1105,7 @@ function search(){
 		datas = [];
 	// prépare les données
 	for (var i=0; i<s.s.length; i++){
-		if (objDiff(s.s[i],but)===0&&s.o[3]){
+		if (objDiff(s.s[i],but)===0&&s.o[4]){
 			rootIU.t5_td60.textContent = "Recherche annulée. Cible présente dans l'index.";
 			return;
 			}
@@ -1130,11 +1129,12 @@ function search(){
 			postSearch.toString(),
 		"	var d = e.data, key = d.k;",
 		"	if (d.cmd=='start'){",
-		"		var max = d.o[0]===''?Infinity:d.o[0],",
+		"		var fus = d.o[0]===''?Infinity:(d.o[0]-1)*3,",
 		"			diff = d.o[1]===''?Infinity:d.o[1],",
-		"			fus = d.o[2]===''?Infinity:(d.o[2]-1)*3,",
-		"			best = !!d.o[3],",
-		"			res = 0, mix = d.m, but = d.b, niv = -1;",
+		"			max = d.o[2]===''?Infinity:d.o[2],",
+		"			bpoids = !!d.o[3],",
+		"			becart = !!d.o[4],",
+		"			res = 0, mix = d.m, but = d.b, niv = Infinity;",
 		"		workSearch(d.d,[[],0]);",
 		"		self.postMessage({'cmd':'end1','key':key});}",
 		"	else if (d.cmd=='post'){",
@@ -1162,7 +1162,7 @@ function search(){
 				w.f[1] = d.fusion.length>w.f[1]?d.fusion.length:w.f[1];
 				break;
 			case 'end1':
-				if (list[tasks.k[d.key][0]][tasks.k[d.key][1]].o[4]) w.id.postMessage({'cmd':'post','k':d.key,'d':w.r});
+				if (list[tasks.k[d.key][0]][tasks.k[d.key][1]].o[5]) w.id.postMessage({'cmd':'post','k':d.key,'d':w.r});
 				else{
 					cmdSearch(null,[d.key,3]);
 					upTabs();
@@ -1207,7 +1207,7 @@ function unselectSameItem(e,i){
 // création de l'interface
 function upTabs(){
 	var link = {}, target = [null,null], results = [], root = 0, lroot = null,
-		copieTmp = _Exist(rootIU['t4_area1'])?rootIU['t4_area1'].value:'';
+		copieTmp = _Exist(rootIU.t4_area1)?rootIU.t4_area1.value:'';
 	if (_Exist(list['0'])&&Array.isArray(list['0'][0])){ // patch 2015.08.29 -> 2015.11.05
 		for (var i in list){
 			if (list.hasOwnProperty(i)){
@@ -1226,11 +1226,19 @@ function upTabs(){
 	else if (_Exist(list[cat][set[4]])){
 		if (list[cat][set[4]].r.length===0){list[cat][set[4]].r = [[[0,0,0,0],[0,0,0,0],[0,0,0,0]]];}
 		if (!_Exist(list[cat][set[4]].o)){list[cat][set[4]].o = clone(set[8]);} // patch 2015.12.05 -> 2015.12.07
-		else if (!_Exist(list[cat][set[4]].o[3])){list[cat][set[4]].o[3] = !!set[8][3];} // patch -> 2015.12.20
-		else if (!_Exist(list[cat][set[4]].o[4])){// patch 2016.03.27
+		if (!_Exist(list[cat][set[4]].o[3])){list[cat][set[4]].o[3] = !!set[8][3];} // patch -> 2015.12.20
+		if (!_Exist(list[cat][set[4]].o[4])){// patch 2016.03.27
 			list[cat][set[4]].o[4] = !!list[cat][set[4]].o[3];
 			list[cat][set[4]].o[3] = !!set[8][3];
 			list[cat][set[4]].e = [0,0,[],[]];
+			}
+		if (!_Exist(list[cat][set[4]].o[5])){// patch 2016.03.30
+			var tmp = list[cat][set[4]].o[0];
+			list[cat][set[4]].o[0] = list[cat][set[4]].o[2];
+			list[cat][set[4]].o[2] = tmp;
+			list[cat][set[4]].o[5] = !!list[cat][set[4]].o[4];
+			list[cat][set[4]].o[3] = !!set[8][3];
+			list[cat][set[4]].o[4] = !!set[8][4];
 			}
 		}
 	if (!_Exist(list[cat][set[4]])){
@@ -1261,7 +1269,7 @@ function upTabs(){
 			}
 		}
 	// reconstruit l'interface
-	if (_Exist(rootIU.root)) rootIU.root.parentNode.removeChild(rootIU.root); 
+	if (_Exist(rootIU.root)) rootIU.root.parentNode.removeChild(rootIU.root);
 	rootIU.root = IU._CreateElement('div',{'align':'center'},[],{},null);
 	if (set[0][1]) bwIU.appendChild(rootIU.root);
 	else bwTop.parentNode.insertBefore(rootIU.root,bwTop.nextSibling);
@@ -1393,9 +1401,9 @@ function upTabs(){
 					for (var j=0;j<s.s.length;j++){
 						var v = JSONS._Encode(s.s[j]);
 						if (!_Exist(link[v])) link[v] = {};
-						if (!_Exist(link[v]['sel'])) link[v]['sel'] = [];
-						link[v]['sel'].push('t5_td3'+j);
-						if (set[7][0]==-2&&set[7][1]==j){target = [v,link[v]['sel'].length-1];}
+						if (!_Exist(link[v].sel)) link[v].sel = [];
+						link[v].sel.push('t5_td3'+j);
+						if (set[7][0]==-2&&set[7][1]==j){target = [v,link[v].sel.length-1];}
 						v = objDiff(s.s[j],but);
 						IU._CreateElements([
 							['t5_tr3'+j,'tr',{'class':'BWMTR2'+(j%2===0?'':' BWMeven')},[],{},'t5'],
@@ -1419,71 +1427,72 @@ function upTabs(){
 				else { // bloc Cible
 					var v = JSONS._Encode(but);
 					if (!_Exist(link[v])) link[v] = {};
-					link[v]['but'] = ['t5_td5'];
+					link[v].but = ['t5_td3'];
 					if (set[7][0]==-1){target = [v,0];}
 					IU._CreateElements([
 						['t5_tr2','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td20','th',{'colspan':'5'},['Options'],{},'t5_tr2'],
-						['t5_td21','th',{'colspan':'5'},['Actions'],{},'t5_tr2'],
-						
+						['t5_td20','th',{'colspan':'2'},[],{},'t5_tr2'],
+						['t5_td21','th',{},['Objet'],{},'t5_tr2'],
+						['t5_td22','th',{},['Préfixe'],{},'t5_tr2'],
+						['t5_td23','th',{},['Suffixe'],{},'t5_tr2'],
+						['t5_td24','th',{'colspan':'5'},['Actions'],{},'t5_tr2'],
 						['t5_tr3','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td30','td',{'colspan':'5'},[],{},'t5_tr3'],
-						['t6','table',{'class':'BWMtab2'},[],{},'t5_td30'],
-						['t6_tr0','tr',{},[],{},'t6'],
-						['t6_td00','td',{},[],{},'t6_tr0'],
-						['t6_span000','span',{},['Résultats'],{},'t6_td00'],
-						['t6_span001','span',{},[],{},'t6_td00'],
-						['t6_span002','span',{},['Ecart'],{},'t6_td00'],
-						['t6_span003','span',{},[],{},'t6_td00'],
-						['t6_span004','span',{},['Fusions'],{},'t6_td00'],
-						['t6_span005','span',{},[],{},'t6_td00'],
-						['t6_tr1','tr',{},[],{},'t6'],
-						['t6_td10','td',{},[],{},'t6_tr1'],
-						['t6_span100','span',{'class':' atkHit'},['Meilleurs résultats'],{},'t6_td10'],
-						['t6_span101','span',{},[],{},'t6_td10'],
-						['t6_span102','span',{},['Sans doublons'],{},'t6_td10'],
-						['t6_span103','span',{},[],{},'t6_td10'],
-						
-						['t5_tr4','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td40','th',{'colspan':'2'},[],{},'t5_tr4'],
-						['t5_td41','th',{},['Objet'],{},'t5_tr4'],
-						['t5_td42','th',{},['Préfixe'],{},'t5_tr4'],
-						['t5_td43','th',{},['Suffixe'],{},'t5_tr4'],
-						['t5_td44','th',{'colspan':'5'},['Actions'],{},'t5_tr4'],
-						
-						['t5_tr5','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td5_0','td',{'class':'BWMcut'},[],{'click':[setI,[-1,0]]},'t5_tr5'],
-						['t5_td5_1','td',{'class':'BWMcut'},[loc[1][but[0]]],{'click':[setI,[-1,0]]},'t5_tr5'],
-						['t5_td5_2','td',{'class':'BWMcut'},[(but[1]>0?but[1]+':':'')+loc[2][set[3][0]][but[1]][0]],{'click':[setI,[-1,0]]},'t5_tr5'],
-						['t5_td5_3','td',{'class':'BWMcut'},[(but[2]>0?but[2]+':':'')+loc[3][set[3][0]][but[2]][_Exist(loc[2][set[3][0]][but[1]][1])&&_Exist(loc[3][set[3][0]][but[2]][1])?1:0]],{'click':[setI,[-1,0]]},'t5_tr5'],
-						['t5_td5_4','td',{'class':'BWMcut'},[(but[3]>0?but[3]+':':'')+loc[4][set[3][0]][but[3]][0]],{'click':[setI,[-1,0]]},'t5_tr5'],
-						['t5_td55','td',{'colspan':'5','class':(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'t5_tr5'],
-						['t5_td56','td',{'colspan':'1','class':'BWMselect atkHit'},['X'],{'click':[actSearch,1]},'t5_tr5'],
-						['t5_td57','td',{'colspan':'2','class':'BWMselect atkHit'},['X▼'],{'click':[actSearch,2]},'t5_tr5'],
-						['t5_td58','td',{'colspan':'2','class':'BWMselect'},['▼'],{'click':[actSearch,4]},'t5_tr5'],
-						
+						['t5_td3_0','td',{'class':'BWMcut'},[],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_1','td',{'class':'BWMcut'},[loc[1][but[0]]],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_2','td',{'class':'BWMcut'},[(but[1]>0?but[1]+':':'')+loc[2][set[3][0]][but[1]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_3','td',{'class':'BWMcut'},[(but[2]>0?but[2]+':':'')+loc[3][set[3][0]][but[2]][_Exist(loc[2][set[3][0]][but[1]][1])&&_Exist(loc[3][set[3][0]][but[2]][1])?1:0]],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td3_4','td',{'class':'BWMcut'},[(but[3]>0?but[3]+':':'')+loc[4][set[3][0]][but[3]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
+						['t5_td35','td',{'colspan':'5','class':(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'t5_tr3'],
+						['t5_td36','td',{'colspan':'1','class':'BWMselect atkHit'},['X'],{'click':[actSearch,1]},'t5_tr3'],
+						['t5_td37','td',{'colspan':'2','class':'BWMselect atkHit'},['X▼'],{'click':[actSearch,2]},'t5_tr3'],
+						['t5_td38','td',{'colspan':'2','class':'BWMselect'},['▼'],{'click':[actSearch,4]},'t5_tr3'],
+						['t5_tr4','tr',{'class':'BWMTR2'},[],{},'t5'],
+						['t5_td40','td',{'colspan':'5'},[],{},'t5_tr4'],
+						['t5_td41','td',{'colspan':'5'},[],{},'t5_tr4'],
+
+						['t5_tr5','tr',{'class':'tblheader'},[],{},'t5'],
+						['t5_td50','th',{'colspan':'5'},['Options'],{},'t5_tr5'],
+						['t5_td51','th',{'colspan':'5'},['Actions'],{},'t5_tr5'],
 						['t5_tr6','tr',{'class':'BWMTR2'},[],{},'t5'],
 						['t5_td60','td',{'colspan':'5'},[],{},'t5_tr6'],
-						['t5_td61','td',{'colspan':'5'},[],{},'t5_tr6']],rootIU);
+						['t6','table',{'class':'BWMtab2'},[],{},'t5_td60'],
+						['t6_tr0','tr',{},[],{},'t6'],
+						['t6_td00','td',{},['Max : '],{},'t6_tr0'],
+						['t6_td01','td',{},['Fusions'],{},'t6_tr0'],
+						['t6_td02','td',{},[],{},'t6_tr0'],
+						['t6_td03','td',{},['Ecart'],{},'t6_tr0'],
+						['t6_td04','td',{},[],{},'t6_tr0'],
+						['t6_td05','td',{},['Résultats'],{},'t6_tr0'],
+						['t6_td06','td',{},[],{},'t6_tr0'],
+						['t6_tr1','tr',{},[],{},'t6'],
+						['t6_td10','td',{},['Filtres :'],{},'t6_tr1'],
+						['t6_td11','td',{'class':'atkHit'},['Coût'],{},'t6_tr1'],
+						['t6_td12','td',{},[],{},'t6_tr1'],
+						['t6_td13','td',{'class':'atkHit'},['Ecart'],{},'t6_tr1'],
+						['t6_td14','td',{},[],{},'t6_tr1'],
+						['t6_td15','td',{},['Doublons'],{},'t6_tr1'],
+						['t6_td16','td',{},[],{},'t6_tr1']],rootIU);
 					if (isGo){
 						IU._CreateElements([
-							['t6_res','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[0]},[],{},'t6_span001'],
-							['t6_ecart','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[1]},[],{},'t6_span003'],
-							['t6_fusion','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[2]},[],{},'t6_span005'],
-							['t6_post','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[3]},[],{},'t6_span101'],
-							['t6_best','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[4]},[],{},'t6_span103'],
-							['t5_td21','td',{'colspan':'3'},[],{},'t5_tr3']],rootIU);
+							['t6_mres','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[0]},[],{},'t6_td02'],
+							['t6_mecart','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[1]},[],{},'t6_td04'],
+							['t6_mfusion','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[2]},[],{},'t6_td06'],
+							['t6_fpoids','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[3]},[],{},'t6_td12'],
+							['t6_fecart','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[4]},[],{},'t6_td14'],
+							['t6_fpost','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[5]},[],{},'t6_td16'],
+							['t5_td61','td',{'colspan':'3'},[],{},'t5_tr6']],rootIU);
 						}
 					else{
 						IU._CreateElements([
-							['t6_res','input',{'class':'inputbox BWMinput','type':'text','value':s.o[0],'onfocus':"this.select();"},[],{'change':[optSearch,0],'keyup':[optSearch,0]},'t6_span001'],
-							['t6_ecart','input',{'class':'inputbox BWMinput','type':'text','value':s.o[1],'onfocus':"this.select();"},[],{'change':[optSearch,1],'keyup':[optSearch,1]},'t6_span003'],
-							['t6_fusion','input',{'class':'inputbox BWMinput','type':'text','value':s.o[2],'onfocus':"this.select();"},[],{'change':[optSearch,2],'keyup':[optSearch,2]},'t6_span005'],
-							['t6_post','input',{'class':'BWMinput','type':'checkbox','checked':s.o[3]},[],{'change':[optBest]},'t6_span101'],
-							['t6_best','input',{'class':'BWMinput','type':'checkbox','checked':s.o[4]},[],{'change':[optPost]},'t6_span103'],
-							['t5_td21a','td',{'colspan':'3','class':'BWMselect heal'},['▼'],{'click':[getOpt]},'t5_tr3']],rootIU);
+							['t6_mres','input',{'class':'inputbox BWMinput','type':'text','value':s.o[0],'onfocus':"this.select();"},[],{'change':[optSearch,0],'keyup':[optSearch,0]},'t6_td02'],
+							['t6_mecart','input',{'class':'inputbox BWMinput','type':'text','value':s.o[1],'onfocus':"this.select();"},[],{'change':[optSearch,1],'keyup':[optSearch,1]},'t6_td04'],
+							['t6_mfusion','input',{'class':'inputbox BWMinput','type':'text','value':s.o[2],'onfocus':"this.select();"},[],{'change':[optSearch,2],'keyup':[optSearch,2]},'t6_td06'],
+							['t6_fpoids','input',{'class':'BWMinput','type':'checkbox','checked':s.o[3]},[],{'change':[optCheck,3]},'t6_td12'],
+							['t6_fecart','input',{'class':'BWMinput','type':'checkbox','checked':s.o[4]},[],{'change':[optCheck,4]},'t6_td14'],
+							['t6_fpost','input',{'class':'BWMinput','type':'checkbox','checked':s.o[5]},[],{'change':[optCheck,5]},'t6_td16'],
+							['t5_td61','td',{'colspan':'3','class':'BWMselect heal'},['▼'],{'click':[getOpt]},'t5_tr6']],rootIU);
 						}
-					IU._CreateElements([['t5_td22a','td',{'colspan':'2','class':'BWMselect atkHit'},['▲'],{'click':[setOpt]},'t5_tr3']],rootIU);
+					IU._CreateElements([['t5_td62','td',{'colspan':'2','class':'BWMselect atkHit'},['▲'],{'click':[setOpt]},'t5_tr6']],rootIU);
 					upSearch();
 					}
 				}
@@ -1528,8 +1537,8 @@ function upTabs(){
 						results.push(r[j]);
 						var v = JSONS._Encode(r[j]);
 						if (!_Exist(link[v])) link[v] = {};
-						if (!_Exist(link[v]['fus'])) link[v]['fus'] = [];
-						link[v]['fus'].push('t5_td6'+j);
+						if (!_Exist(link[v].fus)) link[v].fus = [];
+						link[v].fus.push('t5_td6'+j);
 						}
 					IU._CreateElements([
 						['t5_tr6'+j,'tr',{'class':'BWMTR2 BWMeven'},[],{},'t5'],
@@ -1547,9 +1556,9 @@ function upTabs(){
 				else { // objets
 					var v = JSONS._Encode(r[j]);
 					if (!_Exist(link[v])) link[v] = {};
-					if (!_Exist(link[v]['res'])) link[v]['res'] = [];
-					link[v]['res'].push('t5_td6'+j);
-					if (set[7][0]>=0&&set[7][1]==j){target = [v,link[v]['res'].length-1];}
+					if (!_Exist(link[v].res)) link[v].res = [];
+					link[v].res.push('t5_td6'+j);
+					if (set[7][0]>=0&&set[7][1]==j){target = [v,link[v].res.length-1];}
 					IU._CreateElements([
 						['t5_tr6'+j,'tr',{'class':'BWMTR2'},[],{},'t5'],
 						['t5_td6'+j+'_0','td',{'class':'BWMcut'},[(j-root===0?'':'+')],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
@@ -1564,6 +1573,13 @@ function upTabs(){
 					if (j==root) lroot = IU._CreateElement('td',{'class':'BWMselect atkHit'},['B'],{'click':[delB,root]},rootIU['t5_tr6'+j]);
 					}
 				}
+			if (results.length>0){
+				var v = objDiff(results[results.length-1],but);
+				IU._CreateElements([
+					['t5_tr6'+(j+1),'tr',{'class':'BWMTR2'},[],{},'t5'],
+					['t5_td6'+(j+1)+'_0','td',{'colspan':'5'},['Ecart '+(v==Infinity?'∞':v)+' en '+results.length+' fusion'+(results.length>1?'s':'')],{},'t5_tr6'+(j+1)],
+					['t5_td6'+(j+1)+'_1','td',{'class':'BWMselect atkHit','colspan':'5'},[],{},'t5_tr6'+(j+1)]],rootIU);
+				}
 			}
 		}
 	// Saisie
@@ -1574,9 +1590,9 @@ function upTabs(){
 		['t4_span10','span',{},['Saisie : '],{},'t4_th1'],
 		['t4_span11','span',{'class':'BWMselect'+(set[1]===0?' disabled':'')},['listes ('+arm.length+'+'+results.length+')'],{'click':[selectMode,0]},'t4_th1'],
 		['t4_span12','span',{},[', '],{},'t4_th1'],
-		['t4_span13','span',{'class':'BWMselect'+(set[1]==1?' disabled':'')},['libre'],{'click':[selectMode,1]},'t4_th1'],
+		['t4_span13','span',{'class':'BWMselect'+(set[1]==1?' disabled':'')},['copie'],{'click':[selectMode,1]},'t4_th1'],
 		['t4_span14','span',{},[', '],{},'t4_th1'],
-		['t4_span15','span',{'class':'BWMselect'+(set[1]==2?' disabled':'')},['copie'],{'click':[selectMode,2]},'t4_th1']
+		['t4_span15','span',{'class':'BWMselect'+(set[1]==2?' disabled':'')},['libre'],{'click':[selectMode,2]},'t4_th1']
 		],rootIU);
 	if (set[0][6]){
 		if (set[1]===0){ // saisie par liste
@@ -1602,7 +1618,7 @@ function upTabs(){
 								v = JSONS._Encode(x);
 							if (!_Exist(link[v])) link[v] = {};
 							if (!_Exist(link[v]['s'+k])) link[v]['s'+k] = [];
-							link[v]['s'+k].push('t4_td2'+k+'_'+i);							
+							link[v]['s'+k].push('t4_td2'+k+'_'+i);
 							IU._CreateElements([['t4_tr2'+k+'_'+i,'tr',{'class':'BWMTR2'+(i%2===0?'':' BWMeven')},[],{},'t4']],rootIU);
 							if (isGo&&set[7][0]<0){
 								IU._CreateElements([
@@ -1627,7 +1643,26 @@ function upTabs(){
 					}
 				}
 			}
-		else if (set[1]==1){ // saisie manuelle
+		else if (set[1]==1){ // copier/coller
+			IU._CreateElements([
+				['t4_tr0','tr',{},[],{},'t4'],
+				['t4_td00','td',{'colspan':'5'},[],{},'t4_tr0'],
+				['t4_tr1','tr',{},[],{},'t4'],
+				['t4_td10','td',{'colspan':'5'},[],{},'t4_tr1'],
+				['t4_tr2','tr',{},[],{},'t4'],
+				['t4_td20','td',{'class':'BWMselect atkHit'},['X'],{'click':[chgArea,'clean']},'t4_tr2'],
+				['t4_td21','td',{'colspan':'2','class':'BWMselect heal'},['◄◄'],{'click':[chgArea,'copy']},'t4_tr2'],
+				['t4_td22','td',{'colspan':'2'},[],{},'t4_tr2'],
+				['t4_div220','div',{'class':'BWM100 BWMselect heal'},['►►'],{'click':[chgArea,'paste']},'t4_td22'],
+				['t4_tr3','tr',{},[],{},'t4'],
+				['t4_td30','td',{'colspan':'1','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
+				['t4_area0','textarea',{'class':'textarea BWMdivarea','readonly':'readonly','spellcheck':'false'},[],{},'t4_td30'],
+				['t4_td31','td',{'colspan':'4','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
+				['t4_area1','textarea',{'class':'textarea BWMdivarea','spellcheck':'false'},[copieTmp],{'input':[chgArea,'update']},'t4_td31'],
+				],rootIU);
+			chgArea(null,'update');
+			}
+		else { // saisie manuelle
 			var max = Math.max(loc[1].length,loc[2][set[3][0]].length,loc[3][set[3][0]].length,loc[4][set[3][0]].length);
 			IU._CreateElements([
 				['t4_tr0','tr',{'class':'tblheader'},[],{},'t4'],
@@ -1645,25 +1680,6 @@ function upTabs(){
 					}
 				IU._CreateElements([['t4_td15'+i+'_5','td',{},[],{},'t4_tr1'+i]],rootIU);
 				}
-			}
-		else { // copier/coller
-			IU._CreateElements([
-				['t4_tr0','tr',{},[],{},'t4'],
-				['t4_td00','td',{'colspan':'5'},[],{},'t4_tr0'],
-				['t4_tr1','tr',{},[],{},'t4'],
-				['t4_td10','td',{'colspan':'5'},[],{},'t4_tr1'],
-				['t4_tr2','tr',{},[],{},'t4'],
-				['t4_td20','td',{'class':'BWMselect atkHit'},['X'],{'click':[chgArea,'clean']},'t4_tr2'],
-				['t4_td21','td',{'colspan':'2','class':'BWMselect heal'},['◄◄'],{'click':[chgArea,'copy']},'t4_tr2'],
-				['t4_td22','td',{'colspan':'2','class':'BWMselect heal'},['►►'],{'click':[chgArea,'paste']},'t4_tr2'],
-				['t4_td23','td',{'colspan':'2'},[],{},'t4_tr2'],
-				['t4_tr3','tr',{},[],{},'t4'],
-				['t4_td30','td',{'colspan':'1','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
-				['t4_area0','textarea',{'class':'textarea BWMdivarea','readonly':'readonly','spellcheck':'false'},[],{},'t4_td30'],
-				['t4_td31','td',{'colspan':'4','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
-				['t4_area1','textarea',{'class':'textarea BWMdivarea','spellcheck':'false'},[copieTmp],{'input':[chgArea,'update']},'t4_td31'],
-				],rootIU);
-			chgArea(null,'update');
 			}
 		}
 	// colorisation des objets sélectionnés/identiques
@@ -1692,9 +1708,11 @@ function upTabs(){
 			if (key!="[0,0,0,0]"){
 				var all = Object.keys(link[key]).map(function(v){return link[key][v];}).reduce(function(pre,cur){return pre.concat(cur);});
 				for (var i=0;i<all.length;i++){
-					for (var j=1;j<5;j++){//all[i]['td0'+j]
-						IU._addEvent(rootIU[all[i]+'_'+j],'mouseover',selectSameItem,all);
-						IU._addEvent(rootIU[all[i]+'_'+j],'mouseout',unselectSameItem,all);
+					for (var j=0;j<10;j++){//all[i]['td0'+j]
+						if (_Exist(rootIU[all[i]+'_'+j])){
+							IU._addEvent(rootIU[all[i]+'_'+j],'mouseover',selectSameItem,all);
+							IU._addEvent(rootIU[all[i]+'_'+j],'mouseout',unselectSameItem,all);
+							}
 						}
 					}
 				}
@@ -1736,20 +1754,17 @@ function upTabs(){
 				+"<tr><td>- Copie de l'Index de recherche utilisable en saisie.</td></tr>"
 				+"<tr><td><b>Synthèses :</b></td></tr>"
 				+"<tr><td>- Copie des fusions obtenues dans le Résultat de droite.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- Clic en-tête : tri le tableau suivant cette colonne.</td></tr>"
 				+"<tr><td>- <span class='heal'><b>►►</b></span> : ajoute tous les objets à la zone sélectionnée. Le dernier objet ajouté devient la sélection en cours.</td></tr>"
 				+"<tr><td>- Clic objet : remplace la sélection dans la zone de droite par cet objet.</td></tr>"
 				+"<tr><td>- <span class='heal'>►</span> : ajoute l'objet à la zone sélectionnée qui devient la sélection en cours.</td></tr>"],
-			't4_span13':['Saisie libre',
-				"<tr><td>Permet de saisir indépendamment chaque élément de la sélection.</td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"],
-			't4_span15':['Saisie par copie',
-				"<tr><td>Zone de copie permettant d'importer/exporter une liste d'objets.</td></tr>"
+			't4_span13':['Saisie par copie',
+				"<tr><td>Cette zone permet l'échange d'une liste d'objets que ce soit entre résultats ou avec d'autres joueurs.</td></tr>"
 				+"<tr><td>La zone permet la saisie manuelle et le copier/coller.</td></tr>"
 				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>Cette zone reconnait les objets au format du jeu. Vous pouvez ne pas saisir certains éléments qui seront considérés comme vide.</td></tr>"
+				+"<tr><td>La zone reconnait les objets au format du jeu. Vous pouvez ne pas saisir certains éléments qui seront considérés comme vide.</td></tr>"
 				+"<tr><td>Les objets peuvent être précédés des opérateurs '+','=' ou du séparateur '-' pour une copie dans la zone résultat.</td></tr>"
 				+"<tr><td>Lors de l'import la ligne '=' sera automatiquement recalculée et peut donc être laissé à vide ou erronée.</td></tr>"
 				+"<tr><td>Exemple :</td></tr>"
@@ -1766,9 +1781,15 @@ function upTabs(){
 				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la liste.</span></td></tr>"
 				+"<tr><td>- <span class='heal'>◄◄</span><span> : copie la sélection de droite dans cette zone. Cette liste est pré-sélectionnée pour permettre une copie à usage externe.</span></td></tr>"
 				+"<tr><td>- <span class='heal'>►►</span><span> : ajoute la liste vers la sélection de droite. Ce bouton n'apparaîtra que si cette liste est compatible avec la zone de droite.</span></td></tr>"],
+			't4_span15':['Saisie libre',
+				"<tr><td>Permet de saisir indépendamment chaque élément de la sélection.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><b>Commandes :</b></td></tr>"
+				+"<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"],
 			't5_span0':['Simulations',
 				"<tr><td><b>Informations générales :</b></td></tr>"
 				+"<tr><td>- Une simulation comprend l'ensemble des éléments permettant de chercher une solution.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une simulation.</span></td></tr>"
 				+"<tr><td>- ◄ ► : déplace la simulation.</td></tr>"
@@ -1780,9 +1801,9 @@ function upTabs(){
 				"<tr><td><b>Informations générales :</b></td></tr>"
 				+"<tr><td>- Permet au script de rechercher la ou les meilleurs solutions. L'Index permet aussi de créer une liste perso.</td></tr>"
 				+"<tr><td>- Vous devez saisir une liste d`objets dans l`Index et une Cible qui servira de base de recherche.</td></tr>"
-				+"<tr><td>- Les Options permettent de limiter soit le nombre de résultats soit le temps de recherche.</td></tr>"
-				+"<tr><td>- L'écart représente la différence de points entre le résultat et la cible.</td></tr>"
+					+"<tr><td>- L'écart représente la différence de points entre le résultat et la cible.</td></tr>"
 				+"<tr><td>- Les éléments de cette zone ne peuvent être modifiés en cours de recherche.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime les éléments de la zone sélectionnée.</span></td></tr>"
 				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime l`ensemble des éléments de la Recherche.</span></td></tr>"
@@ -1793,6 +1814,7 @@ function upTabs(){
 				+"<tr><td>- Reprend la liste des objets utilisés dans le cadre de la recherche.</td></tr>"
 				+"<tr><td>- Tri manuel possible sur les colonnes. L'ordre des objets peut avoir une influence sur le temps de recherche.</td></tr>"
 				+"<tr><td>- La colonne de gauche indique la différence de points entre l'objet et la cible. Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
 				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
@@ -1802,12 +1824,17 @@ function upTabs(){
 				"<tr><td><b>Informations générales :</b></td></tr>"
 				+"<tr><td>- Ici vous indiquez la cible recherchée.</td></tr>"
 				+"<tr><td>- Un élément vide n'est pas pris en compte.</td></tr>"
-				+"<tr><td><b>Options :</b></td></tr>"
-				+"<tr><td>- 'Résultats' : limite le nombre de résultats (avant suppression des doublons par l'option concernée).</td></tr>"
-				+"<tr><td>- 'Ecart' : limite l'écart de points entre le résultat et la cible.</td></tr>"
-				+"<tr><td>- 'Fusions' : limite le nombre de fusions. Cette valeur permet de diminuer le temps de recherche.</td></tr>"
-				+"<tr><td>- <span class='atkHit'>'Meilleurs résultats'</span><span> : ne garde que les meilleurs résultats. Désactiver cette option permet de voir toutes les permutations mais consomme énormément de mémoires ce qui peut bloquer votre navigateur !!</span></td></tr>"
-				+"<tr><td>- 'Sans doublons' : supprime les doublons en fin de recherche (emsembles d'objets et résultats identiques avec des permutations différentes).</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><b>Options Max :</b></td></tr>"
+				+"<tr><td>- <b>Résultats</b> : limite le nombre de résultats retenus pendant la recherche.</td></tr>"
+				+"<tr><td>- <b>Ecart</b> : ne retient que les solutions ayant un écart inférieur à cette valeur.</td></tr>"
+				+"<tr><td>- <b>Fusions</b> : ne retient que les solutions avec un nombre de fusions inférieur à cette valeur. Cette valeur permet de diminuer le temps de recherche.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
+				+"<tr><td><b>Options Filtres :</b></td></tr>"
+				+"<tr><td>- <span class='atkHit'><b>Coût</b></span><span> : cherche les solutions les moins coûteuses, chaque objets ayant un poids, et par conséquent en nombre de fusions. Désactiver cette option engendre énormément de résultats et par conséquent peut saturer la mémoire. Il est conseillé de limiter le nombre de résultats.</span></td></tr>"
+				+"<tr><td>- <span class='atkHit'><b>Ecart</b></span><span> : cherche les solutions se rapprochant le plus de la cible. Même consigne que pour l'option Coût.</span></td></tr>"
+				+"<tr><td>- <b>Doublons</b> : supprime les doublons en fin de recherche (résultats identiques avec les mêmes objets mais des permutations différentes).</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>▼</span><span> : charge les valeurs par défaut.</span></td></tr>"
 				+"<tr><td>- <span class='atkHit'>▲</span><span> : sauvegarde en tant que valeurs par défaut.</span></td></tr>"
@@ -1818,11 +1845,13 @@ function upTabs(){
 			't5_span510':['Résultats',
 				"<tr><td><b>Informations générales :</b></td></tr>"
 				+"<tr><td>- Reprend les solutions trouvées par la Recherche. Permet aussi de saisir manuellement vos solutions.</td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>+</span><span> : ajoute un résultat.</span></td></tr>"
 				+"<tr><td>- ◄ ► : déplace le résultat.</td></tr>"
 				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime le résultat.</span></td></tr>"
 				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime tous les résultats.</span></td></tr>"
+				+"<tr><td><hr></hr></td></tr>"
 				+"<tr><td><b>Commandes sur les objets :</b></td></tr>"
 				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne.</span></td></tr>"
 				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
@@ -1910,6 +1939,14 @@ if (debug) console.debug('pat, indexPat :',pat,indexPat);
 					if (!_Exist(set[8][4])){ // patch 2016.03.27
 						set[8][4] = !!set[8][3];
 						set[8][3] = PREF._GetDef('set')[8][3];
+						}
+					if (!_Exist(set[8][5])){ // patch 2016.03.31
+						var tmp = set[8][0];
+						set[8][0] = set[8][2];
+						set[8][2] = tmp;
+						set[8][5] = !!set[8][4];
+						set[8][3] = PREF._GetDef('set')[8][3];
+						set[8][4] = PREF._GetDef('set')[8][4];
 						}
 					// Création de l'interface
 					var tasks = {'t':null,'k':{},'s':{},'w':{}},
