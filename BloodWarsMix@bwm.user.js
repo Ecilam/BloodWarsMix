@@ -1,1962 +1,3438 @@
-(function(){
-// coding: utf-8
+// coding: utf-8 (sans BOM)
 // ==UserScript==
-// @author		Ecilam
-// @name		Blood Wars Mix
-// @version		2016.04.02
-// @namespace	BWM
-// @description	Ce script permet de tester des synthèses dans le jeu Blood Wars.
+// @author      Ecilam
+// @name        Blood Wars Mix
+// @version     2016.06.21
+// @namespace   BWM
+// @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
-// @license     GPL version 3 ou suivantes; http://www.gnu.org/copyleft/gpl.html
+// @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
 // @include     /^http:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
 // @grant       none
 // ==/UserScript==
-"use strict";
+(function () {
+  "use strict";
 
-function _Type(v){
-	var type = Object.prototype.toString.call(v);
-	return type.slice(8,type.length-1);
-	}
-function _Exist(v){
-	return _Type(v)!='Undefined';
-	}
-function clone(o){
-	if(typeof o!='object'||o===null) return o;
-	var newObjet = o.constructor();
-	for(var i in o)	newObjet[i] = clone(o[i]);
-	return newObjet;
-	}
+  var debugTime = Date.now(); // @type {Date} permet de mesurer le temps d'execution du script.
+  var debug = false; // @type {Boolean} Active l'affichage des messages sur la console de débogages.
 
-/******************************************************
-* DEBUG
-******************************************************/
-var debug = false,
-	debug_time = Date.now();
+  /**
+   * @method exist
+   * Test l'existence d'une valeur
+   * @param {*} v la valeur à tester
+   * @return {Boolean} faux si 'undefined'
+   */
+  function exist(v) {
+    return (v !== undefined && typeof v !== 'undefined');
+  }
 
-/******************************************************
-* OBJET JSONS - JSON
-* - stringification des données
-******************************************************/
-var JSONS = (function(){
-	function reviver(key,v){
-		if (_Type(v)=='String'){
-			var a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(v);
-			if (a!==null) return new Date(Date.UTC(+a[1],+a[2]-1,+a[3],+a[4],+a[5],+a[6]));
-			}
-		return v;
-		}
-	return {
-		_Decode: function(v){
-			var r = null;
-			try	{
-				r = JSON.parse(v,reviver);
-				}
-			catch(e){
-				console.error('JSONS_Decode error :',v,e);
-				}
-			return r;
-			},
-		_Encode: function(v){
-			return JSON.stringify(v);
-			}
-		};
-	})();
+  /**
+   * @method isNull
+   * Test si une valeur est Null
+   * @param {*} v la valeur à tester
+   * @return {Boolean} vrai si Null
+   */
+  function isNull(v) {
+    return (v === null && typeof v === 'object');
+  }
 
-/******************************************************
-* OBJET LS - Datas Storage
-* - basé sur localStorage
-* Note : localStorage est lié au domaine
-******************************************************/
-var LS = (function(){
-	var LS = window.localStorage;
-	return {
-		_GetVar: function(key,defaut){
-			var v = LS.getItem(key); // if key does not exist return null 
-			return ((v!==null)?JSONS._Decode(v):defaut);
-			},
-		_SetVar: function(key,v){
-			LS.setItem(key,JSONS._Encode(v));
-			return v;
-			},
-		_Delete: function(key){
-			LS.removeItem(key);
-			return key;
-			},
-		_Length: function(){
-			return LS.length;
-			},
-		_Key: function(index){
-			return LS.key(index);
-			}
-		};
-	})();
+  /**
+   * @method clone
+   * Créé une copie de l'objet
+   * @param {Object} obj
+   * @return {Object} newObjet
+   */
+  function clone(obj) {
+    if (typeof obj !== 'object' || obj === null) {
+      return obj;
+    }
+    var newObjet = obj.constructor();
+    for (var i in obj) {
+      newObjet[i] = clone(obj[i]);
+    }
+    return newObjet;
+  }
 
-/******************************************************
-* OBJET DOM - Fonctions DOM & QueryString
-* -  DOM : fonctions d'accès aux noeuds du document
-* - _QueryString : accès aux arguments de l'URL
-******************************************************/
-var DOM = (function(){
-	return {
-		// méthodes Xpath
-		_GetNodes: function(path,root){
-			return (_Exist(root)&&root===null)?null:document.evaluate(path,(_Exist(root)?root:document), null,XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
-			},
-		_GetFirstNode: function(path,root){
-			var r = this._GetNodes(path,root);
-			return (r!==null&&r.snapshotLength>=1?r.snapshotItem(0):null);
-			},
-		_GetLastNode: function(path, root){
-			var r = this._GetNodes(path,root);
-			return (r!==null&&r.snapshotLength>=1?r.snapshotItem(r.snapshotLength-1):null);
-			},
-		_GetFirstNodeTextContent: function(path,defaultValue,root){
-			var r = this._GetFirstNode(path,root);
-			return (r!==null&&r.textContent!==null?r.textContent:defaultValue);
-			},
-		_GetFirstNodeInnerHTML: function(path,defaultValue,root){
-			var r = this._GetFirstNode(path,root);
-			return (r!==null&&r.innerHTML!==null?r.innerHTML:defaultValue);
-			},
-		_GetLastNodeInnerHTML: function(path,defaultValue,root){
-			var r = this._GetLastNode(path,root);
-			return (r!==null&&r.innerHTML!==null?r.innerHTML:defaultValue);
-			},
-		// méthodes DOM
-		_$: function(a){
-			return document.getElementById(a);
-			},
-		_CleanNode: function(node){
-			while (node.hasChildNodes()){
-				node.removeChild(node.firstChild);
-				}
-			},
-		// retourne la valeur de la clé "key" trouvé dans l'url
-		// null: n'existe pas, true: clé existe mais sans valeur, autres: valeur
-		_QueryString: function(key){
-			var url = window.location.search,
-				reg = new RegExp("[?&]"+key+"(=([^&$]+)|)(&|$)","i"),
-				offset = reg.exec(url);
-			if (offset!==null){
-				offset = _Exist(offset[2])?offset[2]:true;
-				}
-			return offset;
-			}
-		};
-	})();
+  /******************************************************
+   * OBJET Jsons - JSON
+   * Stringification des données
+   ******************************************************/
+  var Jsons = (function () {
+    function reviver(key, v) {
+      if (typeof v === 'string') {
+        var a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(v);
+        if (!isNull(a)) return new Date(Date.UTC(Number(a[1]), Number(a[2]) - 1, Number(a[3]), Number(a[
+          4]), Number(a[5]), Number(a[6])));
+      }
+      return v;
+    }
 
-/******************************************************
-* OBJET IU - Interface Utilsateur
-******************************************************/
-var IU = (function(){
-	return {
-		_CreateElements: function(list,oldIU){
-			var r = _Exist(oldIU)?oldIU:{};
-			for (var i=0;i<list.length;i++){
-				var node = _Exist(r[list[i][5]])?r[list[i][5]]:list[i][5];
-				r[list[i][0]] = this._CreateElement(list[i][1],list[i][2],list[i][3],list[i][4],node);
-				}
-			return r;
-			},
-		_CreateElement: function(type,attributes,content,events,node){
-			var r = document.createElement(type);
-			for (var key in attributes){
-				if (attributes.hasOwnProperty(key)){
-					if (_Type(attributes[key])!='Boolean') r.setAttribute(key,attributes[key]);
-					else if (attributes[key]===true) r.setAttribute(key,key.toString());
-					}
-				}
-			for (key in events){
-				if (events.hasOwnProperty(key)){
-					this._addEvent(r,key,events[key][0],events[key][1]);
-					}
-				}
-			for (var i=0; i<content.length; i++){
-				if (_Type(content[i])==='Object') r.appendChild(content[i]);
-				else r.textContent+= content[i];
-				}
-			if (node!==null) node.appendChild(r);
-			return r;
-			},
-		_addEvent: function(obj,type,fn,par){
-			var funcName = function(event){return fn.call(obj,event,par);};
-			obj.addEventListener(type,funcName,false);
-			if (!obj.BWMListeners) {obj.BWMListeners = {};}
-			if (!obj.BWMListeners[type]) obj.BWMListeners[type]={};
-			obj.BWMListeners[type][fn.name]=funcName;
-			},
-		_removeEvent: function(obj,type,fn){
-			if (obj.BWMListeners[type]&&obj.BWMListeners[type][fn.name]){
-				obj.removeEventListener(type,obj.BWMListeners[type][fn.name],false);
-				delete obj.BWMListeners[type][fn.name];
-				}
-			},
-		_removeEvents: function(obj){
-			if (obj.BWMListeners){
-				for (var key in obj.BWMListeners){
-					if (obj.BWMListeners.hasOwnProperty(key)){
-						for (var key2 in obj.BWMListeners[key]){
-							if (obj.BWMListeners[key].hasOwnProperty(key2)){
-								obj.removeEventListener(key,obj.BWMListeners[key][key2],false);
-								}
-							}
-						}
-					}
-				delete obj.BWMListeners;
-				}
-			}
-		};
-	})();
+    return {
+      
+      /**
+       * @method init
+       * Fonction d'initialisation.
+       * Vérifie si le service JSON est bien disponible.
+       * @return {Objet}
+       */
+      init: function () {
+        if (!JSON) throw new Error("Erreur : le service JSON n\'est pas disponible.");
+        else return this;
+      },
 
-/******************************************************
-* OBJET L - localisation des chaînes de caractères (STRING) et expressions régulières (RegExp)
-******************************************************/
-var L = (function(){
-	var locStr = {
-		"sDeconnecte": "Vous avez été déconnecté en raison d`une longue inactivité.",
-		"sCourtePause": "Une courte pause est en court en raison de l`actualisation du classement général",
-		"sUnknowID": "BloorWarsMix - Erreur :\n\nLe nom de ce vampire doit être lié à son ID. Merci de consulter la Salle du Trône pour rendre le script opérationnel.\nCe message est normal si vous utilisez ce script pour la première fois ou si vous avez changé le nom du vampire.",
-		"listes":[
-			// 0 - types
-			['Casque','Armure','Pantalon','Amulette','Anneau','Arme à une main','Arme à deux mains','Arme à feu à une main','Arme à feu à deux mains','Arme à distance à deux mains'],
-			// 1 - qualité
-			[['-'],['S1'],['S2'],['S3'],['S4'],['S5'],['B0'],['B1'],['B2'],['B3'],['B4'],['B5'],['P0'],['P1'],['P2'],['P3'],['P4'],['P5']],
-			[ // 2 - sous-types
-				[['-'],['Casquette',true],['Casque'],['Casque Militaire'],['Masque'],['Diadème'],['Cagoule',true],['Chapeau'],['Fronteau'],['Bandana'],['Couronne',true]],
-				[['-'],['T-shirt'],['Veste',true],['Veston'],['Gilet'],['Corset'],['Cape',true],['Smoking'],['Haubert'],['Armure En Plate',true],['Pleine Armure',true]],
-				[['-'],['Short'],['Pantalon'],['Jupe',true],['Kilt']],
-				[['-'],['Collier'],['Amulette',true],['Chaîne',true],['Foulard'],['Cravate',true]],
-				[['-'],['Anneau'],['Bracelet'],['Chevalière',true]],
-				[['-'],['Matraque',true],['Couteau'],['Poignard'],['Poing Américain'],['Épée',true],['Rapière',true],['Kama'],['Hache',true],['Wakizashi'],['Poing des Cieux']],
-				[['-'],['Massue'],['Pince-monseigneur',true],['Espadon'],['Hache Lourde',true],['Morgenstern',true],['Faux',true],['Pique'],['Hallebarde',true],['Katana'],['Tronçonneuse',true]],
-				[['-'],['Glock'],['Beretta'],['Uzi'],['Magnum'],['Desert Eagle'],['Mp5k'],['Scorpion']],
-				[['-'],['Carabine de Chasse'],['Semi-automatique de Sniper'],['Fusil de Sniper'],['AK-47'],['Fn-Fal'],['Fusil'],['Lance-flammes']],
-				[['-'],['Arc Court'],['Arc'],['Shuriken'],['Arc Long'],['Arbalète'],['Couteau de lancer'],['Arc Reflex'],['Javelot'],['Pilum'],['Francisque'],['Lourde Arbalète']]
-			],
-			[ // 3 - Préfixes
-				[['-'],['Endurci','Endurcie'],['Renforcé','Renforcée'],['Serviable'],['Chic'],['Élégant','Élégante'],['Cornu','Cornue'],['Malicieux','Malicieuse'],['Paresseux','Paresseuse'],['Mortel','Mortelle'],['Guerrier','Guerrière'],['Magnétique'],['Sanglant','Sanglante'],['Splendide'],['Pare-balles'],['Chamaniste'],['Tigre'],['D`Assaut'],['Runique'],['Rituel','Rituelle']],
-				[['-'],['Renforcé','Renforcée'],['Clouté','Cloutée'],['Dominateur','Dominatrice'],['Léger','Légère'],['Écailleux','Écailleuses'],['En Plate'],['Guerrier','Guerrière'],['Flexible'],['Sanglant','Sanglante'],['Chasseur'],['Chamaniste'],['Pare-balles'],['Tigre'],['Elfe'],['Runique'],['Mortel','Mortelle']],
-				[['-'],['Court','Courte'],['Piqué','Piquée'],['Léger','Légère'],['Renforcé','Renforcée'],['Satiné','Satinée'],['Clouté','Cloutée'],['Pare-balles'],['Flexible'],['Épineux','Épineuse'],['Chamaniste'],['Sanglant','Sanglante'],['Elfe'],['Tigre'],['Blindé','Blindée'],['Composite'],['Runique'],['Mortel','Mortelle']],
-				[['-'],['En Bronze'],['En Argent'],['Émeraude'],['En Or'],['En Platine'],['En Titane'],['Rubis'],['Distingué','Distinguée'],['Astucieux','Astucieuse'],['Ours'],['Dur','Dure'],['Astral','Astrale'],['Élastique'],['Cardinal','Cardinale'],['Nécromancien','Nécromancienne'],['Archaique'],['Hypnotique'],['Dansant','Dansante'],['Fauve'],['Diamant'],['Vindicatif','Vindicative'],['Faussé'],['En Plastique'],['Insidieux','Insidieuse'],['Solaire'],['Araignée'],['Faucon'],['Noir','Noire']],
-				[['-'],['En Bronze'],['En Argent'],['Émeraude'],['En Or'],['En Platine'],['En Titane'],['Rubis'],['Distingué','Distinguée'],['Astucieux','Astucieuse'],['Ours'],['Dur','Dure'],['Astral','Astrale'],['Élastique'],['Cardinal','Cardinale'],['Nécromancien','Nécromancienne'],['Archaique'],['Hypnotique'],['Dansant','Dansante'],['Fauve'],['Diamant'],['Vindicatif','Vindicative'],['Faussé'],['En Plastique'],['Insidieux','Insidieuse'],['Solaire'],['Araignée'],['Faucon'],['Noir','Noire']],
-				[['-'],['Sévère'],['Denté','Dentée'],['Osseux','Osseuse'],['Tonifiant','Tonifiante'],['Cristallin','Cristalline'],['Mystique'],['Léger','Légère'],['Cruel','Cruelle'],['Amical','Amicale'],['Piquant','Piquante'],['Protecteur','Protectrice'],['Lumineux','Lumineuse'],['Venimeux','Venimeuse'],['Meurtrier','Meurtrière'],['Empoisonné','Empoisonnée'],['Damné','Damnée'],['Agile'],['Antique'],['Rapide'],['Démoniaque']],
-				[['-'],['Dispendieux','Dispendieuse'],['Sévère'],['Cristallin','Cristalline'],['Denté','Dentée'],['Large'],['Cruel','Cruelle'],['Mystique'],['Tonifiant','Tonifiante'],['Piquant','Piquante'],['Léger','Légère'],['Lourd','Lourde'],['Empoisonné','Empoisonnée'],['Irradié','Irradiée'],['Lumineux','Lumineuse'],['Protecteur','Protectrice'],['Venimeux','Venimeuse'],['Meurtrier','Meurtrière'],['Damné','Damnée'],['Agile'],['Antique'],['Démoniaque']],
-				[['-']],
-				[['-']],
-				[['-']]
-			],
-			[ // 4 - suffixes
-				[['-'],['Explorateur','De L`Explorateur'],['Précaution','De La Précaution'],['Endurance','D`Endurance'],['Berger','Du Berger'],['Toxicomane','Du Toxicomane'],['Protection','De La Protection'],['Sens','Des Sens'],['Prophète','Du Prophète'],['Punition','De La Punition'],['Gladiateur','Du Gladiateur'],['Sang','Du Sang'],['Carapace De Tortue','De Carapace De Tortue'],['Soleil','Du Soleil'],['Adrénaline','De l`Adrénaline'],['Précognition','De La Précognition'],['Écaille De Dragon','D`Écaille De Dragon'],['Puissance','De La Puissance'],['Magie','De La Magie']],
-				[['-'],['Voleur','Du Voleur'],['Adepte','De L`Adepte'],['Garde','Du Garde'],['Athlète','De L`Athlète'],['Toxicomane','Du Toxicomane'],['Maître D`Epée','Du Maître D`Epée'],['Tueur','Du Tueur'],['Gardien','Du Gardien'],['Cobra','Du Cobra'],['Carapace De Tortue','De Carapace De Tortue'],['Esquive','D`Esquive'],['Pillard','Du Pillard'],['Maître','Du Maître'],['Adrénaline','De l`Adrénaline'],['Centurion','Du Centurion'],['Résistance','De La Résistance'],['Caligula','De Caligula'],['Semeur De La Mort','Du Semeur De La Mort'],['Vitesse','De La Vitesse'],['Orchidée','De L`Orchidée']],
-				[['-'],['Brigand','Du Brigand'],['Contrebandier','Du Contrebandier'],['Toxicomane','Du Toxicomane'],['Athlète','De L`Athlète'],['Gestes Muets','Des Gestes Muets'],['Esquive','D`Esquive'],['Réserve','De La Réserve'],['Soleil','Du Soleil'],['Trafiquant D`Armes','Du Trafiquant D`Armes'],['Berger','Du Berger'],['Chasseur D`Ombres','Du Chasseur D`Ombres'],['Serpent','Du Serpent'],['Incas','Des Incas'],['Orienteur','De L`Orienteur'],['Nuit','De La Nuit']],
-				[['-'],['Délit','Du Délit'],['Beauté','De La Beauté'],['Pouvoir','Du Pouvoir'],['Génie','Du Génie'],['Force','De La Force'],['Sagesse','De La Sagesse'],['Peau Dure','De La Peau Dure'],['Pèlerin','Du Pèlerin'],['Loup-garou','Du Loup-garou'],['Justesse','De La Justesse'],['Art','De L`Art'],['Jouvence','De La Jouvence'],['Chance','De La Chance'],['Sang','Du Sang'],['Habilité','De L`Habilité'],['Concentration','De La Concentration'],['Lévitation','De La Lévitation'],['Astuce','De L`Astuce'],['Dément','Du Dément'],['Facilitée','De La Facilitée']],
-				[['-'],['Délit','Du Délit'],['Beauté','De La Beauté'],['Pouvoir','Du Pouvoir'],['Force','De La Force'],['Génie','Du Génie'],['Sagesse','De La Sagesse'],['Peau Dure','De La Peau Dure'],['Loup-garou','Du Loup-garou'],['Art','De L`Art'],['Justesse','De La Justesse'],['Jouvence','De La Jouvence'],['Renard','Du Renard'],['Chance','De La Chance'],['Sang','Du Sang'],['Chauve-souris','De La Chauve-souris'],['Concentration','De La Concentration'],['Lévitation','De La Lévitation'],['Astuce','De L`Astuce'],['Dément','Du Dément'],['Facilitée','De La Facilitée']],
-				[['-'],['Commandant','Du Commandant'],['Secte','De La Secte'],['Douleur','De La Douleur'],['Pouvoir','Du Pouvoir'],['Agilité','De L`Agilité'],['Puissance','De La Puissance'],['Peste','De la Peste'],['Courage','Du Courage'],['Justesse','De La Justesse'],['Ancêtres','Des Ancêtres'],['Conquérant','Du Conquérant'],['Vengeance','De La Vengeance'],['Contusion','De La Contusion'],['Vertu','De La Vertu'],['Précision','De La Précision'],['Sang','Du Sang'],['Fer À Cheval','Du Fer À Cheval'],['Suicidé','Du Suicidé'],['Dracula','De Dracula'],['Vélocité','De La Vélocité'],['Clan','Du Clan'],['Empereur','De L`Empereur']],
-				[['-'],['Trahison','De La Trahison'],['Ruse','De La Ruse'],['Douleur','De La Douleur'],['Hasardeux','Du Hasardeux'],['Plomb','De Plomb'],['Puissance','De La Puissance'],['Inquisiteur','De L`Inquisiteur'],['Buveur De Sang','Du Buveur De Sang'],['Conquérant','Du Conquérant'],['Pouvoir','Du Pouvoir'],['Vengeance','De La Vengeance'],['Peste','De la Peste'],['Fer À Cheval','Du Fer À Cheval'],['Autocrate','De L`Autocrate'],['Sang','Du Sang'],['Basilic','Du Basilic'],['Suicidé','Du Suicidé'],['Dracula','De Dracula']],
-				[['-']],
-				[['-']],
-				[['-'],['Longue Portée','De Longue Portée'],['Perfection','De La Perfection'],['Précision','De La Précision'],['Vengeance','De La Vengeance'],['Réaction','De La Réaction'],['Dryades','Des Dryades'],['Mitraillage','De Mitraillage'],['Loups','Du Loups']]
-			]]
-			};
-	return {
-	//public stuff
-		_Get: function(key){
-			var r = locStr[key];
-			if (!_Exist(r)) throw new Error("L::Error:: la clé n'existe pas : "+key);
-			for (var i=arguments.length-1;i>=1;i--){
-				var reg = new RegExp("\\$"+i,"g");
-				r = r.replace(reg,arguments[i]);
-				}
-			return r;
-			}
-		};
-	})();
+      /**
+       * @method decode
+       * Désérialise une chaîne JSON.
+       * @param {JSON} v - chaîne JSON à décoder.
+       * @return {?*} r la valeur décodée sinon null.
+       */
+      decode: function (v) {
+        var r = null;
+        try {
+          r = JSON.parse(v, reviver);
+        } catch (e) {
+          console.error('Jsons.decode error :', v, e);
+        }
+        return r;
+      },
+      
+      /**
+       * @method encode
+       * Sérialise un objet au format JSON.
+       * @param {*} v - la valeur à encoder.
+       * @return {JSON} une chaîne au format JSON.
+       */
+      encode: function (v) {
+        return JSON.stringify(v);
+      }
+    };
+  })().init();
 
-/******************************************************
-* OBJET DATAS - Fonctions d'accès aux données de la page
-* Chaque fonction retourne 'null' en cas d'échec
-******************************************************/
-var DATAS = (function(){
-	return {
-	/* données du joueur */
-		_PlayerName: function(){
-			return DOM._GetFirstNodeTextContent("//div[@class='stats-player']/a[@class='me']", null);
-			},
-	/* Données diverses	*/
-		_GetPage: function(){
-			var p = 'null',
-			// message Serveur (à approfondir)
-				r = DOM._GetFirstNode("//div[@class='komunikat']");
-			if (r!==null){
-				r = DOM._GetFirstNodeTextContent(".//u",r);
-				if (r==L._Get('sDeconnecte')) p="pServerDeco";
-				else if (r==L._Get('sCourtePause')) p="pServerUpdate";
-				else p="pServerOther";
-				}
-			else{
-				var qsA = DOM._QueryString("a"),
-					qsDo = DOM._QueryString("do"),
-					path = window.location.pathname;
-				// page extérieur
-				if (path!="/"){}
-				// page interne
-				// Salle du Trône
-				else if (qsA===null||qsA=="main") p="pMain";
-				// Le Puits des Âmes - Moria I
-				else if (qsA=="mixer"){
-					if (qsDo===null||qsDo=="mkstone") p="pMkstone";
-					else if (qsDo=="upgitem") p="pUpgitem";
-					else if (qsDo=="mixitem") p="pMixitem";
-					else if (qsDo=="destitem") p="pDestitem";
-					else if (qsDo=="tatoo") p="pTatoo";
-					}
-				}
-			return p;
-			}
-		};
-	})();
+  /******************************************************
+   * OBJET LS - Local Storage - basé sur localStorage
+   * Note : localStorage est lié au domaine
+   ******************************************************/
+  var LS = (function () {
+    return {
 
-/******************************************************
-* OBJET PREF - Gestion des préférences
-******************************************************/
-var PREF = (function(){
-	// préfèrences par défaut
-	var index = 'BWM:O:',
-		defPrefs = {'set':[[true,true,true,true,true,true,true,true,true,true],0,[2,0],[0,''],0,-1,0,[0,0],['','','',true,true,true]]};
-		//0:show (true/false)-> titre,position,aide,sim,search,res,saisie,armurerie,synthèse
-		//1:mode,2:tri,3:cat,4:sim,5:search,6:result,7:saisie
-		//8:options -> max rés,max écart,max fusion, best, post
-	var ID = null, prefs = {};
-	return {
-		_Init: function(id){
-			ID = id;
-			prefs = LS._GetVar(index+ID,{});
-			},
-		_Get: function(key){
-			if (_Exist(prefs[key])) return prefs[key];
-			else if (_Exist(defPrefs[key]))return defPrefs[key];
-			else return null;
-			},
-		_GetDef: function(key){
-			if (_Exist(defPrefs[key])) return defPrefs[key];
-			else return null;
-			},
-		_Set: function(key,v){
-			if (ID!==null){
-				prefs[key] = v;
-				LS._SetVar(index+ID,prefs);
-				return v;
-				}
-			else throw new Error("Erreur : les préférences n'ont pas été initialisées.");
-			},
-		_Raz: function(){
-			prefs = {};
-			if (ID!==null) LS._Delete(index+ID);
-			else throw new Error("Erreur : les préférences n'ont pas été initialisées.");
-			}
-		};
-	})();
+      /**
+       * @method init
+       * Fonction d'initialisation.
+       * Vérifie si le service localStorage est bien disponible.
+       * @return {Objet}
+       */
+      init: function () {
+        if (!window.localStorage) throw new Error("Erreur : le service localStorage n\'est pas disponible.");
+        else return this;
+      },
+      
+      /**
+       * @method get
+       * Retourne la valeur de key ou sinon la valeur par défaut.
+       * @param {String} key - la clé recherchée.
+       * @param {*} defVal - valeur par défaut.
+       * @return {*} val|defVal
+       */
+      get: function (key, defVal) {
+        var val = window.localStorage.getItem(key); // return null if no key
+        return (!isNull(val) ? Jsons.decode(val) : defVal);
+      },
+      
+      /**
+       * @method set
+       * Ajoute/remplace la valeur de la clé concernée.
+       * @param {String} key - la clé.
+       * @param {*} val
+       * @return {*} val
+       */
+      set: function (key, val) {
+        window.localStorage.setItem(key, Jsons.encode(val));
+        return val;
+      },
+      
+      /**
+       * @method del
+       * Efface la clé.
+       * @param {String} key - la clé.
+       * @return {String} key
+       */
+      del: function (key) {
+        window.localStorage.removeItem(key);
+        return key;
+      }
+    };
+  })().init();
 
-/******************************************************
-* CSS
-******************************************************/
-function getCssRules(selector,css){
-    var sheets = _Exist(css)?[css]:document.styleSheets;
-    for (var i = 0; i<sheets.length; i++){
+  /******************************************************
+   * OBJET DOM - Fonctions DOM & QueryString
+   * - fonctions d'accès aux noeuds basées sur Xpath
+   * - fonctions de création de noeuds et event
+   * - gueryString : accès aux arguments de l'URL
+   ******************************************************/
+  var DOM = (function () {
+    
+    return {
+      /**
+       * @method getNodes
+       * Cherche un ensemble d'éléments correspondant à la recherche
+       * @param {xpathExpression} path - chemin au format Xpath
+       * @param {contextNode} [root=document] - élément servant de base à la recherche
+       * @return {?XPathResult} null si aucun élément trouvé ou root incorrect
+       */
+      getNodes: function (path, root) {
+        return (exist(root) && isNull(root)) ? null : document.evaluate(path, (exist(root) ? root :
+          document), null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+      },
+      
+      /**
+       * @method getFirstNode
+       * Retourne le 1er élément correspondant à la recherche
+       * @param {xpathExpression} path - chemin au format Xpath
+       * @param {contextNode} [root=document] - élément servant de base à la recherche
+       * @return {?Element} noeud
+       */
+      getFirstNode: function (path, root) {
+        var r = this.getNodes(path, root);
+        return (!isNull(r) && r.snapshotLength >= 1 ? r.snapshotItem(0) : null);
+      },
+      
+      /**
+       * @method getFirstNodeTextContent
+       * Retourne le textContent du 1er élément correspondant à la recherche
+       * @param {xpathExpression} path - chemin au format Xpath
+       * @param {String} defVal - valeur par défaut
+       * @param {contextNode} [root=document] - élément servant de base à la recherche
+       * @return {textContent=defVal}
+       */
+      getFirstNodeTextContent: function (path, defVal, root) {
+        var r = this.getFirstNode(path, root);
+        return (!isNull(r) && !isNull(r.textContent) ? r.textContent : defVal);
+      },
+      
+      /**
+       * @method newNodes
+       * Créé en ensemble d'éléments à partir d'une liste descriptive
+       * @param {[...Array]} list - décrit un ensemble d'éléments (cf newNode)
+       * @param {{...Objet}} [base] - précédent ensemble
+       * @return {{...Objet}} nodes - liste des éléments
+       */
+      newNodes: function (list, base) {
+        var nodes = exist(base) ? base : {};
+        for (var i = 0; i < list.length; i++) {
+          var node = exist(nodes[list[i][5]]) ? nodes[list[i][5]] : list[i][5];
+          nodes[list[i][0]] = this.newNode(list[i][1], list[i][2],
+            list[i][3], list[i][4], node);
+        }
+        return nodes;
+      },
+      
+      /**
+       * @method newNode
+       * Créé un élément à partir d'une description
+       * @example
+       * DOM.newNode('input', { 'type': 'checkbox', 'checked': true }, ['texte'],
+                    {'click': [funcname, param]}, parentNode);
+       * @param {String} type - balise html
+       * @param {{...Objet}} attributes - liste des attributs
+       * @param {String[]} content - texte
+       * @param {{...[funcname, param]}} events - événements attachés à cet élément
+       * @param {Element} parent - élément parent
+       * @return {Element} node
+       */
+      newNode: function (type, attributes, content, events, parent) {
+        var node = document.createElement(type);
+        for (var key in attributes) {
+          if (attributes.hasOwnProperty(key)) {
+            if (typeof attributes[key] !== 'boolean') node.setAttribute(key, attributes[key]);
+            else if (attributes[key] === true) node.setAttribute(key, key.toString());
+          }
+        }
+        for (key in events) {
+          if (events.hasOwnProperty(key)) {
+            this.addEvent(node, key, events[key][0], events[key][1]);
+          }
+        }
+        for (var i = 0; i < content.length; i++) {
+          node.textContent += content[i];
+        }
+        if (!isNull(parent)) parent.appendChild(node);
+        return node;
+      },
+      
+      /**
+       * @method addEvent
+       * Assigne un gestionnaire d'évènement à un élément
+       * @example call
+       * DOM.addEvent(result,'click',fn,'2');
+       * @example listener 
+       * // this = node, e = event
+       * function fn(e,par) {alert('Event : ' + this.value + e.type + par);}
+       * @param {contextNode} node
+       * @param {String} type - type d'évènement à enregistrer
+       * @param {Function} fn - fonction recevant la notification
+       * @param {*} par - paramètres à passer
+       */
+      addEvent: function (node, type, fn, par) {
+        var funcName = function (e) {
+          return fn.call(node, e, par);
+        };
+        node.addEventListener(type, funcName, false);
+        if (!node.BWMListeners) { node.BWMListeners = {}; }
+        if (!node.BWMListeners[type]) node.BWMListeners[type] = {};
+        node.BWMListeners[type][fn.name] = funcName;
+      },
+      
+      /**
+       * @method gueryString
+       * retourne la valeur de la clé "key" trouvé dans l'url
+       * null: n'existe pas, true: clé existe mais sans valeur, autres: valeur
+       * @param {String} key
+       * @return {String} offset
+       */
+      gueryString: function (key) {
+        var url = window.location.search,
+          reg = new RegExp('[?&]' + key + '(=([^&$]+)|)(&|$)', 'i'),
+          offset = reg.exec(url);
+        if (!isNull(offset)) {
+          offset = exist(offset[2]) ? offset[2] : true;
+        }
+        return offset;
+      }
+    };
+  })();
+
+  /******************************************************
+   * OBJET L - localisation des chaînes de caractères et
+   * des expressions régulières.
+   ******************************************************/
+  var L = (function () {
+    var locStr = {
+      "sDeconnecte": "Vous avez été déconnecté en raison d`une longue inactivité.",
+      "sCourtePause": "Une courte pause est en court en raison de l`actualisation du classement général",
+      "sUnknowID": "BloorWarsMix - Erreur :\n\nLe nom de ce vampire doit être lié à son ID. Merci de consulter la Salle du Trône pour rendre le script opérationnel.\nCe message est normal si vous utilisez ce script pour la première fois ou si vous avez changé le nom du vampire.",
+      "listes": [
+        // 0 - types
+        ['Casque', 'Armure', 'Pantalon', 'Amulette', 'Anneau', 'Arme à une main',
+          'Arme à deux mains', 'Arme à feu à une main', 'Arme à feu à deux mains',
+          'Arme à distance à deux mains'
+        ],
+        // 1 - qualité
+        [
+          ['-'],
+          ['S1'],
+          ['S2'],
+          ['S3'],
+          ['S4'],
+          ['S5'],
+          ['B0'],
+          ['B1'],
+          ['B2'],
+          ['B3'],
+          ['B4'],
+          ['B5'],
+          ['P0'],
+          ['P1'],
+          ['P2'],
+          ['P3'],
+          ['P4'],
+          ['P5']
+        ],
+        [ // 2 - sous-types
+          [
+            ['-'],
+            ['Casquette', true],
+            ['Casque'],
+            ['Casque Militaire'],
+            ['Masque'],
+            ['Diadème'],
+            ['Cagoule', true],
+            ['Chapeau'],
+            ['Fronteau'],
+            ['Bandana'],
+            ['Couronne', true]
+          ],
+          [
+            ['-'],
+            ['T-shirt'],
+            ['Veste', true],
+            ['Veston'],
+            ['Gilet'],
+            ['Corset'],
+            ['Cape', true],
+            ['Smoking'],
+            ['Haubert'],
+            ['Armure En Plate', true],
+            ['Pleine Armure', true]
+          ],
+          [
+            ['-'],
+            ['Short'],
+            ['Pantalon'],
+            ['Jupe', true],
+            ['Kilt']
+          ],
+          [
+            ['-'],
+            ['Collier'],
+            ['Amulette', true],
+            ['Chaîne', true],
+            ['Foulard'],
+            ['Cravate', true]
+          ],
+          [
+            ['-'],
+            ['Anneau'],
+            ['Bracelet'],
+            ['Chevalière', true]
+          ],
+          [
+            ['-'],
+            ['Matraque', true],
+            ['Couteau'],
+            ['Poignard'],
+            ['Poing Américain'],
+            ['Épée', true],
+            ['Rapière', true],
+            ['Kama'],
+            ['Hache', true],
+            ['Wakizashi'],
+            ['Poing des Cieux']
+          ],
+          [
+            ['-'],
+            ['Massue'],
+            ['Pince-monseigneur', true],
+            ['Espadon'],
+            ['Hache Lourde', true],
+            ['Morgenstern', true],
+            ['Faux', true],
+            ['Pique'],
+            ['Hallebarde', true],
+            ['Katana'],
+            ['Tronçonneuse', true]
+          ],
+          [
+            ['-'],
+            ['Glock'],
+            ['Beretta'],
+            ['Uzi'],
+            ['Magnum'],
+            ['Desert Eagle'],
+            ['Mp5k'],
+            ['Scorpion']
+          ],
+          [
+            ['-'],
+            ['Carabine de Chasse'],
+            ['Semi-automatique de Sniper'],
+            ['Fusil de Sniper'],
+            ['AK-47'],
+            ['Fn-Fal'],
+            ['Fusil'],
+            ['Lance-flammes']
+          ],
+          [
+            ['-'],
+            ['Arc Court'],
+            ['Arc'],
+            ['Shuriken'],
+            ['Arc Long'],
+            ['Arbalète'],
+            ['Couteau de lancer'],
+            ['Arc Reflex'],
+            ['Javelot'],
+            ['Pilum'],
+            ['Francisque'],
+            ['Lourde Arbalète']
+          ]
+        ],
+        [ // 3 - Préfixes
+          [
+            ['-'],
+            ['Endurci', 'Endurcie'],
+            ['Renforcé', 'Renforcée'],
+            ['Serviable'],
+            ['Chic'],
+            ['Élégant', 'Élégante'],
+            ['Cornu', 'Cornue'],
+            ['Malicieux', 'Malicieuse'],
+            ['Paresseux', 'Paresseuse'],
+            ['Mortel', 'Mortelle'],
+            ['Guerrier', 'Guerrière'],
+            ['Magnétique'],
+            ['Sanglant', 'Sanglante'],
+            ['Splendide'],
+            ['Pare-balles'],
+            ['Chamaniste'],
+            ['Tigre'],
+            ['D`Assaut'],
+            ['Runique'],
+            ['Rituel', 'Rituelle']
+          ],
+          [
+            ['-'],
+            ['Renforcé', 'Renforcée'],
+            ['Clouté', 'Cloutée'],
+            ['Dominateur', 'Dominatrice'],
+            ['Léger', 'Légère'],
+            ['Écailleux', 'Écailleuses'],
+            ['En Plate'],
+            ['Guerrier', 'Guerrière'],
+            ['Flexible'],
+            ['Sanglant', 'Sanglante'],
+            ['Chasseur'],
+            ['Chamaniste'],
+            ['Pare-balles'],
+            ['Tigre'],
+            ['Elfe'],
+            ['Runique'],
+            ['Mortel', 'Mortelle']
+          ],
+          [
+            ['-'],
+            ['Court', 'Courte'],
+            ['Piqué', 'Piquée'],
+            ['Léger', 'Légère'],
+            ['Renforcé', 'Renforcée'],
+            ['Satiné', 'Satinée'],
+            ['Clouté', 'Cloutée'],
+            ['Pare-balles'],
+            ['Flexible'],
+            ['Épineux', 'Épineuse'],
+            ['Chamaniste'],
+            ['Sanglant', 'Sanglante'],
+            ['Elfe'],
+            ['Tigre'],
+            ['Blindé', 'Blindée'],
+            ['Composite'],
+            ['Runique'],
+            ['Mortel', 'Mortelle']
+          ],
+          [
+            ['-'],
+            ['En Bronze'],
+            ['En Argent'],
+            ['Émeraude'],
+            ['En Or'],
+            ['En Platine'],
+            ['En Titane'],
+            ['Rubis'],
+            ['Distingué', 'Distinguée'],
+            ['Astucieux', 'Astucieuse'],
+            ['Ours'],
+            ['Dur', 'Dure'],
+            ['Astral', 'Astrale'],
+            ['Élastique'],
+            ['Cardinal', 'Cardinale'],
+            ['Nécromancien', 'Nécromancienne'],
+            ['Archaique'],
+            ['Hypnotique'],
+            ['Dansant', 'Dansante'],
+            ['Fauve'],
+            ['Diamant'],
+            ['Vindicatif', 'Vindicative'],
+            ['Faussé'],
+            ['En Plastique'],
+            ['Insidieux', 'Insidieuse'],
+            ['Solaire'],
+            ['Araignée'],
+            ['Faucon'],
+            ['Noir', 'Noire']
+          ],
+          [
+            ['-'],
+            ['En Bronze'],
+            ['En Argent'],
+            ['Émeraude'],
+            ['En Or'],
+            ['En Platine'],
+            ['En Titane'],
+            ['Rubis'],
+            ['Distingué', 'Distinguée'],
+            ['Astucieux', 'Astucieuse'],
+            ['Ours'],
+            ['Dur', 'Dure'],
+            ['Astral', 'Astrale'],
+            ['Élastique'],
+            ['Cardinal', 'Cardinale'],
+            ['Nécromancien', 'Nécromancienne'],
+            ['Archaique'],
+            ['Hypnotique'],
+            ['Dansant', 'Dansante'],
+            ['Fauve'],
+            ['Diamant'],
+            ['Vindicatif', 'Vindicative'],
+            ['Faussé'],
+            ['En Plastique'],
+            ['Insidieux', 'Insidieuse'],
+            ['Solaire'],
+            ['Araignée'],
+            ['Faucon'],
+            ['Noir', 'Noire']
+          ],
+          [
+            ['-'],
+            ['Sévère'],
+            ['Denté', 'Dentée'],
+            ['Osseux', 'Osseuse'],
+            ['Tonifiant', 'Tonifiante'],
+            ['Cristallin', 'Cristalline'],
+            ['Mystique'],
+            ['Léger', 'Légère'],
+            ['Cruel', 'Cruelle'],
+            ['Amical', 'Amicale'],
+            ['Piquant', 'Piquante'],
+            ['Protecteur', 'Protectrice'],
+            ['Lumineux', 'Lumineuse'],
+            ['Venimeux', 'Venimeuse'],
+            ['Meurtrier', 'Meurtrière'],
+            ['Empoisonné', 'Empoisonnée'],
+            ['Damné', 'Damnée'],
+            ['Agile'],
+            ['Antique'],
+            ['Rapide'],
+            ['Démoniaque']
+          ],
+          [
+            ['-'],
+            ['Dispendieux', 'Dispendieuse'],
+            ['Sévère'],
+            ['Cristallin', 'Cristalline'],
+            ['Denté', 'Dentée'],
+            ['Large'],
+            ['Cruel', 'Cruelle'],
+            ['Mystique'],
+            ['Tonifiant', 'Tonifiante'],
+            ['Piquant', 'Piquante'],
+            ['Léger', 'Légère'],
+            ['Lourd', 'Lourde'],
+            ['Empoisonné', 'Empoisonnée'],
+            ['Irradié', 'Irradiée'],
+            ['Lumineux', 'Lumineuse'],
+            ['Protecteur', 'Protectrice'],
+            ['Venimeux', 'Venimeuse'],
+            ['Meurtrier', 'Meurtrière'],
+            ['Damné', 'Damnée'],
+            ['Agile'],
+            ['Antique'],
+            ['Démoniaque']
+          ],
+          [
+            ['-']
+          ],
+          [
+            ['-']
+          ],
+          [
+            ['-']
+          ]
+        ],
+        [ // 4 - suffixes
+          [
+            ['-'],
+            ['Explorateur', 'De L`Explorateur'],
+            ['Précaution', 'De La Précaution'],
+            ['Endurance', 'D`Endurance'],
+            ['Berger', 'Du Berger'],
+            ['Toxicomane', 'Du Toxicomane'],
+            ['Protection', 'De La Protection'],
+            ['Sens', 'Des Sens'],
+            ['Prophète', 'Du Prophète'],
+            ['Punition', 'De La Punition'],
+            ['Gladiateur', 'Du Gladiateur'],
+            ['Sang', 'Du Sang'],
+            ['Carapace De Tortue', 'De Carapace De Tortue'],
+            ['Soleil', 'Du Soleil'],
+            ['Adrénaline', 'De l`Adrénaline'],
+            ['Précognition', 'De La Précognition'],
+            ['Écaille De Dragon', 'D`Écaille De Dragon'],
+            ['Puissance', 'De La Puissance'],
+            ['Magie', 'De La Magie']
+          ],
+          [
+            ['-'],
+            ['Voleur', 'Du Voleur'],
+            ['Adepte', 'De L`Adepte'],
+            ['Garde', 'Du Garde'],
+            ['Athlète', 'De L`Athlète'],
+            ['Toxicomane', 'Du Toxicomane'],
+            ['Maître D`Epée', 'Du Maître D`Epée'],
+            ['Tueur', 'Du Tueur'],
+            ['Gardien', 'Du Gardien'],
+            ['Cobra', 'Du Cobra'],
+            ['Carapace De Tortue', 'De Carapace De Tortue'],
+            ['Esquive', 'D`Esquive'],
+            ['Pillard', 'Du Pillard'],
+            ['Maître', 'Du Maître'],
+            ['Adrénaline', 'De l`Adrénaline'],
+            ['Centurion', 'Du Centurion'],
+            ['Résistance', 'De La Résistance'],
+            ['Caligula', 'De Caligula'],
+            ['Semeur De La Mort', 'Du Semeur De La Mort'],
+            ['Vitesse', 'De La Vitesse'],
+            ['Orchidée', 'De L`Orchidée']
+          ],
+          [
+            ['-'],
+            ['Brigand', 'Du Brigand'],
+            ['Contrebandier', 'Du Contrebandier'],
+            ['Toxicomane', 'Du Toxicomane'],
+            ['Athlète', 'De L`Athlète'],
+            ['Gestes Muets', 'Des Gestes Muets'],
+            ['Esquive', 'D`Esquive'],
+            ['Réserve', 'De La Réserve'],
+            ['Soleil', 'Du Soleil'],
+            ['Trafiquant D`Armes', 'Du Trafiquant D`Armes'],
+            ['Berger', 'Du Berger'],
+            ['Chasseur D`Ombres', 'Du Chasseur D`Ombres'],
+            ['Serpent', 'Du Serpent'],
+            ['Incas', 'Des Incas'],
+            ['Orienteur', 'De L`Orienteur'],
+            ['Nuit', 'De La Nuit']
+          ],
+          [
+            ['-'],
+            ['Délit', 'Du Délit'],
+            ['Beauté', 'De La Beauté'],
+            ['Pouvoir', 'Du Pouvoir'],
+            ['Génie', 'Du Génie'],
+            ['Force', 'De La Force'],
+            ['Sagesse', 'De La Sagesse'],
+            ['Peau Dure', 'De La Peau Dure'],
+            ['Pèlerin', 'Du Pèlerin'],
+            ['Loup-garou', 'Du Loup-garou'],
+            ['Justesse', 'De La Justesse'],
+            ['Art', 'De L`Art'],
+            ['Jouvence', 'De La Jouvence'],
+            ['Chance', 'De La Chance'],
+            ['Sang', 'Du Sang'],
+            ['Habilité', 'De L`Habilité'],
+            ['Concentration', 'De La Concentration'],
+            ['Lévitation', 'De La Lévitation'],
+            ['Astuce', 'De L`Astuce'],
+            ['Dément', 'Du Dément'],
+            ['Facilitée', 'De La Facilitée']
+          ],
+          [
+            ['-'],
+            ['Délit', 'Du Délit'],
+            ['Beauté', 'De La Beauté'],
+            ['Pouvoir', 'Du Pouvoir'],
+            ['Force', 'De La Force'],
+            ['Génie', 'Du Génie'],
+            ['Sagesse', 'De La Sagesse'],
+            ['Peau Dure', 'De La Peau Dure'],
+            ['Loup-garou', 'Du Loup-garou'],
+            ['Art', 'De L`Art'],
+            ['Justesse', 'De La Justesse'],
+            ['Jouvence', 'De La Jouvence'],
+            ['Renard', 'Du Renard'],
+            ['Chance', 'De La Chance'],
+            ['Sang', 'Du Sang'],
+            ['Chauve-souris', 'De La Chauve-souris'],
+            ['Concentration', 'De La Concentration'],
+            ['Lévitation', 'De La Lévitation'],
+            ['Astuce', 'De L`Astuce'],
+            ['Dément', 'Du Dément'],
+            ['Facilitée', 'De La Facilitée']
+          ],
+          [
+            ['-'],
+            ['Commandant', 'Du Commandant'],
+            ['Secte', 'De La Secte'],
+            ['Douleur', 'De La Douleur'],
+            ['Pouvoir', 'Du Pouvoir'],
+            ['Agilité', 'De L`Agilité'],
+            ['Puissance', 'De La Puissance'],
+            ['Peste', 'De la Peste'],
+            ['Courage', 'Du Courage'],
+            ['Justesse', 'De La Justesse'],
+            ['Ancêtres', 'Des Ancêtres'],
+            ['Conquérant', 'Du Conquérant'],
+            ['Vengeance', 'De La Vengeance'],
+            ['Contusion', 'De La Contusion'],
+            ['Vertu', 'De La Vertu'],
+            ['Précision', 'De La Précision'],
+            ['Sang', 'Du Sang'],
+            ['Fer À Cheval', 'Du Fer À Cheval'],
+            ['Suicidé', 'Du Suicidé'],
+            ['Dracula', 'De Dracula'],
+            ['Vélocité', 'De La Vélocité'],
+            ['Clan', 'Du Clan'],
+            ['Empereur', 'De L`Empereur']
+          ],
+          [
+            ['-'],
+            ['Trahison', 'De La Trahison'],
+            ['Ruse', 'De La Ruse'],
+            ['Douleur', 'De La Douleur'],
+            ['Hasardeux', 'Du Hasardeux'],
+            ['Plomb', 'De Plomb'],
+            ['Puissance', 'De La Puissance'],
+            ['Inquisiteur', 'De L`Inquisiteur'],
+            ['Buveur De Sang', 'Du Buveur De Sang'],
+            ['Conquérant', 'Du Conquérant'],
+            ['Pouvoir', 'Du Pouvoir'],
+            ['Vengeance', 'De La Vengeance'],
+            ['Peste', 'De la Peste'],
+            ['Fer À Cheval', 'Du Fer À Cheval'],
+            ['Autocrate', 'De L`Autocrate'],
+            ['Sang', 'Du Sang'],
+            ['Basilic', 'Du Basilic'],
+            ['Suicidé', 'Du Suicidé'],
+            ['Dracula', 'De Dracula']
+          ],
+          [
+            ['-']
+          ],
+          [
+            ['-']
+          ],
+          [
+            ['-'],
+            ['Longue Portée', 'De Longue Portée'],
+            ['Perfection', 'De La Perfection'],
+            ['Précision', 'De La Précision'],
+            ['Vengeance', 'De La Vengeance'],
+            ['Réaction', 'De La Réaction'],
+            ['Dryades', 'Des Dryades'],
+            ['Mitraillage', 'De Mitraillage'],
+            ['Loups', 'Du Loups']
+          ]
+        ]
+      ]
+    };
+    return {
+      /**
+       * @method get
+       * Retourne la chaine ou l'expression traduite
+       * Remplace les éléments $1,$2... par les arguments transmis en complément.
+       * Le caractère d'échappement '\' doit être doublé pour être pris en compte dans une expression régulière
+       * @example "test": ["<b>$2<\/b> a tué $1 avec $3.",]
+       * L.get('test','Dr Moutarde','Mlle Rose','le chandelier');
+       * => "<b>Mlle Rose<\/b> a tué le Dr Moutarde avec le chandelier."
+       * @param {String} key
+       * @param {...String} [arguments]
+       * @return {String} offset
+       */
+      get: function (key) {
+        var r = locStr[key];
+        if (!exist(r)) throw new Error("L::Error:: la clé n'existe pas : " + key);
+        for (var i = arguments.length - 1; i >= 1; i--) {
+          var reg = new RegExp("\\$" + i, "g");
+          r = r.replace(reg, arguments[i]);
+        }
+        return r;
+      }
+    };
+  })();
+
+  /******************************************************
+   * OBJET G - Fonctions d'accès aux données du jeu.
+   * Chaque fonction retourne null en cas d'échec.
+   ******************************************************/
+  var G = (function () {
+    return {
+      /**
+       * @method playerName
+       * retourne le nom du joueur
+       * @return {String|null}
+       */
+      playerName: function () {
+        return DOM.getFirstNodeTextContent("//div[@class='stats-player']/a[@class='me']", null);
+      },
+      /**
+       * @method page
+       * Identifie la page et retourne son id
+       * @return {String|null} p
+       */
+      page: function () {
+        var p = null;
+        // ni un message Serveur ni une page extérieur
+        if (isNull(DOM.getFirstNode("//div[@class='komunikat']")) && window.location.pathname == '/') {
+          var qsA = DOM.gueryString("a"),
+            qsDo = DOM.gueryString("do");
+          if (isNull(qsA) || qsA == "main") p = "pMain"; // Salle du Trône
+          else if (qsA == "mixer") { // Le Puits des Âmes - Moria
+            if (isNull(qsDo) || qsDo == "mkstone") p = "pMkstone"; 
+            else if (qsDo == "upgitem") p = "pUpgitem";
+            else if (qsDo == "mixitem") p = "pMixitem";
+            else if (qsDo == "destitem") p = "pDestitem";
+            else if (qsDo == "tatoo") p = "pTatoo";
+          }
+        }
+        return p;
+      }
+    };
+  })();
+
+  /******************************************************
+   * OBJET U - fonctions d'accès aux données utilisateur.
+   *
+   ******************************************************/
+  var U = (function () {
+    var defPref = {
+        'shTitle': true,
+        'shPos': true,
+        'shHelp': true,
+        'shGet': true,
+        'shLArm': true,
+        'shLInd': true,
+        'shLSyn': true,
+        'shSim': true,
+        'shSchI': true,
+        'shSchO': true,
+        'shSchT': true,
+        'shRes': true,
+        'mode': 0, // 1:mode = 0
+        'triCol': 2, // 2:tri = [2, 0]
+        'triOrder': 0,
+        'cat': 0, // 3:cat = [0, '']
+        'leg': '',
+        'sim': 0, // 4:sim = 0
+        'result': 0, // 6:result = 0
+        'setZone': 0,// 7:zone de saisie = [0, 0]
+        'setIndex': 0,
+        'defOpt': {
+          'oMaxfusion': '',
+          'oMaxEcart': '',
+          'oMaxRes': '',
+          'oCoef': 1,
+          'oBest': true,
+          'oPost': true,
+          'oFQua': 1,
+          'oFObj': 2,
+          'oFPre': 3,
+          'oFSuf': 3,
+        }
+      },
+      pref = {},
+      ids = LS.get('BWM:IDS', {}),
+      id = null;
+      
+    return {
+      name: null,
+      
+      /**
+       * @method init
+       * Fonction d'initialisation de l'objet User.
+       * Identifie l'utilisateur et ses paramètres (name, id, pref).
+       * @return {Objet}
+       */
+      init: function () {
+        var name = G.playerName(),
+          page = G.page();
+        if (page == 'pMain' && !isNull(name)) {
+          var refLink = DOM.getFirstNodeTextContent(
+            "//div[@id='content-mid']/div[@id='reflink']/span[@class='reflink']", null);
+          if (!isNull(refLink)) {
+            var ref = /r\.php\?r=([0-9]+)/.exec(refLink);
+            if (!isNull(ref)) {
+              id = ref[1];
+              for (var i in ids) {
+                if (ids[i] == id) delete ids[i]; // en cas de changement de nom
+              }
+              ids[name] = id;
+              LS.set('BWM:IDS', ids);
+            }
+          }
+        }
+        if (!isNull(name) && exist(ids[name])) {
+          this.name = name;
+          id = ids[name];
+          var prefTmp = LS.get('BWM:O:' + id, {});
+          for (var i in defPref) {
+            pref[i] = exist(prefTmp[i])? prefTmp[i] : clone(defPref[i]) ; 
+          }
+        }
+        return this;
+      },
+      
+      /**
+       * @method getP
+       * Retourne la valeur d'une préférence utilisateur.
+       * @param {String} key
+       * @return {*} val
+       */
+      getP: function (key) {
+        if (exist(pref[key])) {
+          return clone(pref[key]);
+        }
+        else {
+          throw new Error("Erreur : clé de préférence inconnue.");
+        }
+      },
+
+      /**
+       * @method getDefP
+       * Retourne la valeur par défaut d'une préférence utilisateur.
+       * @param {String} key
+       * @return {*} val
+       */
+      getDefP: function (key) {
+        if (exist(defPref[key])) {
+          return clone(defPref[key]);
+        }
+        else {
+          throw new Error("Erreur : clé de préférence inconnue.");
+        }
+      },
+      
+      /**
+       * @method setP
+       * Sauvegarde la valeur d'une préférence utilisateur.
+       * @param {String} key
+       * @param {*} val
+       * @return {*} val
+       */
+      setP: function (key, val) {
+        if (exist(pref[key])) {
+          pref[key] = clone(val);
+          LS.set('BWM:O:' + id, pref);
+          return val;
+        }
+        else {
+          throw new Error("Erreur : clé de préférence inconnue.");
+        }
+      },
+
+      /**
+       * @method razP
+       * Reset la valeur d'une préférence utilisateur.
+       * @param {String} key
+       * @return {*} val
+       */
+      razP: function (key) {
+        if (exist(pref[key])) {
+          pref[key] = defPref[key];
+          LS.set('BWM:O:' + id, pref);
+          return clone(pref[key]);
+        }
+        else {
+          throw new Error("Erreur : clé de préférence inconnue.");
+        }
+      },
+      
+      /**
+       * @method razAllP
+       * Reset des préférences utilisateur.
+       * @return {*} val
+       */
+      razAllP: function () {
+        pref = defPref;
+        LS.set('BWM:O:' + id, pref);
+      },
+      
+      /**
+       * @method getD
+       * Retourne les données liées à l'utilisateur.
+       * @param {String} key
+       * @param {*} defVal - valeur par défaut
+       * @return {*} val|defVal
+       */
+      getD: function (key, defVal) {
+        return LS.get('BWM:' + key + ':' + id, defVal);
+      },
+      
+      /**
+       * @method setD
+       * Sauvegarde des données liées à l'utilisateur.
+       * @param {String} key
+       * @param {*} val
+       * @return {*} val
+       */
+      setD: function (key, val) {
+        return LS.set('BWM:' + key + ':' + id, val);
+      }
+    };
+  })().init();
+  
+  /******************************************************
+   * CSS - Initialisation des styles propre à ce script.
+   * Note : la commande init est appelée automatiquement.
+   ******************************************************/
+   
+  var CSS = (function () {
+    function getCssRules(selector, css) {
+      var sheets = exist(css) ? [css] : document.styleSheets;
+      for (var i = 0; i < sheets.length; i++) {
         var sheet = sheets[i];
-		try {
-			if(!sheet.cssRules) return null;
-			}
-		catch(e) {
-			if(e.name !== 'SecurityError') throw e;
-			return null;
-			}
-        for (var j=0;j<sheet.cssRules.length;j++){
-            var rule = sheet.cssRules[j];
-            if (rule.selectorText&&rule.selectorText.split(',').indexOf(selector)!==-1) return rule.style;
-			}
-		}
-    return null;
-	}
-function setCss(){
-	var css = [
-		".BWMbox{width: 100%;margin:0 auto;}",
-		".BWMtitle,.BWMcut,.BWMselect{cursor: pointer;}",
-		".BWMcut2{cursor: text;}",
-		".BWMselect:hover{text-decoration: underline;}",
-		".BMWfield{margin: 0;padding: 1px;text-align: left;}",
-		".BWMlegend{font-size: 11px;font-weight: bold;}",
-		".BWMdiv1{margin: 0px;padding: 0px;}",
-		".BWMtab0,.BWMtab1,.BWMtab3{border-collapse: collapse;width: 100%; table-layout: fixed;}",
-		".BWMtab2{border-collapse: collapse;width: 100%}",
-		".BWMtab1,.BWMtab2,.BWMtab3{text-align: center;}",
-		".BWMtab0 td{vertical-align: top;padding: 4px;}",
-		".BWMtab1 td,.BWMtab1 th{border: 1px solid black;margin: 0;padding: 0px; word-wrap: break-word;}",
-		".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0;padding: 0px; word-wrap: break-word;}",
-		".BWMtab2 td{border: 0px;margin: 0px;padding: 2px;}",
-		".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
-		".BWMtab1 td,.BWMtab3 td,.BWMtab3 span{vertical-align: middle;}",
-		".BWMinput{vertical-align: middle;width: 30px;height: 11px;margin: 0;text-align: right;font-weight: bold;}",
-		".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden; white-space: nowrap;text-overflow: ellipsis}",
-		".BWMcut,.BWMcut2{text-align: left;}",
-		".BWMtriSelect{color:lime;}",
-		".BWMdivarea{width: 100%; resize:none; overflow-y: hidden; white-space: pre; height: auto; min-height: 2em;padding: 0px; text-align: left; border: 0px;}",
-		".BWM5{width:5%;}",
-		".BWM10{width:10%;}",
-		".BWM20{width:20%;}",
-		".BWM25{width:25%;}",
-		".BWM30{width:30%;}",
-		".BWM40{width:40%;}",
-		".BWM60{width:60%;}",
-		".BWM80{width:80%;}",
-		".BWM100{width:100%;}",
-		".BWMa1{display: block;}",
-		".BWMerror{color:#FFF;background-color:red;}",
-		".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
-		// blink
-		"@-moz-keyframes blinker {from {opacity:1;} 50% {opacity:0.1;} to {opacity:1;}}",
-		"@-webkit-keyframes blinker {from {opacity:1;} to {opacity:0;}}",
-		".BWMblink {-webkit-animation-name: blinker;-webkit-animation-iteration-count: infinite;-webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-webkit-animation-duration: 1s;",
-		"-moz-animation-name: blinker;-moz-animation-iteration-count: infinite;-moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-moz-animation-duration: 1s;}",
-		],
-		head = DOM._GetFirstNode("//head");
-	if (head!==null){
-		var even = getCssRules('.even'),
-			selectedItem = getCssRules('.selectedItem');
-		if (even!==null&&selectedItem!==null) css.push('.BWMeven{'+even.cssText+'}','.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut),.BWMTR:hover .BWMcut2:hover,.BWMTR2:hover .BWMcut2{'+selectedItem.cssText+'}');
-		IU._CreateElement('style',{'type':'text/css'},[css.join('')],{},head);
-		}
-	}
+        try {
+          if (!sheet.cssRules) return null;
+        } catch (e) {
+          if (e.name !== 'SecurityError') throw e;
+          return null;
+        }
+        for (var j = 0; j < sheet.cssRules.length; j++) {
+          var rule = sheet.cssRules[j];
+          if (rule.selectorText && rule.selectorText.split(',').indexOf(selector) !== -1) return rule.style;
+        }
+      }
+      return null;
+    }
+    var css = [
+        ".BWMbox{width: 100%;margin:0 auto;}",
+        ".BWMtitle,.BWMcut,.BWMselect{cursor: pointer;}",
+        ".BWMcut2{cursor: text;}",
+        ".BWMselect:hover{text-decoration: underline;}",
+        ".BMWfield{margin: 0;padding: 1px;text-align: left;}",
+        ".BWMlegend{font-size: 11px;font-weight: bold;}",
+        ".BWMdiv1{margin: 0px;padding: 0px;}",
+        ".BWMtab0,.BWMtab1,.BWMtab3{border-collapse: collapse;width: 100%; table-layout: fixed;}",
+        ".BWMtab2{border-collapse: collapse;width: 100%}",
+        ".BWMtab1,.BWMtab2,.BWMtab3{text-align: center;}",
+        ".BWMtab0 td{vertical-align: top;padding: 4px;}",
+        ".BWMtab1 td,.BWMtab1 th{border: 1px solid black;margin: 0px;padding: 0px 0px 0px 2px; word-wrap: break-word;}",
+        ".BWMtab3 td,.BWMtab3 th{border: 0px;margin: 0px;padding: 0px; word-wrap: break-word;}",
+        ".BWMtab2 td{border: 0px;margin: 0px;padding: 2px;}",
+        ".BWMtab1 th,.BWMtab3 th{vertical-align: top;padding-top: 2px;}",
+        ".BWMtab1 td,.BWMtab3 td,.BWMtab3 span{vertical-align: middle;}",
+        ".BWMinput{vertical-align: middle;width: 30px;height: 11px;margin: 0px;text-align: right;font-weight: bold;}",
+        ".BWMcutth,.BWMcut,.BWMcut2{max-width: 0;overflow: hidden; white-space: nowrap;text-overflow: ellipsis}",
+        ".BWMcut,.BWMcut2{text-align: left;}",
+        ".BWMtriSelect{color:lime;}",
+        ".BWMdivarea{width: 100%; resize:none; overflow-y: hidden; white-space: pre; height: auto; min-height: 2em;",
+        "   padding: 0px; text-align: left; border: 0px;}",
+        ".BWM5{width:5%;}",
+        ".BWM7{width:7%;}",
+        ".BWM8{width:8%;}",
+        ".BWM10{width:10%;}",
+        ".BWM20{width:20%;}",
+        ".BWM25{width:25%;}",
+        ".BWM30{width:30%;}",
+        ".BWM40{width:40%;}",
+        ".BWM60{width:60%;}",
+        ".BWM80{width:80%;}",
+        ".BWM100{width:100%;}",
+        ".BWMa1{display: block;}",
+        ".BWMerror, .BWMerror:hover{color:#FFF;background-color:red;}",
+        ".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
+        ".BWMborder {outline: 1px dashed red;}",
+        // blink
+        "@-moz-keyframes blinker {from {opacity:1;} 50% {opacity:0.1;} to {opacity:1;}}",
+        "@-webkit-keyframes blinker {from {opacity:1;} to {opacity:0;}}",
+        "@keyframes blinker {from {opacity:1;} to {opacity:0;}}",
+        ".BWMblink {-webkit-animation-name: blinker;-webkit-animation-iteration-count: infinite;",
+        "   -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-webkit-animation-duration: 1s;",
+        "   -moz-animation-name: blinker;-moz-animation-iteration-count: infinite;",
+        "   -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-moz-animation-duration: 1s;",
+        "   animation-name: blinker; animation-iteration-count: infinite;",
+        "   animation-timing-function: cubic-bezier(1.0,0,0,1.0); animation-duration: 1s;}",
+      ];
+      
+    return {
+      
+      /**
+       * @method init
+       * Fonction d'initialisation du CSS.
+       */
+      init: function () {
+        var head = DOM.getFirstNode("//head");
+        if (head !== null) {
+          var even = getCssRules('.even');
+          var selectedItem = getCssRules('.selectedItem');
+          if (even !== null && selectedItem !== null) css.push('.BWMeven{' + even.cssText + '}',
+            '.BWMTR:hover .BWMcut:hover,.BWMTR2:hover .BWMcut,.BWMTR2:hover .BWMselect:hover:not(.BWMcut),'
+            + '.BWMTR:hover .BWMcut2:hover,.BWMTR2:hover .BWMcut2{' + selectedItem.cssText + '}');
+          DOM.newNode('style', { 'type': 'text/css' }, [css.join('')], {}, head);
+        }
+      }
+    };
+  })().init();
 
-/******************************************************
-* FUNCTIONS
-******************************************************/
-function addslashes(str){
-	return (str + '').replace(/[\\"']/g,'\\$&').replace(/\u0000/g,'\\0');
-	}
-function getArmItems(){
-	var list = DOM._GetNodes("//div[@id='content-mid']//ul[@class='inv-select']/li"),
-		result = {};
-	for (var i=0; i<list.snapshotLength; i++){
-		var obj = DOM._GetFirstNodeTextContent("./div/span",'',list.snapshotItem(i)),
-			v = new RegExp("^("+pat[0]+")("+pat[1]+")("+pat[2]+")("+pat[3]+")("+pat[4]+")("+pat[5]+")$").exec(obj);
-		if (v!==null&&v[3]!==''){
-			var leg = v[1]!==''?'L':'',
-				grade = v[2]!==''?indexPat[0][v[2].trim()]:0,
-				type = indexPat[1][v[3].trim()],
-				pre = v[4]!==''?indexPat[2][type[0]][v[4].trim()]:0,
-				suf = v[5]!==''?indexPat[3][type[0]][v[5].trim()]:0,
-				niv = v[6]!==''?Number(v[6].replace(new RegExp('[()+]','g'),'')):0;
-			if (!_Exist(result[type[0]+leg])) result[type[0]+leg] = [];
-			result[type[0]+leg].push([grade+niv,type[1],pre,suf]);
-			}
-		else console.debug('BWM - Objet inconnu :',obj);
-		}
-	return result;
-	}
-function objCmp(a,b){ //a==b = 0, a>b = -1, a<b = 1
-	for (var i=0;i<4 && a[i]==b[i];++i);
-	return i===4?0:a[i]>b[i]? -1 : 1;
-	}
-function objDiff(a,b){
-	var d=0;
-	for (var i=0;i<4;i++){d+=(b[i]===0?0:a[i]===0?Infinity:Math.abs(a[i]-b[i]));}
-	return d;
-	}
-function fusion(a,b,c,i){ // a,b = x (a<=b), c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
-	if (c===0&&i===0&&a==1&&b==3) return 4; // exception casquette+Casque Militaire = masque
-	else return a==b?a:(b==loc[i+2][c].length-1&&b-a<3)?b-a==1?b-2:b-1:b-a==1?b+1:b-Math.floor((b-a-2)/2);
-	}
-function objMix(a,b){
-	var v = [],
-		min = Math.min(a[0],b[0]);
-	v[0] = min+((a[1]!==0&&a[1]==b[1]&&min<17)?1:0);
-	for (var i=1;i<4;i++){
-		if (a[i]===0||b[i]===0) v[i] = 0;
-		else v[i] = mix[i-1][a[i]][b[i]];
-		}
-	return v;
-	}
-function tabTri(c){ // c : [élément, sens]
-   return function(a, b){
-	   var v, x, y = c[1]===0?1:-1;
-	   if (c[0]==5){ // index, tri sur diff
-			v = objCmp([objDiff(a,but),a[2],a[3],a[1]],[objDiff(b,but),b[2],b[3],b[1]]);
-		   }
-	   else{
-			x = [[0,2,3,1],[1,2,3,0],[2,3,1,0],[3,2,1,0]][c[0]];
-			v = objCmp([a[x[0]],a[x[1]],a[x[2]],a[x[3]]],[b[x[0]],b[x[1]],b[x[2]],b[x[3]]]);
-			}
-		return (v===0)?0:(v==1)?y:0-y;
-		};
-	}
-// commandes d'interface
-function show(e,i){
-	set[0][i] = !set[0][i];
-	PREF._Set('set',set);
-	upTabs();
-	}
-function setT(e,i){
-	set[3][0] = i; set[4] = 0; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	upTabs();
-	}
-function setL(e,i){
-	set[3][1] = i; set[4] = 0; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	upTabs();
-	}
-// commandes Saisie
-function selectMode(e,i){
-	set[1] = i;
-	PREF._Set('set',set);
-	upTabs();
-	}
-function selectTri(e,i){
-	set[2][1] = (i==set[2][0]&&set[2][1]==1)?0:1;
-	set[2][0] = i;
-	PREF._Set('set',set);
-	upTabs();
-	}
-function selectSet(e,i){
-	var v = clone(i);
-	if (set[7][0]==-1){
-		s.b = v;
-		}
-	else if (set[7][0]==-2){
-		s.s[set[7][1]] = v;
-		}
-	else r[set[7][1]] = v;
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function selectMSet(e,i){
-	if (set[7][0]==-1){
-		but[i[0]] = i[1];
-		}
-	else if (set[7][0]==-2){
-		s.s[set[7][1]][i[0]] = i[1];
-		}
-	else r[set[7][1]][i[0]] = i[1];
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function selectAdd(e,i){
-	var v = clone(i);
-	if (set[7][0]==-2){
-		s.s.splice(set[7][1]+1,0,v);
-		set[7] = [-2,set[7][1]+1];
-		}
-	else if (set[7][0]>=0){
-		if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1){
-			r.splice(set[7][1]+1,0,v,[0,0,0,0]);
-			set[7] = [set[7][0],set[7][1]+1];
-			}
-		else{
-			r.splice(set[7][1]+2,0,v,[0,0,0,0]);
-			set[7] = [set[7][0],set[7][1]+2];
-			}
-		}
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function selectAll(e,i){
-	for (var j=0; j<i.length;j++){
-		var v = clone(i[j]);
-		if (set[7][0]==-2){
-			s.s.splice(set[7][1]+1,0,v);
-			set[7] = [-2,set[7][1]+1];
-			}
-		else if (set[7][0]>=0){
-			if (set[7][1]===0||set[7][1]>0&&r[set[7][1]-1]==-1){
-				r.splice(set[7][1]+1,0,v,[0,0,0,0]);
-				set[7] = [set[7][0],set[7][1]+1];
-				}
-			else{
-				r.splice(set[7][1]+2,0,v,[0,0,0,0]);
-				set[7] = [set[7][0],set[7][1]+2];
-				}
-			}
-		}
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-// commandes Copie
-function chgArea(e,cmd){
-	var area0 = rootIU.t4_area0,
-		area1 = rootIU.t4_area1,
-		linesOk = [], linesBad = [];
-	area0.value = "";
-	if (cmd=='clean'||cmd=='copy'){
-		area1.value = "";
-		}
-	if (cmd=='copy'){
-		var v = set[7][0]==-1?[but]:set[7][0]==-2?s.s:r,
-			root = 0, text = '';
-		for (var j=0;j<v.length;j++){
-			if (v[j]==-1){text += '-'; root = j+1;}
-			else{
-				if (set[7][0]>=0) text += j-root>0&&(j-root)%2===0?'= ':j-root===0?'':'+ ';
-				if (objCmp(v[j],[0,0,0,0])!==0){
-					var grade = {0:['',''],1:['Bon ','Bonne '],2:['Parfait ','Parfaite ']};
-					text += set[3][1]=='L'?'Légendaire ':'';
-					text += v[j][0]>0?grade[Math.floor(v[j][0]/6)][_Exist(loc[2][set[3][0]][v[j][1]][1])?1:0]:'';
-					text += v[j][1]>0?loc[2][set[3][0]][v[j][1]][0]+' ':'';
-					text += v[j][2]>0?loc[3][set[3][0]][v[j][2]][_Exist(loc[2][set[3][0]][v[j][1]][1])&&_Exist(loc[3][set[3][0]][v[j][2]][1])?1:0]+' ':'';
-					text += v[j][3]>0?loc[4][set[3][0]][v[j][3]][_Exist(loc[4][set[3][0]][v[j][3]][1])?1:0]+' ':'';
-					text += v[j][0]>0&&v[j][0]%6>0?'(+'+v[j][0]%6+')':'';
-					}
-				}
-			text += (j<v.length-1?'\n':'');
-			}
-		area1.value = text;
-		area1.focus();
-		area1.select();
-		}
-	var	v = area1.value.split(/[\r\n]/g), lines = '',
-		pattern = "^(?:(\\+[ ]*|=[ ]*|)("+pat[0]+")("+pat[1]+")("+pat[2]+")("+pat[3]+")("+pat[4]+")("+pat[5]+"))$";
-	// analyse objets
-	for (var j=0;j<v.length;j++){
-		var w = new RegExp(pattern).exec(v[j]);
-		if (v[j]=='-'){v[j] = ['-',-1];}
-		else if (w!==null){
-			var op = w[1]!==''?w[1].trim():-1,
-				leg = w[2].trim()==set[3][1]?set[3][1]:-1,
-				grade = w[3]!==''?indexPat[0][w[3].trim()]:0,
-				type = w[4]!==''?indexPat[1][w[4].trim()][0]==set[3][0]?indexPat[1][w[4].trim()]:-1:[set[3][0],0],
-				pre = w[5]!==''?_Exist(indexPat[2][set[3][0]][w[5].trim()])?indexPat[2][set[3][0]][w[5].trim()]:-1:0,
-				suf = w[6]!==''?_Exist(indexPat[3][set[3][0]][w[6].trim()])?indexPat[3][set[3][0]][w[6].trim()]:-1:0,
-				niv = w[7]!==''?Number(w[7].replace(new RegExp('[()+]','g'),'')):0;
-			if (leg!=-1&&type!=-1&&pre!=-1&&suf!=-1){v[j] = [op,[grade+niv,type[1],pre,suf]];}
-			else {v[j] = false;}
-			}
-		else{v[j] = false;}
-		lines += (j+1)+(j<v.length-1?'\n':'');
-		}
-	area0.value = lines;
-	area0.setAttribute('style','height:auto');
-	area1.setAttribute('style','height:auto');
-	area0.setAttribute('style','height:'+(area1.scrollHeight+area1.offsetHeight-area1.clientHeight+area1.scrollTop+1)+'px');
-	area1.setAttribute('style','height:'+(area1.scrollHeight+area1.offsetHeight-area1.clientHeight+area1.scrollTop+1)+'px');
-	// analyse du format
-	var	root = 0;
-	for (var j=0;j<v.length;j++){
-		if (v[j]!==false){
-			if (v[j][0]=='-'&&j>2&&v[j-1][0]=='='){root = j+1;}
-			else if (v[j][0]==-1&&(j-root===0||(root===0&&j>0&&v[j-1][0]==-1))){}
-			else if (v[j][0]=='+'&&((j-root==1&&v[j-1][0]==-1)||(j-root>1&&v[j-1][0]=='='))){}
-			else if (v[j][0]=='='&&j-root>1&&v[j-1][0]=='+'){}
-			else {v[j] = false;}
-			}
-		if (v[j]===false) linesBad.push(j+1);
-		else linesOk.push(j+1);
-		}
-	rootIU.t4_td00.textContent = 'Lignes valides : '+(linesOk.length>0?linesOk.toString():'-');
-	rootIU.t4_td10.textContent = 'Lignes invalides : '+(linesBad.length>0?linesBad.toString():'-');
-	if (v.indexOf(false)==-1&&(v.length==1||(v.length>1&&((set[7][0]==-2&&v[1][0]==-1)||(set[7][0]>=0&&v[1][0]=='+'))))){
-		rootIU.t4_div220.style.display = 'block';
-		if (cmd=='paste'){
-			if (set[7][0]==-1) s.b = v[0][1];
-			else {
-				if (set[7][0]>=0){
-					r.push(-1);
-					if (v[v.length-1][0]=='-') v.splice(v.length-1,1);
-					else if (v[v.length-1][0]==-1) v.push(['+',[0,0,0,0]],['=',[0,0,0,0]]);
-					else if (v[v.length-1][0]=='+') v.push(['=',[0,0,0,0]]);
-					}
-				for (var j=0;j<v.length;j++){
-					if (set[7][0]==-2) s.s.push(v[j][1]);
-					else r.push(v[j][1]);
-					}
-				}
-			LS._SetVar('BWM:LIST:'+ID,list);
-			upTabs();
-			}
-		}
-	else {
-		rootIU.t4_div220.style.display = 'none';
-		}
-	}
-// commandes Simulations
-function setS(e,i){
-	set[4] = i; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	upTabs();
-	}
-function addS(e){
-	set[4] = c.length; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	c.push({'b':[0,0,0,0],'e':[0,0,[],[]],'o':clone(set[8]),'t':0,'s':[],'r':[[[0,0,0,0],[0,0,0,0],[0,0,0,0]]]});
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function moveS(e,i){
-	if (_Exist(tasks.s[cat])){
-		var v = tasks.s[cat];
-		if (_Exist(v[set[4]])&&_Exist(v[set[4]+i])){
-			tasks.k[v[set[4]]] = [cat,set[4]+i];
-			tasks.k[v[set[4]+i]] = [cat,set[4]];
-			v[set[4]] = [v[set[4]+i],v[set[4]+i]=v[set[4]]][0];//swap
-			}
-		else if (_Exist(v[set[4]])){
-			tasks.k[v[set[4]]] = [cat,set[4]+i];
-			v[set[4]+i] = v[set[4]];
-			delete v[set[4]];
-			}
-		else if (_Exist(v[set[4]+i])){
-			tasks.k[v[set[4]+i]] = [cat,set[4]];
-			v[set[4]] = v[set[4]+i];
-			delete v[set[4]+i];
-			}
-		}
-	c[set[4]] = [c[set[4]+i],c[set[4]+i]=c[set[4]]][0];//swap
-	set[4] = set[4]+i;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delS(e){
-	if (_Exist(tasks.s[cat])){
-		if (_Exist(tasks.s[cat][set[4]])) cmdSearch(null,[null,1]);
-		for (var j in tasks.s[cat]){
-			if (j>set[4]){
-				tasks.k[tasks.s[cat][j]] = [cat,j-1];
-				tasks.s[cat][j-1] = tasks.s[cat][j];
-				delete tasks.s[cat][j];
-				}
-			}
-		}
-	c.splice(set[4],1);
-	set[4] = set[4]<c.length? set[4]:c.length-1; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function resetS(e){
-	while (_Exist(tasks.s[cat])){
-		cmdSearch(null,[tasks.s[cat][Object.keys(tasks.s[cat])[Object.keys(tasks.s[cat]).length-1]],1]);
-		}
-	list[cat] = [];
-	set[4] = 0; set[6] = 0; set[7] = [0,0];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-// commandes Recherche
-function setO(e,i){
-	set[5] = i;
-	set[7] = [i,0];
-	PREF._Set('set',set);
-	upTabs();
-	}
-function triSel(e,i){
-	s.s.sort(tabTri(i));
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function addNewSel(e,i){
-	s.s.splice(i+1,0,[0,0,0,0]);
-	if (set[7][0]==-2) set[7][1] = i+1;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function moveSel(e,i){
-	s.s[i[0]] = [s.s[i[1]],s.s[i[1]]=s.s[i[0]]][0];//swap
-	if (set[7][0]==-2) set[7][1] = set[7][1]==i[0]?i[1]:set[7][1]==i[1]?i[0]:set[7][1];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delSel(e,i){
-	s.s.splice(i,1);
-	if (set[7][0]==-2){
-		if (set[7][1]>=i) set[7][1]+= (set[7][1]>0?-1:0);
-		PREF._Set('set',set);
-		}
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delSearch(e){
-	if (set[5]==-2){
-		s.s = [];
-		}
-	else{
-		s.b = [0,0,0,0];
-		s.e = [0,0,[],[]];
-		s.o = clone(set[8]);
-		s.t = 0;
-		}
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function razSearch(e){
-	cmdSearch(null,[null,1]);
-	s.b = [0,0,0,0];
-	s.e = [0,0,[],[]];
-	s.o = clone(set[8]);
-	s.t = 0;
-	s.s = [];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function optSearch(e,i){
-	var v = new RegExp("^(|[0-9]+)$").exec(e.target.value);
-	if (v!==null){
-		e.target.classList.remove('BWMerror');
-		v = v[1]===''?'':Number(v[1]);
-		s.o[i] = v;
-		LS._SetVar('BWM:LIST:'+ID,list);
-		}
-	else e.target.classList.add('BWMerror');
-	}
-function optCheck(e,i){
-	s.o[i] = !s.o[i];
-	LS._SetVar('BWM:LIST:'+ID,list);
-	}
-function getOpt(e){
-	s.o = clone(set[8]);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setOpt(e){
-	set[8] = clone(s.o);
-	PREF._Set('set',set);
-	}
-function actSearch(e,i){
-	cmdSearch(null,[null,i]);
-	if (i>1){
-		set[6] = s.r.length-1;
-		set[7] = [set[6],0];
-		PREF._Set('set',set);
-		}
-	upTabs();
-	}
-// commandes Résultats
-function setR(e,i){
-	set[6] = i; set[7] = [i,0];
-	PREF._Set('set',set);
-	upTabs();
-	}
-function addR(e){
-	set[6] = s.r.length; set[7] = [set[6],0];
-	PREF._Set('set',set);
-	s.r.push([[0,0,0,0],[0,0,0,0],[0,0,0,0]]);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function moveR(e,i){
-	s.r[set[6]] = [s.r[set[6]+i],s.r[set[6]+i]=s.r[set[6]]][0];//swap
-	set[6] = set[6]+i;
-	if (set[7][0]>=0) set[7] = [set[6],set[7][1]];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delR(e){
-	s.r.splice(set[6],1);
-	set[6] = set[6]+(set[6]>0?-1:0);
-	if (set[7][0]>=0) set[7] = [set[6],0];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function resetR(e){
-	s.r = [];
-	set[6] = 0;
-	if (set[7][0]>=0) set[7] = [0,0];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function setI(e,i){
-	set[7] = i;
-	PREF._Set('set',set);
-	upTabs();
-	}
-function addI(e,i){
-	if (set[7][0]>=0) set[7][1] = i+1;
-	PREF._Set('set',set);
-	r.splice(i+1,0,[0,0,0,0],[0,0,0,0]);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function moveI(e,i){
-	r[i[0]] = [r[i[1]],r[i[1]]=r[i[0]]][0];//swap
-	if (set[7][0]>=0) set[7][1] = set[7][1]==i[0]?i[1]:set[7][1]==i[1]?i[0]:set[7][1];
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delI(e,i){
-	var v = set[7][1];
-	if (r[i[0]]==-1){
-		r.splice(i[0],2,r[i[1]],[0,0,0,0]);
-		v = v==i[0]+1?i[0]:v;
-		}
-	else if (i[0]==i[1]){// ==root
-		if (_Exist(r[i[0]+3])&&r[i[0]+3]!=-1){
-			r.splice(i[0],3,r[i[0]+1]);
-			v = (v<=i[0]?v:v>i[0]+1?v-2:i[0]);
-			}
-		else{
-			r.splice(i[0],2,r[i[0]+1],[0,0,0,0]);
-			v = (v<i[0]||v>i[0]?v:i[0]);
-			}
-		}
-	else if (i[0]-1==i[1]&&(!_Exist(r[i[0]+2])||r[i[0]+2]==-1)){
-		r.splice(i[0],2,[0,0,0,0],[0,0,0,0]);
-		v = v!=i[0]?v:v-1;
-		}
-	else{
-		r.splice(i[0],2);
-		v = v<i[0]?v:v-2;
-		}
-	if (set[7][0]>=0){
-		set[7][1] = v;
-		}
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function delB(e,i){
-	var v = set[7][1],
-		fin = false;
-	while (!fin){
-		if (!_Exist(r[i])) break;
-		else if (r[i]==-1) fin = true;
-		r.splice(i,1);
-		v = v+(v>i?-1:0);
-		}
-	if (r[r.length-1]==-1){
-		r.splice(r.length-1,1);
-		v = v<i?v:1;
-		}
-	if (r.length===0){
-		r.push([0,0,0,0],[0,0,0,0],[0,0,0,0]);
-		v = 0;
-		}
-	if (set[7][0]>=0) set[7][1] = v;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function sepI(e,i){
-	var v = set[7][1];
-	if (!_Exist(r[i+1])){
-		r.splice(i+1,0,-1,[0,0,0,0],[0,0,0,0],[0,0,0,0]);
-		}
-	else if (!_Exist(r[i+3])||(_Exist(r[i+3])&&r[i+3]==-1)){
-		r.splice(i+1,2,-1,r[i+1],[0,0,0,0],[0,0,0,0]);
-		v = v+(v>i?2:0);
-		}
-	else{
-		r.splice(i+1,2,-1,r[i+1]);
-		v = v+(v==i+1?1:0);
-		}
-	if (set[7][0]>=0) set[7][1] = v;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-function firstI(e,i){
-	var v = set[7][1];
-	r.splice(i[1],i[0]-i[1]);
-	if (r.length-i[1]<2||(_Exist(r[i[1]+1])&&r[i[1]+1]==-1)){
-		r.splice(i[1]+1,0,[0,0,0,0],[0,0,0,0]);
-		v = v<i[1]?v:v<i[0]?i[1]:v-(i[0]-i[1])+2;
-		}
-	else v = v<i[1]?v:v<i[0]?i[1]:v-(i[0]-i[1]);
-	if (set[7][0]>=0) set[7][1] = v;
-	PREF._Set('set',set);
-	LS._SetVar('BWM:LIST:'+ID,list);
-	upTabs();
-	}
-// fonctions de recherche
-function cmdSearch(e,i){ // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|fin 3|res 4)
-	var keyA = isGo?tasks.s[cat][set[4]]:null,
-		key = i[0]===null?keyA:i[0];
-	if (key!==null){
-		var v = tasks.w[key],
-			x = list[tasks.k[key][0]][tasks.k[key][1]];
-		// sauve les résultats
-		if (i[1]>1){
-			for (var j=0;j<v.r.length;j++){
-				x.r.push([]);
-				for (var k=0,y=v.r[j];k<y.length;k=k+3){
-					var a = y[k].slice(0,4), b = y[k+1].slice(0,4), c = y[k+2].slice(0,4);
-					if (k===0) x.r[x.r.length-1].push(a,b,c);
-					else if (objCmp(a,y[k-1].slice(0,4))===0) x.r[x.r.length-1].push(b,c);
-					else if (objCmp(b,y[k-1].slice(0,4))===0) x.r[x.r.length-1].push(a,c);
-					else x.r[x.r.length-1].push(-1,a,b,c);
-					}
-				}
-			}
-		// supprime le worker
-		if (i[1]<4){
-			v.id.terminate();
-			x.e = [i[1],v.r.length,v.d,v.f];
-			x.t = Date.now()-key;
-			delete tasks.w[key];
-			delete tasks.s[tasks.k[key][0]][tasks.k[key][1]];
-			if (Object.keys(tasks.s[tasks.k[key][0]]).length===0) delete tasks.s[tasks.k[key][0]];
-			delete tasks.k[key];
-			}
-		LS._SetVar('BWM:LIST:'+ID,list);
-		}
-	}
-function upSearch(){
-	function upTime(t){
-		var sec = t/1000,
-			d = Math.floor(sec/86400),
-			hh = ('0'+Math.floor(sec/3600)%24).slice(-2),
-			mm = ('0'+Math.floor(sec/60)%60).slice(-2),
-			ss = ('0'+Math.floor(sec)%60).slice(-2);
-		return (d>0?d+'j. ':'')+hh+':'+mm+':'+ss;
-		}
-	var keyA = isGo?tasks.s[cat][set[4]]:null,
-		cible = set[0][3]&&set[0][4]&&set[5]==-1;
-	if (keyA!==null&&cible){
-		if (tasks.t===null) tasks.t = window.setInterval(upSearch,500);
-		}
-	else if (tasks.t!==null){
-		window.clearInterval(tasks.t);
-		tasks.t = null;
-		}
-	if (cible){
-		if (keyA===null){
-			rootIU.t5_td35.style.display = 'table-cell';
-			rootIU.t5_td36.style.display = 'none';
-			rootIU.t5_td37.style.display = 'none';
-			rootIU.t5_td38.style.display = 'none';
-			rootIU.t5_td40.textContent = s.e[0]===0?'-':(s.e[0]==1?'Annulée':(s.e[0]==2?'Stoppée : ':'Terminée : ')+(s.e[0]>0?s.e[1]+' résultat'+(s.e[1]>1?'s':'')+(s.e[1]>0?' (écart '+s.e[2][0]+(s.e[2][1]>s.e[2][0]?'-'+s.e[2][1]:'')+' en '+s.e[3][0]/3+(s.e[3][1]>s.e[3][0]?'-'+s.e[3][1]/3:'')+' fusion'+(s.e[3][0]>3||s.e[3][1]>3?'s':'')+')':''):''));
-			rootIU.t5_td41.textContent = upTime(new Date(s.t).getTime());
-			}
-		else{
-			var v = tasks.w[keyA];
-			rootIU.t5_td35.style.display = 'none';
-			rootIU.t5_td36.style.display = 'table-cell';
-			rootIU.t5_td37.style.display = 'table-cell';
-			rootIU.t5_td38.style.display = 'table-cell';
-			rootIU.t5_td40.textContent = 'En cours '+v.e+'% : '+v.r.length+' résultat'+(v.r.length>1?'s':'')+(v.r.length>0?' (écart '+v.d[0]+(v.d[1]>v.d[0]?'-'+v.d[1]:'')+' en '+v.f[0]/3+(v.f[1]>v.f[0]?'-'+v.f[1]/3:'')+' fusion'+(v.f[0]>3||v.f[1]>3?'s':'')+')':'');
-			rootIU.t5_td41.textContent = upTime(new Date(Date.now()-keyA).getTime());
-			}
-		}
-	}
-// Algo de parcours en profondeur (DFS)
-// data = liste d'objets
-// d = écart entre l'objet v et l'objet but
-// p = poids de l'ensemble
-// diff = meilleur écart trouvé (
-// niv = meilleur poids d'ensemble trouvé
-function workSearch(data,tmp){
-	var n1=data.length,n2=n1-2;
-	for (var i=0,a=data[i];i<n1;a=data[++i]){
-		var nb=data.concat();
-		nb.splice(i,1);
-		for (var j=0,b=nb[j];j<=n2;b=nb[++j]){
-			if (res==max&&!bpoids&&!becart){return;}
-			if (tmp[1]===0) self.postMessage({'cmd':'adv','key':key,'e':Math.floor((100/n1)*i+((100/n1)/(n2+1))*j)});
-			if (objCmp(b,a)>=0||!becart){
-				var v=objMix(a,b).concat(0),d=objDiff(v,but),p=tmp[1]+a[4]+b[4];
-				if (d<=diff){
-					if ((d<diff&&becart)||(p<niv&&bpoids)){
-						if (becart){diff=d;}
-						if (bpoids){niv=p;}
-						res=0;
-						self.postMessage({'cmd':'new','key':key,'diff':d});
-						}
-					if ((((p==niv&&bpoids)||(!bpoids&&becart))&&res<max)||(!bpoids&&!becart)){res++;self.postMessage({'cmd':'add','key':key,'diff':d,'fusion':tmp[0].concat([b,a,v])});}
-					}
-				if (d>0&&tmp[0].length<fus){nb[j]=v;workSearch(nb,[tmp[0].concat([b,a,v]),p]);nb[j]=b;}
-				}
-			}
-		}
-	}
-// élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
-function postSearch(data){
-	function dataReduce(p,c,i,t){
-		var j = 0, k = c.length-1;//k = 1;//
-		while (j<c.length){
-			if (k==j){p.push(data[c[j][0]]);j++; k=c.length;}
-			else if (c[j][1]==c[k][1]){c.splice(k,1);}
-			k--;
-			}
-		return p;
-		}
-	var tmp = {}, post = [];
-	for (var i=0;i<data.length;i++){
-		var v = JSON.stringify(data[i][data[i].length-1]);
-		if (!_Exist(tmp[v])) tmp[v] = [];
-		tmp[v].push([i,JSON.stringify(data[i].reduce(function(p,c){if (c[4]!==0) p.push(c); return p;},[]).sort(tabTri([0,0])))]);
-		}
-	post = Object.keys(tmp).map(function(v){return tmp[v];}).reduce(dataReduce,[]);
-	return post;
-	}
-function search(){
-	var k = Date.now(),
-		datas = [];
-	// prépare les données
-	for (var i=0; i<s.s.length; i++){
-		if (objDiff(s.s[i],but)===0&&s.o[4]){
-			rootIU.t5_td60.textContent = "Recherche annulée. Cible présente dans l'index.";
-			return;
-			}
-		else if (objDiff(s.s[i],but)!=Infinity&&objCmp(s.s[i],[0,0,0,0])!==0) datas.push(s.s[i].concat(s.s[i][1]+s.s[i][2]+s.s[i][3]));
-		}
-	// prépare le worker
-	if (!_Exist(tasks.s[cat])) tasks.s[cat] = {};
-	if (_Exist(tasks.s[cat][set[4]])) cmdSearch(null,[null,1]);
-	tasks.s[cat][set[4]] = k;
-	tasks.k[k] = [cat,set[4]];
-	tasks.w[k] = {'r':[],'d':[Infinity,-1],'f':[Infinity,0],'e':0};
-	tasks.w[k].id = new window.Worker(URL.createObjectURL(new Blob([
-		"self.onmessage = function(e){",
-			_Type.toString(),
-			_Exist.toString(),
-			objCmp.toString(),
-			objDiff.toString(),
-			objMix.toString(),
-			tabTri.toString(),
-			workSearch.toString(),
-			postSearch.toString(),
-		"	var d = e.data, key = d.k;",
-		"	if (d.cmd=='start'){",
-		"		var fus = d.o[0]===''?Infinity:(d.o[0]-1)*3,",
-		"			diff = d.o[1]===''?Infinity:d.o[1],",
-		"			max = d.o[2]===''?Infinity:d.o[2],",
-		"			bpoids = !!d.o[3],",
-		"			becart = !!d.o[4],",
-		"			res = 0, mix = d.m, but = d.b, niv = Infinity;",
-		"		workSearch(d.d,[[],0]);",
-		"		self.postMessage({'cmd':'end1','key':key});}",
-		"	else if (d.cmd=='post'){",
-		"		self.postMessage({'cmd':'end2','key':key,'d':postSearch(d.d)});",
-		"		}",
-		"	};"],
-		{'type': 'text/javascript'})));
-	tasks.w[k].id.onmessage = function(e){
-		var d = e.data,
-			w = tasks.w[d.key];
-		switch (d.cmd){
-			case 'adv':
-				w.e = d.e;
-				break;
-			case 'new':
-				w.r = [];
-				w.d = [Infinity,-1];
-				w.f = [Infinity,0];
-				break;
-			case 'add':
-				w.r.push(d.fusion);
-				w.d[0] = d.diff<w.d[0]?d.diff:w.d[0];
-				w.d[1] = d.diff>w.d[1]?d.diff:w.d[1];
-				w.f[0] = d.fusion.length<w.f[0]?d.fusion.length:w.f[0];
-				w.f[1] = d.fusion.length>w.f[1]?d.fusion.length:w.f[1];
-				break;
-			case 'end1':
-				if (list[tasks.k[d.key][0]][tasks.k[d.key][1]].o[5]) w.id.postMessage({'cmd':'post','k':d.key,'d':w.r});
-				else{
-					cmdSearch(null,[d.key,3]);
-					upTabs();
-					}
-				break;
-			case 'end2':
-				w.r = d.d;
-				cmdSearch(null,[d.key,3]);
-				upTabs();
-				break;
-			}
-		};
-	tasks.w[k].id.onerror = function(e){
-		console.debug('Worker error: %o %o',cat,JSONS._Encode(e.data));
-		};
-	tasks.w[k].id.postMessage({'cmd':'start','k':k,'d':datas,'o':s.o,'m':mix,'b':but});
-	s.e = [0,0,null,0];
-	s.t = 0;
-	upTabs();
-	}
-// fonctions de colorisation
-function itemAddClass(node,v){
-	for (var j=1;j<5;j++){
-		rootIU[node+'_'+j].classList.add(v);
-		}
-	}
-function itemDelClass(node,v){
-	for (var j=1;j<5;j++){
-		rootIU[node+'_'+j].classList.remove(v);
-		}
-	}
-function selectSameItem(e,i){
-	for (var j=0;j<i.length;j++){
-		itemAddClass(i[j],'selectedItem');
-		}
-	}
-function unselectSameItem(e,i){
-	for (var j=0;j<i.length;j++){
-		itemDelClass(i[j],'selectedItem');
-		}
-	}
-// création de l'interface
-function upTabs(){
-	var link = {}, target = [null,null], results = [], root = 0, lroot = null,
-		copieTmp = _Exist(rootIU.t4_area1)?rootIU.t4_area1.value:'';
-	if (_Exist(list['0'])&&Array.isArray(list['0'][0])){ // patch 2015.08.29 -> 2015.11.05
-		for (var i in list){
-			if (list.hasOwnProperty(i)){
-				for (var j=0; j<list[i].length; j++){list[i].splice(j,1,{'b':[0,0,0,0],'e':[0,0,[],[]],'o':clone(set[8]),'t':0,'s':[],'r':[list[i][j]]});}
-				}
-			}
-		LS._SetVar('BWM:LIST:'+ID,list);
-		PREF._Raz();
-		set = PREF._Get('set');
-		}
-	cat = set[3][0]+set[3][1];
-	arm = _Exist(items[cat])?items[cat]:[];
-	if (!_Exist(list[cat])||(_Exist(list[cat])&&list[cat].length===0)){
-		list[cat] = [{'b':[0,0,0,0],'e':[0,0,[],[]],'o':clone(set[8]),'t':0,'s':[],'r':[[[0,0,0,0],[0,0,0,0],[0,0,0,0]]]}];
-		}
-	else if (_Exist(list[cat][set[4]])){
-		if (list[cat][set[4]].r.length===0){list[cat][set[4]].r = [[[0,0,0,0],[0,0,0,0],[0,0,0,0]]];}
-		if (!_Exist(list[cat][set[4]].o)){list[cat][set[4]].o = clone(set[8]);} // patch 2015.12.05 -> 2015.12.07
-		if (!_Exist(list[cat][set[4]].o[3])){list[cat][set[4]].o[3] = !!set[8][3];} // patch -> 2015.12.20
-		if (!_Exist(list[cat][set[4]].o[4])){// patch 2016.03.27
-			list[cat][set[4]].o[4] = !!list[cat][set[4]].o[3];
-			list[cat][set[4]].o[3] = !!set[8][3];
-			list[cat][set[4]].e = [0,0,[],[]];
-			}
-		if (!_Exist(list[cat][set[4]].o[5])){// patch 2016.03.30
-			var tmp = list[cat][set[4]].o[0];
-			list[cat][set[4]].o[0] = list[cat][set[4]].o[2];
-			list[cat][set[4]].o[2] = tmp;
-			list[cat][set[4]].o[5] = !!list[cat][set[4]].o[4];
-			list[cat][set[4]].o[3] = !!set[8][3];
-			list[cat][set[4]].o[4] = !!set[8][4];
-			}
-		}
-	if (!_Exist(list[cat][set[4]])){
-		set[4] = 0;	set[6] = 0;	set[7] = [0,0];
-		PREF._Set('set',set);
-		}
-	else if (!_Exist(list[cat][set[4]].r[set[6]])){
-		set[6] = 0;
-		if (set[7][0]>=0) set[7] = [0,0];
-		PREF._Set('set',set);
-		}
-	if (list[cat][set[4]].s.length===0){
-		list[cat][set[4]].s = [[0,0,0,0]];
-		if (set[7][0]==-2) set[7] = [-2,0];
-		PREF._Set('set',set);
-		}
-	c = list[cat]; s = c[set[4]]; r = s.r[set[6]]; but = s.b;
-	isGo = _Exist(tasks.s[cat])&&_Exist(tasks.s[cat][set[4]]);
-	// pré-calcule les fusions pour cette catégorie (hors qualité)
-	for (var i=0; i<3; i++){
-		var t = loc[i+2][set[3][0]], len = t.length;
-		mix[i] = [];
-		for (var j=0;j<len;j++){
-			mix[i][j]=[];
-			for (var k=0;k<len;k++){
-				mix[i][j][k] = fusion(Math.min(j,k),Math.max(j,k),set[3][0],i);
-				}
-			}
-		}
-	// reconstruit l'interface
-	if (_Exist(rootIU.root)) rootIU.root.parentNode.removeChild(rootIU.root);
-	rootIU.root = IU._CreateElement('div',{'align':'center'},[],{},null);
-	if (set[0][1]) bwIU.appendChild(rootIU.root);
-	else bwTop.parentNode.insertBefore(rootIU.root,bwTop.nextSibling);
-	nd();
-	IU._CreateElements([
-		['hr','div',{'class':'hr720'},[],{},'root'],
-		['t1','table',{'class':'BWMtab3'},[],{},'root'],
-		['t1_tr','tr',{},[],{},'t1'],
-		['t1_td0','td',{'class':'BWM10 BWMtitle'},['Interface '+(set[0][1]?'▲':'▼')],{'click':[show,1]},'t1_tr'],
-		['t1_td1','td',{'class':'BWM80'},[],{},'t1_tr'],
-		['t1_span0','span',{'class':'BWMtitle '+(set[0][0]?'enabled':'disabled')},[((typeof(GM_info)=='object')?GM_info.script.name:'?')+' : '],{'click':[show,0]},'t1_td1'],
-		['t1_a','a',{'href':'https://github.com/Ecilam/BloodWarsMix','TARGET':'_blank'},[((typeof(GM_info)=='object')?GM_info.script.version:'?')],{},'t1_td1'],
-		['t1_td2','td',{'class':'BWM10 BWMtitle '+(set[0][2]?'enabled':'disabled')},['Aide'],{'click':[show,2]},'t1_tr'],
-		['box','div',{'class':'BWMbox','style':'display:'+(set[0][0]?'block;':'none;')},[],{},'root'],
-		['t2','table',{'class':'BWMtab0'},[],{},'box'],
-		['colgrp2','colgroup',{},[],{},'t2'],
-		['col20','col',{'class':'BWM40'},[],{},'colgrp2'],
-		['col21','col',{'class':'BWM60'},[],{},'colgrp2'],
-		['t2_tr0','tr',{},[],{},'t2'],
-		['t2_td0','td',{'colspan':'2'},[],{},'t2_tr0'],
-		['t3','table',{'class':'BWMtab1'},[],{},'t2_td0'], // Catégorie et Légendaire
-		['t3_tr0','tr',{'class':'tblheader'},[],{},'t3'],
-		['t3_th0','th',{},[],{},'t3_tr0'],
-		['t3_span0','span',{},['Catégories - Légendaire : '],{},'t3_th0'],
-		['t3_span1','span',{'class':'BWMselect'+(set[3][1]===''?' disabled':'')},['non'],{'click':[setL,'']},'t3_th0'],
-		['t3_span2','span',{},[', '],{},'t3_th0'],
-		['t3_span3','span',{'class':'BWMselect'+(set[3][1]=='L'?' disabled':'')},['oui'],{'click':[setL,'L']},'t3_th0'],
-		['t3_tr1','tr',{},[],{},'t3'],
-		['t3_td0','td',{},[],{},'t3_tr1'],
-		['t2_tr1','tr',{},[],{},'t2'],
-		['t2_td10','td',{},[],{},'t2_tr1'],
-		['t4','table',{'class':'BWMtab1'},[],{},'t2_td10'], // saisie
-		['colgrp4','colgroup',{},[],{},'t4'],
-		['col40','col',{'class':'BWM10'},[],{},'colgrp4'],
-		['col41','col',{'class':'BWM25'},[],{},'colgrp4'],
-		['col42','col',{'class':'BWM25'},[],{},'colgrp4'],
-		['col43','col',{'class':'BWM30'},[],{},'colgrp4'],
-		['col44','col',{'class':'BWM10'},[],{},'colgrp4'],
-		['t2_td11','td',{},[],{},'t2_tr1'],
-		['t5','table',{'class':'BWMtab1'},[],{},'t2_td11'], // simulations
-		['colgrp5','colgroup',{},[],{},'t5'],
-		['col40','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col41','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col42','col',{'class':'BWM20'},[],{},'colgrp5'],
-		['col43','col',{'class':'BWM20'},[],{},'colgrp5'],
-		['col44','col',{'class':'BWM25'},[],{},'colgrp5'],
-		['col45','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col46','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col47','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col48','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['col49','col',{'class':'BWM5'},[],{},'colgrp5'],
-		['t5_tr0','tr',{'class':'tblheader'},[],{},'t5'],
-		['t5_th0','th',{'colspan':'2','class':'BWMselect '+(set[0][3]?'enabled':'BWMcutth disabled')},['['+(set[0][3]?'-':'+')+']'],{'click':[show,3]},'t5_tr0'],
-		['t5_th1','th',{'colspan':'3','class':(set[0][3]?'':'BWMcutth')},[],{},'t5_tr0'],
-		['t5_span0','span',{},['Simulations : '],{},'t5_th1'],
-		['t5_th2','th',{'class':'BWMselect heal'},['+'],{'click':[addS]},'t5_tr0'],
-		(set[4]>0?['t5_th3','th',{'class':'BWMselect'},['◄'],{'click':[moveS,-1]},'t5_tr0']:['t5_th3a','th',{},[],{},'t5_tr0']),
-		(set[4]<c.length-1?['t5_th4','th',{'class':'BWMselect'},['►'],{'click':[moveS,+1]},'t5_tr0']:['t5_th4a','th',{},[],{},'t5_tr0']),
-		['t5_th5','th',{'class':'BWMselect atkHit'},['X'],{'click':[delS]},'t5_tr0'],
-		['t5_th6','th',{'class':'BWMselect atkHit'},['R'],{'click':[resetS]},'t5_tr0']],rootIU);
-	// Catégorie
-	for (var j=0;j<loc[0].length;j++){
-		if (_Exist(tasks.s[j])) rootIU.t3_span1.classList.add('BWMblink');
-		if (_Exist(tasks.s[j+'L'])) rootIU.t3_span3.classList.add('BWMblink');
-		if (j!==0) IU._CreateElements([['t3_span0a'+j,'span',{},[', '],{},'t3_td0']],rootIU);
-		IU._CreateElements([['t3_span0b'+j+set[3][1],'span',{'class':'BWMselect'+(j==set[3][0]?' disabled':'')+(_Exist(tasks.s[j+set[3][1]])?' BWMblink':'')},[loc[0][j]],{'click':[setT,j]},'t3_td0']],rootIU);
-		}
-	// simulations
-	for (var j=0;j<c.length;j++){
-		if (j!==0) IU._CreateElements([['t5_span1a'+j,'span',{},[', '],{},'t5_th1']],rootIU);
-		IU._CreateElements([['t5_span1b'+j,'span',{'class':'BWMselect'+(j==set[4]?' disabled':'')+(_Exist(tasks.s[cat])&&_Exist(tasks.s[cat][j])?' BWMblink':'')},[j],{'click':[setS,j]},'t5_th1']],rootIU);
-		}
-	// Recherche si Worker valide
-	if (!!window.Worker){
-		// affiche les recherches terminées
-		for (var i in list){
-			if (list.hasOwnProperty(i)){
-				for (var j in list[i]){
-					if (list[i].hasOwnProperty(j)&&list[i][j].e[0]==3){
-						if (i.indexOf('L')==-1) rootIU.t3_span1.textContent += '*';
-						else rootIU.t3_span3.textContent += '*';
-						if ((i.indexOf('L')!=-1)==(set[3][1]=='L')){
-							rootIU['t3_span0b'+i].textContent += '*';
-							if (i==cat) rootIU['t5_span1b'+j].textContent += '*';
-							}
-						}
-					}
-				}
-			}
-		if (set[0][3]){ // Recherche
-			IU._CreateElements([
-				['t5_tr1','tr',{'class':'tblheader'},[],{},'t5'],
-				['t5_th10','th',{'colspan':'2','class':'BWMselect '+(set[0][4]?'enabled':'disabled')},['['+(set[0][4]?'-':'+')+']'],{'click':[show,4]},'t5_tr1'],
-				['t5_th11','th',{'colspan':'3'},[],{},'t5_tr1'],
-				['t5_span110','span',{},['Recherche : '],{},'t5_th11'],
-				['t5_span111','span',{'class':'BWMselect'+(set[5]==-2?' disabled':'')},['Index ('+s.s.length+')'],{'click':[setO,-2]},'t5_th11'],
-				['t5_span112','span',{},[', '],{},'t5_th11'],
-				['t5_span113','span',{'class':'BWMselect'+(set[5]==-1?' disabled':'')},['Cible'],{'click':[setO,-1]},'t5_th11'],
-				['t5_th12','th',{'colspan':'3'},[],{},'t5_tr1'],
-				(isGo?['t5_th13a','th',{},[],{},'t5_tr1']:['t5_th13','th',{'class':'BWMselect atkHit'},['X'],{'click':[delSearch]},'t5_tr1']),
-				['t5_th14','th',{'class':'BWMselect atkHit'},['R'],{'click':[razSearch]},'t5_tr1']],rootIU);
-			if (set[0][4]){
-				if (set[5]==-2){ // bloc Index
-					IU._CreateElements([
-						['t5_tr2','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td20','th',{},[],{},'t5_tr2'],
-						['t5_td21','th',{},[],{},'t5_tr2'],
-						['t5_span21a','span',{},[],{},'t5_td21'],
-						['t5_td22','th',{},[],{},'t5_tr2'],
-						['t5_span22a','span',{},['Objet'],{},'t5_td22'],
-						['t5_td23','th',{},[],{},'t5_tr2'],
-						['t5_span23a','span',{},['Préfixe'],{},'t5_td23'],
-						['t5_td24','th',{},[],{},'t5_tr2'],
-						['t5_span24a','span',{},['Suffixe'],{},'t5_td24'],
-						['t5_td25a','th',{'colspan':'5'},['Actions'],{},'t5_tr2']],rootIU);
-					if (!isGo){
-						IU._CreateElements([
-							['t5_span20b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[5,0]]},'t5_td20'],
-							['t5_span20c','span',{'class':'BWMselect'},['▲'],{'click':[triSel,[5,1]]},'t5_td20'],
-							['t5_span21b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[0,0]]},'t5_td21'],
-							['t5_span21c','span',{'class':'BWMselect'},['▲'],{'click':[triSel,[0,1]]},'t5_td21'],
-							['t5_span22b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[1,0]]},'t5_td22'],
-							['t5_span22c','span',{'class':'BWMselect'},['▲'],{'click':[triSel,[1,1]]},'t5_td22'],
-							['t5_span23b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[2,0]]},'t5_td23'],
-							['t5_span23c','span',{'class':'BWMselect'},['▲'],{'click':[triSel,[2,1]]},'t5_td23'],
-							['t5_span24b','span',{'class':'BWMselect'},['▼'],{'click':[triSel,[3,0]]},'t5_td24'],
-							['t5_span24c','span',{'class':'BWMselect'},['▲'],{'click':[triSel,[3,1]]},'t5_td24']],rootIU);
-						}
-					for (var j=0;j<s.s.length;j++){
-						var v = JSONS._Encode(s.s[j]);
-						if (!_Exist(link[v])) link[v] = {};
-						if (!_Exist(link[v].sel)) link[v].sel = [];
-						link[v].sel.push('t5_td3'+j);
-						if (set[7][0]==-2&&set[7][1]==j){target = [v,link[v].sel.length-1];}
-						v = objDiff(s.s[j],but);
-						IU._CreateElements([
-							['t5_tr3'+j,'tr',{'class':'BWMTR2'+(j%2===0?'':' BWMeven')},[],{},'t5'],
-							['t5_td3'+j+'_0','td',{'class':'BWMcut'},[v==Infinity?'∞':v],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_1','td',{'class':'BWMcut'},[loc[1][s.s[j][0]]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_2','td',{'class':'BWMcut'},[(s.s[j][1]>0?s.s[j][1]+':':'')+loc[2][set[3][0]][s.s[j][1]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_3','td',{'class':'BWMcut'},[(s.s[j][2]>0?s.s[j][2]+':':'')+loc[3][set[3][0]][s.s[j][2]][_Exist(loc[2][set[3][0]][s.s[j][1]][1])&&_Exist(loc[3][set[3][0]][s.s[j][2]][1])?1:0]],{'click':[setI,[-2,j]]},'t5_tr3'+j],
-							['t5_td3'+j+'_4','td',{'class':'BWMcut'},[(s.s[j][3]>0?s.s[j][3]+':':'')+loc[4][set[3][0]][s.s[j][3]][0]],{'click':[setI,[-2,j]]},'t5_tr3'+j]],rootIU);
-						if (isGo){
-							IU._CreateElements([['t5_td3'+j+'_5','td',{'colspan':'5'},[],{},'t5_tr3'+j]],rootIU);
-							}
-						else{
-							IU._CreateElements([
-								['t5_td3'+j+'_5','td',{'class':'BWMselect heal'},['+'],{'click':[addNewSel,j]},'t5_tr3'+j],
-								(j<s.s.length-1?['t5_td3'+j+'_6','td',{'class':'BWMselect'},['▼'],{'click':[moveSel,[j,j+1]]},'t5_tr3'+j]:['t5_td3'+j+'_6','td',{'class':'BWMselect'},[],{},'t5_tr3'+j]),
-								(j>0?['t5_td3'+j+'_7','td',{'class':'BWMselect'},['▲'],{'click':[moveSel,[j,j-1]]},'t5_tr3'+j]:['t5_td3'+j+'_7','td',{'class':'BWMselect'},[],{},'t5_tr3'+j]),
-								['t5_td3'+j+'_8','td',{'colspan':'2','class':'BWMselect atkHit'},['X'],{'click':[delSel,j]},'t5_tr3'+j]],rootIU);
-							}
-						}
-					}
-				else { // bloc Cible
-					var v = JSONS._Encode(but);
-					if (!_Exist(link[v])) link[v] = {};
-					link[v].but = ['t5_td3'];
-					if (set[7][0]==-1){target = [v,0];}
-					IU._CreateElements([
-						['t5_tr2','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td20','th',{'colspan':'2'},[],{},'t5_tr2'],
-						['t5_td21','th',{},['Objet'],{},'t5_tr2'],
-						['t5_td22','th',{},['Préfixe'],{},'t5_tr2'],
-						['t5_td23','th',{},['Suffixe'],{},'t5_tr2'],
-						['t5_td24','th',{'colspan':'5'},['Actions'],{},'t5_tr2'],
-						['t5_tr3','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td3_0','td',{'class':'BWMcut'},[],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_1','td',{'class':'BWMcut'},[loc[1][but[0]]],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_2','td',{'class':'BWMcut'},[(but[1]>0?but[1]+':':'')+loc[2][set[3][0]][but[1]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_3','td',{'class':'BWMcut'},[(but[2]>0?but[2]+':':'')+loc[3][set[3][0]][but[2]][_Exist(loc[2][set[3][0]][but[1]][1])&&_Exist(loc[3][set[3][0]][but[2]][1])?1:0]],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td3_4','td',{'class':'BWMcut'},[(but[3]>0?but[3]+':':'')+loc[4][set[3][0]][but[3]][0]],{'click':[setI,[-1,0]]},'t5_tr3'],
-						['t5_td35','td',{'colspan':'5','class':(s.s.length<2?'atkHit':'BWMselect heal')},['►►'],(s.s.length<2?{}:{'click':[search]}),'t5_tr3'],
-						['t5_td36','td',{'colspan':'1','class':'BWMselect atkHit'},['X'],{'click':[actSearch,1]},'t5_tr3'],
-						['t5_td37','td',{'colspan':'2','class':'BWMselect atkHit'},['X▼'],{'click':[actSearch,2]},'t5_tr3'],
-						['t5_td38','td',{'colspan':'2','class':'BWMselect'},['▼'],{'click':[actSearch,4]},'t5_tr3'],
-						['t5_tr4','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td40','td',{'colspan':'5'},[],{},'t5_tr4'],
-						['t5_td41','td',{'colspan':'5'},[],{},'t5_tr4'],
+  /******************************************************
+   * FUNCTIONS
+   *
+   ******************************************************/
+   
+  function addslashes(str) {
+    return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
+  }
 
-						['t5_tr5','tr',{'class':'tblheader'},[],{},'t5'],
-						['t5_td50','th',{'colspan':'5'},['Options'],{},'t5_tr5'],
-						['t5_td51','th',{'colspan':'5'},['Actions'],{},'t5_tr5'],
-						['t5_tr6','tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td60','td',{'colspan':'5'},[],{},'t5_tr6'],
-						['t6','table',{'class':'BWMtab2'},[],{},'t5_td60'],
-						['t6_tr0','tr',{},[],{},'t6'],
-						['t6_td00','td',{},['Max : '],{},'t6_tr0'],
-						['t6_td01','td',{},['Fusions'],{},'t6_tr0'],
-						['t6_td02','td',{},[],{},'t6_tr0'],
-						['t6_td03','td',{},['Ecart'],{},'t6_tr0'],
-						['t6_td04','td',{},[],{},'t6_tr0'],
-						['t6_td05','td',{},['Résultats'],{},'t6_tr0'],
-						['t6_td06','td',{},[],{},'t6_tr0'],
-						['t6_tr1','tr',{},[],{},'t6'],
-						['t6_td10','td',{},['Filtres :'],{},'t6_tr1'],
-						['t6_td11','td',{'class':'atkHit'},['Coût'],{},'t6_tr1'],
-						['t6_td12','td',{},[],{},'t6_tr1'],
-						['t6_td13','td',{'class':'atkHit'},['Ecart'],{},'t6_tr1'],
-						['t6_td14','td',{},[],{},'t6_tr1'],
-						['t6_td15','td',{},['Doublons'],{},'t6_tr1'],
-						['t6_td16','td',{},[],{},'t6_tr1']],rootIU);
-					if (isGo){
-						IU._CreateElements([
-							['t6_mres','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[0]},[],{},'t6_td02'],
-							['t6_mecart','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[1]},[],{},'t6_td04'],
-							['t6_mfusion','input',{'class':'inputbox BWMinput','type':'text','disabled':true,'value':s.o[2]},[],{},'t6_td06'],
-							['t6_fpoids','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[3]},[],{},'t6_td12'],
-							['t6_fecart','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[4]},[],{},'t6_td14'],
-							['t6_fpost','input',{'class':'BWMinput','type':'checkbox','disabled':true,'checked':s.o[5]},[],{},'t6_td16'],
-							['t5_td61','td',{'colspan':'3'},[],{},'t5_tr6']],rootIU);
-						}
-					else{
-						IU._CreateElements([
-							['t6_mres','input',{'class':'inputbox BWMinput','type':'text','value':s.o[0],'onfocus':"this.select();"},[],{'change':[optSearch,0],'keyup':[optSearch,0]},'t6_td02'],
-							['t6_mecart','input',{'class':'inputbox BWMinput','type':'text','value':s.o[1],'onfocus':"this.select();"},[],{'change':[optSearch,1],'keyup':[optSearch,1]},'t6_td04'],
-							['t6_mfusion','input',{'class':'inputbox BWMinput','type':'text','value':s.o[2],'onfocus':"this.select();"},[],{'change':[optSearch,2],'keyup':[optSearch,2]},'t6_td06'],
-							['t6_fpoids','input',{'class':'BWMinput','type':'checkbox','checked':s.o[3]},[],{'change':[optCheck,3]},'t6_td12'],
-							['t6_fecart','input',{'class':'BWMinput','type':'checkbox','checked':s.o[4]},[],{'change':[optCheck,4]},'t6_td14'],
-							['t6_fpost','input',{'class':'BWMinput','type':'checkbox','checked':s.o[5]},[],{'change':[optCheck,5]},'t6_td16'],
-							['t5_td61','td',{'colspan':'3','class':'BWMselect heal'},['▼'],{'click':[getOpt]},'t5_tr6']],rootIU);
-						}
-					IU._CreateElements([['t5_td62','td',{'colspan':'2','class':'BWMselect atkHit'},['▲'],{'click':[setOpt]},'t5_tr6']],rootIU);
-					upSearch();
-					}
-				}
-			}
-		}
-	if (set[0][3]){ // Résultats
-		IU._CreateElements([
-			['t5_tr5','tr',{'class':'tblheader'},[],{},'t5'],
-			['t5_th50','th',{'colspan':'2','class':'BWMselect '+(set[0][5]?'enabled':'disabled')},['['+(set[0][5]?'-':'+')+']'],{'click':[show,5]},'t5_tr5'],
-			['t5_th51','th',{'colspan':'3','class':(set[0][5]?'':'BWMcutth')},[],{},'t5_tr5'],
-			['t5_span510','span',{},['Résultats : '],{},'t5_th51'],
-			['t5_th52','th',{'class':'BWMselect heal'},['+'],{'click':[addR]},'t5_tr5'],
-			(set[6]>0?['t5_th53','th',{'class':'BWMselect'},['◄'],{'click':[moveR,-1]},'t5_tr5']:['t5_th53a','th',{},[],{},'t5_tr5']),
-			(set[6]<s.r.length-1?['t5_th54','th',{'class':'BWMselect'},['►'],{'click':[moveR,+1]},'t5_tr5']:['t5_th54a','th',{},[],{},'t5_tr5']),
-			['t5_th55','th',{'class':'BWMselect atkHit'},['X'],{'click':[delR]},'t5_tr5'],
-			['t5_th56','th',{'class':'BWMselect atkHit'},['R'],{'click':[resetR]},'t5_tr5']],rootIU);
-		for (var j=0;j<s.r.length;j++){
-			IU._CreateElements([['t5_span41a'+j,'span',{'class':'BWMselect'+(j==set[6]?' disabled':'')},[j],{'click':[setR,j]},'t5_th51']],rootIU);
-			if (j<s.r.length-1) IU._CreateElements([['t5_span41b'+j,'span',{},[', '],{},'t5_th51']],rootIU);
-			}
-		if (set[0][5]){
-			IU._CreateElements([
-				['t5_tr6','tr',{'class':'tblheader'},[],{},'t5'],
-				['t5_th60','th',{'colspan':'2'},[],{},'t5_tr6'],
-				['t5_th61','th',{},['Objet'],{},'t5_tr6'],
-				['t5_th62','th',{},['Préfixe'],{},'t5_tr6'],
-				['t5_th63','th',{},['Suffixe'],{},'t5_tr6'],
-				['t5_th64','th',{'colspan':'5'},['Actions'],{},'t5_tr6']],rootIU);
-			for (var j=0;j<r.length;j++){
-				if (r[j]==-1){ // séparateur
-					if (lroot!==null) lroot.setAttribute('rowspan',j-root);
-					root = j+1;
-					IU._CreateElements([
-						['t5_tr6'+j,'tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td6'+j+'_0','td',{'colspan':'5'},[],{},'t5_tr6'+j],
-						['t5_span6'+j+'_0','span',{'align':'center'},['---------------------------------'],{},'t5_td6'+j+'_0'],
-						['t5_td6'+j+'_1','td',{'class':'BWMselect atkHit','colspan':'5'},['X'],{'click':[delI,[j,root]]},'t5_tr6'+j]],rootIU);
-					}
-				else if (j-root>0&&((j-root)%2===0)){ // fusions
-					r[j] = objMix(r[j-2],r[j-1]);
-					if (objCmp(r[j],[0,0,0,0])!==0){
-						results.push(r[j]);
-						var v = JSONS._Encode(r[j]);
-						if (!_Exist(link[v])) link[v] = {};
-						if (!_Exist(link[v].fus)) link[v].fus = [];
-						link[v].fus.push('t5_td6'+j);
-						}
-					IU._CreateElements([
-						['t5_tr6'+j,'tr',{'class':'BWMTR2 BWMeven'},[],{},'t5'],
-						['t5_td6'+j+'_0','td',{'class':'BWMcut2 heal'},['='],{},'t5_tr6'+j],
-						['t5_td6'+j+'_1','td',{'class':'BWMcut2 heal'},[loc[1][r[j][0]]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_2','td',{'class':'BWMcut2 heal'},[(r[j][1]>0?r[j][1]+':':'')+loc[2][set[3][0]][r[j][1]][0]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_3','td',{'class':'BWMcut2 heal'},[(r[j][2]>0?r[j][2]+':':'')+loc[3][set[3][0]][r[j][2]][_Exist(loc[2][set[3][0]][r[j][1]][1])&&_Exist(loc[3][set[3][0]][r[j][2]][1])?1:0]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_4','td',{'class':'BWMcut2 heal'},[(r[j][3]>0?r[j][3]+':':'')+loc[4][set[3][0]][r[j][3]][0]],{},'t5_tr6'+j],
-						['t5_td6'+j+'_5','td',{'class':'BWMselect heal'},['+'],{'click':[addI,j]},'t5_tr6'+j],
-						(!(_Exist(r[j+1])&&r[j+1]==-1))?['t5_td6'+j+'_6','td',{'class':'BWMselect'},["<>"],{'click':[sepI,j]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{},[],{},'t5_tr6'+j],
-						['t5_td6'+j+'_7','td',{'class':'BWMselect atkHit'},['◄'],{'click':[firstI,[j,root]]},'t5_tr6'+j],
-						['t5_td6'+j+'_8','td',{'class':'BWMselect atkHit'},['▲'],{'click':[firstI,[j,0]]},'t5_tr6'+j]],rootIU);
-					if (lroot!==null) lroot.setAttribute('rowspan',j-root+1);
-					}
-				else { // objets
-					var v = JSONS._Encode(r[j]);
-					if (!_Exist(link[v])) link[v] = {};
-					if (!_Exist(link[v].res)) link[v].res = [];
-					link[v].res.push('t5_td6'+j);
-					if (set[7][0]>=0&&set[7][1]==j){target = [v,link[v].res.length-1];}
-					IU._CreateElements([
-						['t5_tr6'+j,'tr',{'class':'BWMTR2'},[],{},'t5'],
-						['t5_td6'+j+'_0','td',{'class':'BWMcut'},[(j-root===0?'':'+')],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_1','td',{'class':'BWMcut'},[loc[1][r[j][0]]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_2','td',{'class':'BWMcut'},[(r[j][1]>0?r[j][1]+':':'')+loc[2][set[3][0]][r[j][1]][0]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_3','td',{'class':'BWMcut'},[(r[j][2]>0?r[j][2]+':':'')+loc[3][set[3][0]][r[j][2]][_Exist(loc[2][set[3][0]][r[j][1]][1])&&_Exist(loc[3][set[3][0]][r[j][2]][1])?1:0]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						['t5_td6'+j+'_4','td',{'class':'BWMcut'},[(r[j][3]>0?r[j][3]+':':'')+loc[4][set[3][0]][r[j][3]][0]],{'click':[setI,[set[6],j]]},'t5_tr6'+j],
-						(j-root===0)?['t5_td6'+j+'_5','td',{'class':'BWMselect heal'},["+"],{'click':[addI,j]},'t5_tr6'+j]:['t5_td6'+j+'_5','td',{},[],{},'t5_tr6'+j],
-						(_Exist(r[j+2])&&r[j+2]!=-1)?['t5_td6'+j+'_7','td',{'class':'BWMselect'},['▼'],{'click':[moveI,[j,(j==root?j+1:j+2)]]},'t5_tr6'+j]:['t5_td6'+j+'_7','td',{},[],{},'t5_tr6'+j],
-						(j-root>0)?['t5_td6'+j+'_6','td',{'class':'BWMselect'},['▲'],{'click':[moveI,[j,(j-root>2?j-2:j-1)]]},'t5_tr6'+j]:['t5_td6'+j+'_6','td',{},[],{},'t5_tr6'+j],
-						['t5_td6'+j+'_8','td',{'class':'BWMselect atkHit'},['X'],{'click':[delI,[j,root]]},'t5_tr6'+j]],rootIU);
-					if (j==root) lroot = IU._CreateElement('td',{'class':'BWMselect atkHit'},['B'],{'click':[delB,root]},rootIU['t5_tr6'+j]);
-					}
-				}
-			if (results.length>0){
-				var v = objDiff(results[results.length-1],but);
-				IU._CreateElements([
-					['t5_tr6'+(j+1),'tr',{'class':'BWMTR2'},[],{},'t5'],
-					['t5_td6'+(j+1)+'_0','td',{'colspan':'5'},['Ecart '+(v==Infinity?'∞':v)+' en '+results.length+' fusion'+(results.length>1?'s':'')],{},'t5_tr6'+(j+1)],
-					['t5_td6'+(j+1)+'_1','td',{'class':'BWMselect atkHit','colspan':'5'},[],{},'t5_tr6'+(j+1)]],rootIU);
-				}
-			}
-		}
-	// Saisie
-	IU._CreateElements([
-		['t4_tr','tr',{'class':'tblheader'},[],{},'t4'],
-		['t4_th0','th',{'class':'BWMselect '+(set[0][6]?'enabled':'disabled')},['['+(set[0][6]?'-':'+')+']'],{'click':[show,6]},'t4_tr'],
-		['t4_th1','th',{'colspan':'4'},[],{},'t4_tr'],
-		['t4_span10','span',{},['Saisie : '],{},'t4_th1'],
-		['t4_span11','span',{'class':'BWMselect'+(set[1]===0?' disabled':'')},['listes ('+arm.length+'+'+results.length+')'],{'click':[selectMode,0]},'t4_th1'],
-		['t4_span12','span',{},[', '],{},'t4_th1'],
-		['t4_span13','span',{'class':'BWMselect'+(set[1]==1?' disabled':'')},['copie'],{'click':[selectMode,1]},'t4_th1'],
-		['t4_span14','span',{},[', '],{},'t4_th1'],
-		['t4_span15','span',{'class':'BWMselect'+(set[1]==2?' disabled':'')},['libre'],{'click':[selectMode,2]},'t4_th1']
-		],rootIU);
-	if (set[0][6]){
-		if (set[1]===0){ // saisie par liste
-			var sel = [[arm,'Armurerie'],[clone(s.s),'Index'],[results,'Synthèses']];
-			for (var k=0;k<sel.length;k++){
-				if (sel[k][0].length>0){
-					sel[k][0].sort(tabTri(set[2]));
-					IU._CreateElements([
-						['t4_tr0'+k,'tr',{'class':'tblheader'},[],{},'t4'],
-						['t4_th0'+k+'_0','th',{'class':'BWMselect '+(set[0][7+k]?'enabled':'disabled')},['['+(set[0][7+k]?'-':'+')+']'],{'click':[show,7+k]},'t4_tr0'+k],
-						['t4_th0'+k+'_1','th',{'colspan':'4'},[sel[k][1]+' ('+sel[k][0].length+')'],{},'t4_tr0'+k]],rootIU);
-					if (set[0][7+k]){
-						IU._CreateElements([
-							['t4_tr1'+k,'tr',{'class':'tblheader'},[],{},'t4'],
-							['t4_th1'+k+'_0','th',{'class':'BWMtitle'},[],{'click':[selectTri,0]},'t4_tr1'+k],
-							['t4_th1'+k+'_1','th',{'class':'BWMtitle'},['Objet'],{'click':[selectTri,1]},'t4_tr1'+k],
-							['t4_th1'+k+'_2','th',{'class':'BWMtitle'},['Préfixe'],{'click':[selectTri,2]},'t4_tr1'+k],
-							['t4_th1'+k+'_3','th',{'class':'BWMtitle'},['Suffixe'],{'click':[selectTri,3]},'t4_tr1'+k],
-							(set[7][0]==-1||(isGo&&set[7][0]<0))?['t4_th1'+k+'_4','th',{},[],{},'t4_tr1'+k]:['t4_th1'+k+'_4','th',{'class':'BWMselect heal'},['►►'],{'click':[selectAll,sel[k][0]]},'t4_tr1'+k],
-							['t4_span11'+k,'span',{'class':'BWMtriSelect'},[(set[2][1]==1?'▲':'▼')],{},'t4_th1'+k+'_'+(set[2][0])]],rootIU);
-						for (var i=0;i<sel[k][0].length;i++){
-							var x = sel[k][0][i],
-								v = JSONS._Encode(x);
-							if (!_Exist(link[v])) link[v] = {};
-							if (!_Exist(link[v]['s'+k])) link[v]['s'+k] = [];
-							link[v]['s'+k].push('t4_td2'+k+'_'+i);
-							IU._CreateElements([['t4_tr2'+k+'_'+i,'tr',{'class':'BWMTR2'+(i%2===0?'':' BWMeven')},[],{},'t4']],rootIU);
-							if (isGo&&set[7][0]<0){
-								IU._CreateElements([
-									['t4_td2'+k+'_'+i+'_1','td',{'class':'BWMcut2'},[loc[1][x[0]]],{},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_2','td',{'class':'BWMcut2'},[(x[1]>0?x[1]+':':'')+loc[2][set[3][0]][x[1]][0]],{},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_3','td',{'class':'BWMcut2'},[(x[2]>0?x[2]+':':'')+loc[3][set[3][0]][x[2]][_Exist(loc[2][set[3][0]][x[1]][1])&&_Exist(loc[3][set[3][0]][x[2]][1])?1:0]],{},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_4','td',{'class':'BWMcut2'},[(x[3]>0?x[3]+':':'')+loc[4][set[3][0]][x[3]][0]],{},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_5','td',{},[],{},'t4_tr2'+k+'_'+i],
-									],rootIU);
-								}
-							else {
-								IU._CreateElements([
-									['t4_td2'+k+'_'+i+'_1','td',{'class':'BWMcut'},[loc[1][x[0]]],{'click':[selectSet,x]},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_2','td',{'class':'BWMcut'},[(x[1]>0?x[1]+':':'')+loc[2][set[3][0]][x[1]][0]],{'click':[selectSet,x]},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_3','td',{'class':'BWMcut'},[(x[2]>0?x[2]+':':'')+loc[3][set[3][0]][x[2]][_Exist(loc[2][set[3][0]][x[1]][1])&&_Exist(loc[3][set[3][0]][x[2]][1])?1:0]],{'click':[selectSet,x]},'t4_tr2'+k+'_'+i],
-									['t4_td2'+k+'_'+i+'_4','td',{'class':'BWMcut'},[(x[3]>0?x[3]+':':'')+loc[4][set[3][0]][x[3]][0]],{'click':[selectSet,x]},'t4_tr2'+k+'_'+i],
-									(set[7][0]==-1)?['t4_td2'+k+'_'+i+'_5','td',{},[],{},'t4_tr2'+k+'_'+i]:['t4_td2'+k+'_'+i+'_5','td',{'class':'BWMselect heal'},['►'],{'click':[selectAdd,x]},'t4_tr2'+k+'_'+i],
-									],rootIU);
-								}
-							}
-						}
-					}
-				}
-			}
-		else if (set[1]==1){ // copier/coller
-			IU._CreateElements([
-				['t4_tr0','tr',{},[],{},'t4'],
-				['t4_td00','td',{'colspan':'5'},[],{},'t4_tr0'],
-				['t4_tr1','tr',{},[],{},'t4'],
-				['t4_td10','td',{'colspan':'5'},[],{},'t4_tr1'],
-				['t4_tr2','tr',{},[],{},'t4'],
-				['t4_td20','td',{'class':'BWMselect atkHit'},['X'],{'click':[chgArea,'clean']},'t4_tr2'],
-				['t4_td21','td',{'colspan':'2','class':'BWMselect heal'},['◄◄'],{'click':[chgArea,'copy']},'t4_tr2'],
-				['t4_td22','td',{'colspan':'2'},[],{},'t4_tr2'],
-				['t4_div220','div',{'class':'BWM100 BWMselect heal'},['►►'],{'click':[chgArea,'paste']},'t4_td22'],
-				['t4_tr3','tr',{},[],{},'t4'],
-				['t4_td30','td',{'colspan':'1','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
-				['t4_area0','textarea',{'class':'textarea BWMdivarea','readonly':'readonly','spellcheck':'false'},[],{},'t4_td30'],
-				['t4_td31','td',{'colspan':'4','class':'BWMcut2 BWMeven'},[],{},'t4_tr3'],
-				['t4_area1','textarea',{'class':'textarea BWMdivarea','spellcheck':'false'},[copieTmp],{'input':[chgArea,'update']},'t4_td31'],
-				],rootIU);
-			chgArea(null,'update');
-			}
-		else { // saisie manuelle
-			var max = Math.max(loc[1].length,loc[2][set[3][0]].length,loc[3][set[3][0]].length,loc[4][set[3][0]].length);
-			IU._CreateElements([
-				['t4_tr0','tr',{'class':'tblheader'},[],{},'t4'],
-				['t4_th00','th',{},[],{},'t4_tr0'],
-				['t4_th01','th',{},['Objet'],{},'t4_tr0'],
-				['t4_th02','th',{},['Préfixe'],{},'t4_tr0'],
-				['t4_th03','th',{},['Suffixe'],{},'t4_tr0'],
-				['t4_th04','th',{},[],{},'t4_tr0']],rootIU);
-			for (var i=0;i<max;i++){
-				IU._CreateElements([['t4_tr1'+i,'tr',{'class':'BWMTR'},[],{},'t4']],rootIU);
-				for (var j=0;j<4;j++){
-					var x = j===0?loc[j+1]:loc[j+1][set[3][0]];
-					if (i<x.length) IU._CreateElements([['t4_td1'+i+'_'+j,'td',{'class':(isGo&&set[7][0]<0?'BWMcut2':'BWMcut')+((set[7][0]==-1?but[j]:set[7][0]==-2?s.s[set[7][1]][j]:r[set[7][1]][j])==i?' disabled':'')},[(j>0&&i>0?i+':':'')+x[i][0]],(isGo&&set[7][0]<0?{}:{'click':[selectMSet,[j,i]]}),'t4_tr1'+i]],rootIU);
-					else IU._CreateElements([['t4_td1'+i+'_'+j,'td',{},[],{},'t4_tr1'+i]],rootIU);
-					}
-				IU._CreateElements([['t4_td15'+i+'_5','td',{},[],{},'t4_tr1'+i]],rootIU);
-				}
-			}
-		}
-	// colorisation des objets sélectionnés/identiques
-	for (var key in link){
-		if (link.hasOwnProperty(key)){
-			var v = set[7][0]==-1?'but':set[7][0]==-2?'sel':'res';
-			if (_Exist(link[key][v])){
-				for (var i=0;i<link[key][v].length;i++){
-					var x = _Exist(link[key].s0)&&_Exist(link[key].s0[i])?link[key].s0[i]:null,
-						y = _Exist(link[key].s1)&&_Exist(link[key].s1[i])?link[key].s1[i]:null,
-						z = _Exist(link[key].s2)&&_Exist(link[key].s2[i])?link[key].s2[i]:null;
-					if (target[0]==key&&target[1]==i){
-						itemAddClass(link[key][v][i],'disabled');
-						if (x!==null) itemAddClass(x,'disabled');
-						if (y!==null) itemAddClass(y,'disabled');
-						if (z!==null) itemAddClass(z,'disabled');
-						}
-					else if (x!==null||y!==null||z!==null){
-						itemAddClass(link[key][v][i],'item-link');
-						if (x!==null) itemAddClass(x,'item-link');
-						if (y!==null) itemAddClass(y,'item-link');
-						if (z!==null) itemAddClass(z,'item-link');
-						}
-					}
-				}
-			if (key!="[0,0,0,0]"){
-				var all = Object.keys(link[key]).map(function(v){return link[key][v];}).reduce(function(pre,cur){return pre.concat(cur);});
-				for (var i=0;i<all.length;i++){
-					for (var j=0;j<10;j++){//all[i]['td0'+j]
-						if (_Exist(rootIU[all[i]+'_'+j])){
-							IU._addEvent(rootIU[all[i]+'_'+j],'mouseover',selectSameItem,all);
-							IU._addEvent(rootIU[all[i]+'_'+j],'mouseout',unselectSameItem,all);
-							}
-						}
-					}
-				}
-			}
-		}
-	// Bulles d'aide
-	if (set[0][2]){
-		var aides = {
-			't1_td2':['Aide',
-				"<tr><td>Ce script est basé sur les réflexions d'un post sur le forum. Le lien est disponible sur la page Github de ce script.</td></tr>"
-				+"<tr><td>Passer la souris sur l'un des titres des tableaux pour plus de détails.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>Chaque élément est classé par ordre de rareté/valeur dont on se sert pour connaitre le résultat.</td></tr>"
-				+"<tr><td>X étant un élément et X-1 l'élément juste en dessous etc... il se dégage les relations suivantes:</td></tr>"
-				+"<tr><td>X + (X-1) = X+1 (bonus)</td></tr>"
-				+"<tr><td>X + (X-2) = X (neutre)</td></tr>"
-				+"<tr><td>X + (X-3) = X (neutre)</td></tr>"
-				+"<tr><td>X + (X-4) = X-1 (malus 1)</td></tr>"
-				+"<tr><td>X + (X-5)= X-1</td></tr>"
-				+"<tr><td>X + (X-6) = X-2 (malus 2)</td></tr>"
-				+"<tr><td>etc...</td></tr>"
-				+"<tr><td>Exception : casquette + casque militaire = masque</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>Cliquer ici pour activer/désactiver l'affichage des bulles d'aides.</td></tr>"],
-			't1_td0':['Interface',
-				"<tr><td>Cliquer ici pour déplacer l'interface dans la zone haute ou basse du jeu.</td></tr>"],
-			't1_span0':['Titre',
-				"<tr><td>Cliquer ici permet de masquer/afficher l'interface.</td></tr>"],
-			't4_span10':['Saisie',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Cette zone permet la saisie des objets.</td></tr>"
-				+"<tr><td>- Vous devez dans un premier temps sélectionner l'objet (la ligne) que vous souhaitez modifier dans l'une des zones de droite.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
-			't4_span11':['Saisie par listes',
-				"<tr><td><b>Armurerie :</b></td></tr>"
-				+"<tr><td>- Liste des objets de votre armurerie correspondant à la Catégorie sélectionnée.</td></tr>"
-				+"<tr><td><b>Index :</b></td></tr>"
-				+"<tr><td>- Copie de l'Index de recherche utilisable en saisie.</td></tr>"
-				+"<tr><td><b>Synthèses :</b></td></tr>"
-				+"<tr><td>- Copie des fusions obtenues dans le Résultat de droite.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- Clic en-tête : tri le tableau suivant cette colonne.</td></tr>"
-				+"<tr><td>- <span class='heal'><b>►►</b></span> : ajoute tous les objets à la zone sélectionnée. Le dernier objet ajouté devient la sélection en cours.</td></tr>"
-				+"<tr><td>- Clic objet : remplace la sélection dans la zone de droite par cet objet.</td></tr>"
-				+"<tr><td>- <span class='heal'>►</span> : ajoute l'objet à la zone sélectionnée qui devient la sélection en cours.</td></tr>"],
-			't4_span13':['Saisie par copie',
-				"<tr><td>Cette zone permet l'échange d'une liste d'objets que ce soit entre résultats ou avec d'autres joueurs.</td></tr>"
-				+"<tr><td>La zone permet la saisie manuelle et le copier/coller.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>La zone reconnait les objets au format du jeu. Vous pouvez ne pas saisir certains éléments qui seront considérés comme vide.</td></tr>"
-				+"<tr><td>Les objets peuvent être précédés des opérateurs '+','=' ou du séparateur '-' pour une copie dans la zone résultat.</td></tr>"
-				+"<tr><td>Lors de l'import la ligne '=' sera automatiquement recalculée et peut donc être laissé à vide ou erronée.</td></tr>"
-				+"<tr><td>Exemple :</td></tr>"
-				+"<tr><td>Short Renforcé De L`Athlète (+1)</td></tr>"
-				+"<tr><td>+ Short Satiné De L`Athlète (+1)</td></tr>"
-				+"<tr><td>= Short Clouté De L`Athlète (+2)</td></tr>"
-				+"<tr><td>-</td></tr>"
-				+"<tr><td>Flexible Du Brigand</td></tr>"
-				+"<tr><td>+ Parfaite Jupe Satinée Du Trafiquant D`Armes (+1)</td></tr>"
-				+"<tr><td>=</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td>'Lignes valides' et 'invalides' indiquent si les lignes sont correctement formatées.</td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la liste.</span></td></tr>"
-				+"<tr><td>- <span class='heal'>◄◄</span><span> : copie la sélection de droite dans cette zone. Cette liste est pré-sélectionnée pour permettre une copie à usage externe.</span></td></tr>"
-				+"<tr><td>- <span class='heal'>►►</span><span> : ajoute la liste vers la sélection de droite. Ce bouton n'apparaîtra que si cette liste est compatible avec la zone de droite.</span></td></tr>"],
-			't4_span15':['Saisie libre',
-				"<tr><td>Permet de saisir indépendamment chaque élément de la sélection.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"],
-			't5_span0':['Simulations',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Une simulation comprend l'ensemble des éléments permettant de chercher une solution.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une simulation.</span></td></tr>"
-				+"<tr><td>- ◄ ► : déplace la simulation.</td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la simulation.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime toutes les simulations.</span></td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
-			't5_span110':['Recherche',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Permet au script de rechercher la ou les meilleurs solutions. L'Index permet aussi de créer une liste perso.</td></tr>"
-				+"<tr><td>- Vous devez saisir une liste d`objets dans l`Index et une Cible qui servira de base de recherche.</td></tr>"
-					+"<tr><td>- L'écart représente la différence de points entre le résultat et la cible.</td></tr>"
-				+"<tr><td>- Les éléments de cette zone ne peuvent être modifiés en cours de recherche.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime les éléments de la zone sélectionnée.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime l`ensemble des éléments de la Recherche.</span></td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
-			't5_span111':['Index',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Reprend la liste des objets utilisés dans le cadre de la recherche.</td></tr>"
-				+"<tr><td>- Tri manuel possible sur les colonnes. L'ordre des objets peut avoir une influence sur le temps de recherche.</td></tr>"
-				+"<tr><td>- La colonne de gauche indique la différence de points entre l'objet et la cible. Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
-				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
-				+"<tr><td>- ► : ajoute cet objet après l'objet sélectionné du résultat en cours ou sinon en fin du résultat.</span></td></tr>"],
-			't5_span113':['Cible',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Ici vous indiquez la cible recherchée.</td></tr>"
-				+"<tr><td>- Un élément vide n'est pas pris en compte.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Options Max :</b></td></tr>"
-				+"<tr><td>- <b>Résultats</b> : limite le nombre de résultats retenus pendant la recherche.</td></tr>"
-				+"<tr><td>- <b>Ecart</b> : ne retient que les solutions ayant un écart inférieur à cette valeur.</td></tr>"
-				+"<tr><td>- <b>Fusions</b> : ne retient que les solutions avec un nombre de fusions inférieur à cette valeur. Cette valeur permet de diminuer le temps de recherche.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Options Filtres :</b></td></tr>"
-				+"<tr><td>- <span class='atkHit'><b>Coût</b></span><span> : cherche les solutions les moins coûteuses, chaque objets ayant un poids, et par conséquent en nombre de fusions. Désactiver cette option engendre énormément de résultats et par conséquent peut saturer la mémoire. Il est conseillé de limiter le nombre de résultats.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'><b>Ecart</b></span><span> : cherche les solutions se rapprochant le plus de la cible. Même consigne que pour l'option Coût.</span></td></tr>"
-				+"<tr><td>- <b>Doublons</b> : supprime les doublons en fin de recherche (résultats identiques avec les mêmes objets mais des permutations différentes).</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>▼</span><span> : charge les valeurs par défaut.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>▲</span><span> : sauvegarde en tant que valeurs par défaut.</span></td></tr>"
-				+"<tr><td>- <span class='heal'>►►</span><span> : lance la recherche. Au moins deux objets doivent être saisie dans l'Index.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : stop la recherche.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>X▼</span><span> : stop la recherche et ajoute les résultats trouvés.</span></td></tr>"
-				+"<tr><td>- ▼ : ajoute les résultats trouvés sans stopper la recherche.</td></tr>"],
-			't5_span510':['Résultats',
-				"<tr><td><b>Informations générales :</b></td></tr>"
-				+"<tr><td>- Reprend les solutions trouvées par la Recherche. Permet aussi de saisir manuellement vos solutions.</td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>+</span><span> : ajoute un résultat.</span></td></tr>"
-				+"<tr><td>- ◄ ► : déplace le résultat.</td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime le résultat.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>R</span><span> : supprime tous les résultats.</span></td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><b>Commandes sur les objets :</b></td></tr>"
-				+"<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne.</span></td></tr>"
-				+"<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
-				+"<tr><td>- <> : ajoute un nouveau bloc indépendant du précédent.</td></tr>"
-				+"<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>◄</span><span> : supprime tous les éléments précédents du bloc.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>▲</span><span> : supprime tous les éléments précédents.</span></td></tr>"
-				+"<tr><td>- <span class='atkHit'>B</span><span> : supprime le bloc.</span></td></tr>"
-				+"<tr><td><hr></hr></td></tr>"
-				+"<tr><td><span class='heal'>[-]</span><span class='atkHit'>[+]</span><span> : affiche/masque cette zone.</span></td></tr>"],
-			};
-		for (var key in aides){
-			if (_Exist(rootIU[key])){
-				rootIU[key].setAttribute('onmouseout','nd();');
-				rootIU[key].setAttribute('onmouseover',"return overlib('<table class=\"BWMoverlib\">"+addslashes(aides[key][1])+"</table>',CAPTION,'"+aides[key][0]+"',CAPTIONFONTCLASS,'action-caption',WIDTH,300,VAUTO,HAUTO);");
-				}
-			}
-		}
-	}
+  function objCmp(a, b) { //a==b = 0, a>b = -1, a<b = 1
+    for (var i = 0; i < 4 && a[i] == b[i]; ++i);
+    return i === 4 ? 0 : a[i] > b[i] ? -1 : 1;
+  }
 
-/******************************************************
-* START
-*
-******************************************************/
-// vérification des services
-if (!JSON) throw new Error("Erreur : le service JSON n\'est pas disponible.");
-else if (!window.localStorage) throw new Error("Erreur : le service localStorage n\'est pas disponible.");
-else{
-	var p = DATAS._GetPage(),
-		player = DATAS._PlayerName(),
-		IDs = LS._GetVar('BWM:IDS',{}),
-        ID = null;
-if (debug) console.debug('BWMstart: ',player,IDs,p);
-	// Pages gérées par le script
-	if (['null','pServerDeco','pServerUpdate','pServerOther'].indexOf(p)==-1&&player!==null){
-		if (p=='pMain'){
-			var node = DOM._GetFirstNodeTextContent("//div[@id='content-mid']/div[@id='reflink']/span[@class='reflink']",null);
-			if (node!==null){
-				var r2 = /r\.php\?r=([0-9]+)/.exec(node);
-                if (_Exist(r2[1])){ ID = r2[1];}
-				if (ID!==null){
-					for (var i in IDs) if (IDs[i]==ID) delete IDs[i]; // en cas de changement de nom
-					IDs[player] = ID;
-					LS._SetVar('BWM:IDS',IDs);
-					}
-				}
-			}
-		// Autre pages nécessitant l'ID
-		else if (_Exist(IDs[player])){
-			ID = IDs[player];
-			PREF._Init(ID);
-			setCss();
-			if (p=='pMixitem'){
-				var bwIU = DOM._GetFirstNode("//div[@id='content-mid']"),
-					bwTop = DOM._GetFirstNode("./div[@class='top-options']",bwIU);
-				if (bwIU!==null&&bwTop!==null){
-					// datas
-					var loc = L._Get("listes"),
-						set = PREF._Get('set'),
-						list = LS._GetVar('BWM:LIST:'+ID,{});
-					// pattern de recherche et index de correspondance
-					var	pat = ["Légendaire |","Bon |Bonne |Parfait |Parfaite |","","","","\\(\\+[0-5]\\)|"],
-						indexPat = [{"":0,"Bon":6,"Bonne":6,"Parfait":12,"Parfaite":12},[],[],[]];
-					for (var i=2; i<5; i++){
-						for (var j=0; j<loc[i].length; j++){
-							if (i!=2) indexPat[i-1][j] = {};
-							for (var k=1; k<loc[i][j].length; k++){
-								for (var x=0; x<loc[i][j][k].length; x++){
-									if (loc[i][j][k][x]!==true){
-										pat[i] += loc[i][j][k][x]+'(?:[ ]|$)|';
-										if (i==2) indexPat[1][loc[i][j][k][x]] = [j,k];
-										else indexPat[i-1][j][loc[i][j][k][x]] = k;
-										}
-									}
-								}
-							}
-						}
-if (debug) console.debug('pat, indexPat :',pat,indexPat);
-					var	items = getArmItems();
-					if (!Array.isArray(set[0])){ // patch 2015.12.05 -> 2015.12.07
-						set[0] = PREF._GetDef('set')[0];
-						set[8] = PREF._GetDef('set')[8];
-						}
-					if (!_Exist(set[8][3])) set[8][3] = PREF._GetDef('set')[8][3]; // patch 2015.12.20
-					if (!_Exist(set[8][4])){ // patch 2016.03.27
-						set[8][4] = !!set[8][3];
-						set[8][3] = PREF._GetDef('set')[8][3];
-						}
-					if (!_Exist(set[8][5])){ // patch 2016.03.31
-						var tmp = set[8][0];
-						set[8][0] = set[8][2];
-						set[8][2] = tmp;
-						set[8][5] = !!set[8][4];
-						set[8][3] = PREF._GetDef('set')[8][3];
-						set[8][4] = PREF._GetDef('set')[8][4];
-						}
-					// Création de l'interface
-					var tasks = {'t':null,'k':{},'s':{},'w':{}},
-						mix = [], cat, arm, but, c, s, r, isGo, rootIU = {};
-					upTabs();
-					}
-				}
-			}
-		else alert(L._Get("sUnknowID"));
-		}
-	}
-if (debug) console.debug('BWMend - time %oms',Date.now()-debug_time);
+  function objDiff(a, b) {
+    var d = 0;
+    for (var i = 0; i < 4; i++) { d += (b[i] === 0 ? 0 : a[i] === 0 ? Infinity : Math.abs(a[i] - b[i])); }
+    return d;
+  }
+
+  function fusion(a, b, c, i) { // a,b = x (a<=b), c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
+    if (c === 0 && i === 0 && a == 1 && b == 3) return 4; // exception casquette+Casque Militaire = masque
+    else return a == b ? a : (b == loc[i + 2][c].length - 1 && b - a < 3) ? b - a == 1 ? b - 2 : b - 1 : b -
+      a == 1 ? b + 1 : b - Math.floor((b - a - 2) / 2);
+  }
+
+  function objMix(a, b) { // utilise le tableau mix
+    var v = [],
+      min = Math.min(a[0], b[0]);
+    v[0] = min + ((min !== 0 && a[1] !== 0 && a[1] == b[1] && min < 17) ? 1 : 0);
+    for (var i = 1; i < 4; i++) {
+      if (a[i] === 0 || b[i] === 0) v[i] = 0;
+      else v[i] = mix[i - 1][a[i]][b[i]];
+    }
+    return v;
+  }
+
+  function tabTri(i) { // i : [élément, sens]
+    return function (a, b) {
+      var v, x, y = i[1] === 0 ? 1 : -1;
+      if (i[0] == 5) { // index, tri sur diff
+        v = objCmp([objDiff(a, but), a[2], a[3], a[1]], [objDiff(b, but), b[2], b[3], b[1]]);
+      } else {
+        x = [
+          [0, 2, 3, 1],
+          [1, 2, 3, 0],
+          [2, 3, 1, 0],
+          [3, 2, 1, 0]
+        ][i[0]];
+        v = objCmp([a[x[0]], a[x[1]], a[x[2]], a[x[3]]], [b[x[0]], b[x[1]], b[x[2]], b[x[3]]]);
+      }
+      return (v === 0) ? 0 : (v == 1) ? y : 0 - y;
+    };
+  }
+  
+  // commandes d'interface
+  function show(e, i) {
+    U.setP(i, !U.getP(i));
+    upTabs();
+  }
+
+  function setT(e, i) {
+    cat = U.setP('cat', i).toString() + U.getP('leg');
+    U.razP('sim');
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    upTabs();
+  }
+
+  function setL(e, i) {
+    cat = U.getP('cat').toString() + U.setP('leg', i);
+    U.razP('sim');
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    upTabs();
+  }
+  
+  // commandes Saisie
+  function selectMode(e, i) {
+    U.setP('mode', i);
+    upTabs();
+  }
+
+  function selectTri(e, i) {
+    if (U.getP('triCol') === i) {
+       U.setP('triOrder', U.getP('triOrder') === 1 ? 0 : 1);
+    }
+    else {
+       U.setP('triCol', i);
+    }
+    upTabs();
+  }
+
+  function selectSet(e, i) {
+    var v = clone(i);
+    if (U.getP('setZone') === -1) {
+      s.b = v;
+    } else if (U.getP('setZone') === -2) {
+      s.s[U.getP('setIndex')] = v;
+    } else r[U.getP('setIndex')] = v;
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function selectMSet(e, i) {
+    if (U.getP('setZone') === -1) {
+      but[i[0]] = i[1];
+    } else if (U.getP('setZone') === -2) {
+      s.s[U.getP('setIndex')][i[0]] = i[1];
+    } else r[U.getP('setIndex')][i[0]] = i[1];
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function selectAdd(e, i) {
+    var v = clone(i);
+    if (U.getP('setZone') === -2) {
+      U.setP('setIndex', U.getP('setIndex') + 1);
+      s.s.splice(U.getP('setIndex'), 0, v);
+    } else if (U.getP('setZone') >= 0) {
+      if (U.getP('setIndex') === 0 || U.getP('setIndex') > 0 && r[U.getP('setIndex') - 1] == -1) {
+        U.setP('setIndex', U.getP('setIndex') + 1);
+        r.splice(U.getP('setIndex'), 0, v, [0, 0, 0, 0]);
+      } else {
+        U.setP('setIndex', U.getP('setIndex') + 2);
+        r.splice(U.getP('setIndex'), 0, v, [0, 0, 0, 0]);
+      }
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function selectAll(e, i) {
+    for (var j = 0; j < i.length; j++) {
+      var v = clone(i[j]);
+      if (U.getP('setZone') === -2) {
+        U.setP('setIndex', U.getP('setIndex') + 1);
+        s.s.splice(U.getP('setIndex'), 0, v);
+      } else if (U.getP('setZone') >= 0) {
+        if (U.getP('setIndex') === 0 || U.getP('setIndex') > 0 && r[U.getP('setIndex') - 1] == -1) {
+          U.setP('setIndex', U.getP('setIndex') + 1);
+          r.splice(U.getP('setIndex'), 0, v, [0, 0, 0, 0]);
+        } else {
+          U.setP('setIndex', U.getP('setIndex') + 2);
+          r.splice(U.getP('setIndex'), 0, v, [0, 0, 0, 0]);
+        }
+      }
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+  // commandes Copie
+  function chgArea(e, cmd) {
+    var area0 = rootIU.get_area0,
+      area1 = rootIU.get_area1,
+      linesOk = [],
+      linesBad = [];
+    area0.value = "";
+    if (cmd == 'clean' || cmd == 'copy') {
+      area1.value = "";
+    }
+    if (cmd == 'copy') {
+      var v = U.getP('setZone') === -1 ? [but] : U.getP('setZone') === -2 ? s.s : r,
+        root = 0,
+        text = '';
+      for (var j = 0; j < v.length; j++) {
+        if (v[j] == -1) {
+          text += '-';
+          root = j + 1;
+        } else {
+          if (U.getP('setZone') >= 0) text += j - root > 0 && (j - root) % 2 === 0 ? '= ' : j - root === 0 ? '' :
+            '+ ';
+          if (objCmp(v[j], [0, 0, 0, 0]) !== 0) {
+            var grade = { 0: ['', ''], 1: ['Bon ', 'Bonne '], 2: ['Parfait ', 'Parfaite '] };
+            text += U.getP('leg') == 'L' ? 'Légendaire ' : '';
+            text += v[j][0] > 0 ? grade[Math.floor(v[j][0] / 6)][exist(loc[2][U.getP('cat')][v[j][1]][1]) ? 1 :
+              0
+            ] : '';
+            text += v[j][1] > 0 ? loc[2][U.getP('cat')][v[j][1]][0] + ' ' : '';
+            text += v[j][2] > 0 ? loc[3][U.getP('cat')][v[j][2]][exist(loc[2][U.getP('cat')][v[j][1]][1]) && exist(
+              loc[3][U.getP('cat')][v[j][2]][1]) ? 1 : 0] + ' ' : '';
+            text += v[j][3] > 0 ? loc[4][U.getP('cat')][v[j][3]][exist(loc[4][U.getP('cat')][v[j][3]][1]) ? 1 : 0] +
+              ' ' : '';
+            text += v[j][0] > 0 && v[j][0] % 6 > 0 ? '(+' + v[j][0] % 6 + ')' : '';
+          }
+        }
+        text += (j < v.length - 1 ? '\n' : '');
+      }
+      area1.value = text;
+      area1.focus();
+      area1.select();
+    }
+    var v = area1.value.split(/[\r\n]/g),
+      lines = '',
+      pattern = "^(?:(\\+[ ]*|=[ ]*|)(" + pat[0] + ")(" + pat[1] + ")(" + pat[2] + ")(" + pat[3] + ")(" +
+      pat[4] + ")(" + pat[5] + "))$";
+    // analyse objets
+    for (var j = 0; j < v.length; j++) {
+      var w = new RegExp(pattern).exec(v[j]);
+      if (v[j] == '-') { v[j] = ['-', -1]; } else if (w !== null) {
+        var op = w[1] !== '' ? w[1].trim() : -1,
+          leg = w[2].trim() == U.getP('leg') ? U.getP('leg') : -1,
+          grade = w[3] !== '' ? indexPat[0][w[3].trim()] : 0,
+          type = w[4] !== '' ? indexPat[1][w[4].trim()][0] == U.getP('cat') ? indexPat[1][w[4].trim()] : -1 : [
+            U.getP('cat'), 0
+          ],
+          pre = w[5] !== '' ? exist(indexPat[2][U.getP('cat')][w[5].trim()]) ? indexPat[2][U.getP('cat')][w[5].trim()] :
+          -1 : 0,
+          suf = w[6] !== '' ? exist(indexPat[3][U.getP('cat')][w[6].trim()]) ? indexPat[3][U.getP('cat')][w[6].trim()] :
+          -1 : 0,
+          niv = w[7] !== '' ? Number(w[7].replace(new RegExp('[()+]', 'g'), '')) : 0;
+        if (leg != -1 && type != -1 && pre != -1 && suf != -1) {
+          v[j] = [op, [grade + niv, type[1], pre,
+            suf
+          ]];
+        } else { v[j] = false; }
+      } else { v[j] = false; }
+      lines += (j + 1) + (j < v.length - 1 ? '\n' : '');
+    }
+    area0.value = lines;
+    area0.setAttribute('style', 'height:auto');
+    area1.setAttribute('style', 'height:auto');
+    area0.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight +
+      area1.scrollTop + 1) + 'px');
+    area1.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight +
+      area1.scrollTop + 1) + 'px');
+    // analyse du format
+    var root = 0;
+    for (var j = 0; j < v.length; j++) {
+      if (v[j] !== false) {
+        if (v[j][0] == '-' && j > 2 && v[j - 1][0] == '=') { root = j + 1; } else if (v[j][0] == -1 && (j -
+            root === 0 || (root === 0 && j > 0 && v[j - 1][0] == -1))) {} else if (v[j][0] == '+' && ((j -
+            root == 1 && v[j - 1][0] == -1) || (j - root > 1 && v[j - 1][0] == '='))) {} else if (v[j][0] ==
+          '=' && j - root > 1 && v[j - 1][0] == '+') {} else { v[j] = false; }
+      }
+      if (v[j] === false) linesBad.push(j + 1);
+      else linesOk.push(j + 1);
+    }
+    rootIU.get_td00.textContent = 'Lignes valides : ' + (linesOk.length > 0 ? linesOk.toString() : '-');
+    rootIU.get_td10.textContent = 'Lignes invalides : ' + (linesBad.length > 0 ? linesBad.toString() : '-');
+    if (v.indexOf(false) == -1 && (v.length == 1 || (v.length > 1 && ((U.getP('setZone') === -2 && v[1][0] == -1) ||
+        (U.getP('setZone') >= 0 && v[1][0] == '+'))))) {
+      rootIU.get_div220.style.display = 'block';
+      if (cmd == 'paste') {
+        if (U.getP('setZone') === -1) s.b = v[0][1];
+        else {
+          if (U.getP('setZone') >= 0) {
+            r.push(-1);
+            if (v[v.length - 1][0] == '-') v.splice(v.length - 1, 1);
+            else if (v[v.length - 1][0] == -1) v.push(['+', [0, 0, 0, 0]], ['=', [0, 0, 0, 0]]);
+            else if (v[v.length - 1][0] == '+') v.push(['=', [0, 0, 0, 0]]);
+          }
+          for (var j = 0; j < v.length; j++) {
+            if (U.getP('setZone') === -2) s.s.push(v[j][1]);
+            else r.push(v[j][1]);
+          }
+        }
+        U.setD('LIST', list);
+        upTabs();
+      }
+    } else {
+      rootIU.get_div220.style.display = 'none';
+    }
+  }
+  // commandes Simulations
+  function setS(e, i) {
+    U.setP('sim', i);
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    upTabs();
+  }
+
+  function addS(e) {
+    U.setP('sim', c.length);
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    c.push({
+      'b': [0, 0, 0, 0],
+      'e': [0, 0, [], []],
+      'o': U.getP('defOpt'),
+      'r': [
+        [
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0]
+        ]
+      ],
+      's': [],
+      't': 0
+    });
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function moveS(e, i) {
+    if (exist(tasks.s[cat])) {
+      var v = tasks.s[cat];
+      if (exist(v[U.getP('sim')]) && exist(v[U.getP('sim') + i])) {
+        tasks.k[v[U.getP('sim')]] = [cat, U.getP('sim') + i];
+        tasks.k[v[U.getP('sim') + i]] = [cat, U.getP('sim')];
+        v[U.getP('sim')] = [v[U.getP('sim') + i], v[U.getP('sim') + i] = v[U.getP('sim')]][0]; //swap
+      } else if (exist(v[U.getP('sim')])) {
+        tasks.k[v[U.getP('sim')]] = [cat, U.getP('sim') + i];
+        v[U.getP('sim') + i] = v[U.getP('sim')];
+        delete v[U.getP('sim')];
+      } else if (exist(v[U.getP('sim') + i])) {
+        tasks.k[v[U.getP('sim') + i]] = [cat, U.getP('sim')];
+        v[U.getP('sim')] = v[U.getP('sim') + i];
+        delete v[U.getP('sim') + i];
+      }
+    }
+    c[U.getP('sim')] = [c[U.getP('sim') + i], c[U.getP('sim') + i] = c[U.getP('sim')]][0]; //swap
+    U.setP('sim', U.getP('sim') + i);
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function delS(e) {
+    if (exist(tasks.s[cat])) {
+      if (exist(tasks.s[cat][U.getP('sim')])) cmdSearch(null, [null, 1]);
+      for (var j in tasks.s[cat]) {
+        if (j > U.getP('sim')) {
+          tasks.k[tasks.s[cat][j]] = [cat, j - 1];
+          tasks.s[cat][j - 1] = tasks.s[cat][j];
+          delete tasks.s[cat][j];
+        }
+      }
+    }
+    c.splice(U.getP('sim'), 1);
+    U.setP('sim', U.getP('sim') < c.length ? U.getP('sim') : c.length - 1);
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function resetS(e) {
+    while (exist(tasks.s[cat])) {
+      cmdSearch(null, [tasks.s[cat][Object.keys(tasks.s[cat])[Object.keys(tasks.s[cat]).length - 1]], 1]);
+    }
+    list[cat] = [];
+    U.razP('sim');
+    U.razP('result');
+    U.razP('setZone');
+    U.razP('setIndex');
+    U.setD('LIST', list);
+    upTabs();
+  }
+  // commandes Recherche
+  function triSel(e, i) {
+    s.s.sort(tabTri(i));
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function addNewSel(e, i) {
+    s.s.splice(i + 1, 0, [0, 0, 0, 0]);
+    if (U.getP('setZone') === -2) {
+      U.setP('setIndex', i + 1);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function moveSel(e, i) {
+    s.s[i[0]] = [s.s[i[1]], s.s[i[1]] = s.s[i[0]]][0]; //swap
+    if (U.getP('setZone') === -2) {
+      U.setP('setIndex', U.getP('setIndex') === i[0] ? i[1] : U.getP('setIndex') === i[1] ? i[0] : U.getP('setIndex'));
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function delSel(e, i) {
+    s.s.splice(i, 1);
+    if (U.getP('setZone') === -2 && U.getP('setIndex') >= i && i > 0) {
+      U.setP('setIndex', U.getP('setIndex') - 1);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function razIndex(e) {
+    cmdSearch(null, [null, 1]);
+    s.s = [];
+    U.setD('LIST', list);
+    upTabs();
+  }
+ 
+  function razTarget(e) {
+    cmdSearch(null, [null, 1]);
+    s.b = [0, 0, 0, 0];
+    s.e = [0, 0, [], []];
+    s.t = 0;
+    U.setD('LIST', list);
+    upTabs();
+  }
+  
+  function optSearch(e, i) {
+    var v = new RegExp(i[1]).exec(e.target.value);
+    if (v !== null) {
+      e.target.classList.remove('BWMerror');
+      v = v[1] === '' ? '' : Number(v[1]);
+      s.o[i[0]] = v;
+      U.setD('LIST', list);
+    } else {
+      e.target.classList.add('BWMerror');
+    }
+  }
+
+  function optCheck(e, i) {
+    s.o[i] = !s.o[i];
+    U.setD('LIST', list);
+  }
+  
+  function getOpt(e) {
+    s.o = U.getP('defOpt');
+    U.setD('LIST', list);
+    upTabs();
+  }
+  
+  function setOpt(e) {
+    U.setP('defOpt', s.o);
+  }
+  
+  function resetOpt(e) {
+    cmdSearch(null, [null, 1]);
+    s.o = U.getDefP('defOpt');
+    U.setD('LIST', list);
+    upTabs();
+  }
+  
+  function actSearch(e, i) {
+    cmdSearch(null, [null, i]);
+    if (i > 1) {
+      U.setP('result', s.r.length - 1);
+      U.setP('setZone', U.getP('result'));
+      U.razP('setIndex');
+    }
+    upTabs();
+  }
+  // commandes Résultats
+  function setR(e, i) {
+    U.setP('result', i);
+    U.setP('setZone', i);
+    U.razP('setIndex');
+    upTabs();
+  }
+
+  function addR(e) {
+    U.setP('result', s.r.length);
+    U.setP('setZone', U.getP('result'));
+    U.razP('setIndex');
+    s.r.push([
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]
+    ]);
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function moveR(e, i) {
+    s.r[U.getP('result')] = [s.r[U.getP('result') + i], s.r[U.getP('result') + i] = s.r[U.getP('result')]][0]; //swap
+    U.setP('result', U.getP('result') + i);
+    if (U.getP('setZone') >= 0) {
+      U.setP('setZone', U.getP('result'));
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function delR(e) {
+    s.r.splice(U.getP('result'), 1);
+    U.setP('result', U.getP('result') + (U.getP('result') > 0 ? -1 : 0));
+    if (U.getP('setZone') >= 0) {
+      U.setP('setZone', U.getP('result'));
+      U.razP('setIndex');
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function resetR(e) {
+    s.r = [];
+    U.razP('result');
+    if (U.getP('setZone') >= 0) {
+      U.razP('setZone');
+      U.razP('setIndex');
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function setI(e, i) {
+    U.setP('setZone', i[0]);
+    U.setP('setIndex', i[1]);
+    upTabs();
+  }
+
+  function addI(e, i) {
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', i + 1);
+    }
+    r.splice(i + 1, 0, [0, 0, 0, 0], [0, 0, 0, 0]);
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function moveI(e, i) {
+    r[i[0]] = [r[i[1]], r[i[1]] = r[i[0]]][0]; //swap
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', U.getP('setIndex') == i[0] ? i[1] : U.getP('setIndex') == i[1] ? i[0] : U.getP('setIndex'));
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function delI(e, i) {
+    var v = U.getP('setIndex');
+    if (r[i[0]] == -1) {
+      r.splice(i[0], 2, r[i[1]], [0, 0, 0, 0]);
+      v = v == i[0] + 1 ? i[0] : v;
+    } else if (i[0] == i[1]) { // ==root
+      if (exist(r[i[0] + 3]) && r[i[0] + 3] != -1) {
+        r.splice(i[0], 3, r[i[0] + 1]);
+        v = (v <= i[0] ? v : v > i[0] + 1 ? v - 2 : i[0]);
+      } else {
+        r.splice(i[0], 2, r[i[0] + 1], [0, 0, 0, 0]);
+        v = (v < i[0] || v > i[0] ? v : i[0]);
+      }
+    } else if (i[0] - 1 == i[1] && (!exist(r[i[0] + 2]) || r[i[0] + 2] == -1)) {
+      r.splice(i[0], 2, [0, 0, 0, 0], [0, 0, 0, 0]);
+      v = v != i[0] ? v : v - 1;
+    } else {
+      r.splice(i[0], 2);
+      v = v < i[0] ? v : v - 2;
+    }
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', v);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function delB(e, i) {
+    var v = U.getP('setIndex');
+    var fin = false;
+    while (!fin) {
+      if (!exist(r[i])) break;
+      else if (r[i] == -1) fin = true;
+      r.splice(i, 1);
+      v = v + (v > i ? -1 : 0);
+    }
+    if (r[r.length - 1] == -1) {
+      r.splice(r.length - 1, 1);
+      v = v < i ? v : 1;
+    }
+    if (r.length === 0) {
+      r.push([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]);
+      v = 0;
+    }
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', v);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function sepI(e, i) {
+    var v = U.getP('setIndex');
+    if (!exist(r[i + 1])) {
+      r.splice(i + 1, 0, -1, [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]);
+    } else if (!exist(r[i + 3]) || (exist(r[i + 3]) && r[i + 3] == -1)) {
+      r.splice(i + 1, 2, -1, r[i + 1], [0, 0, 0, 0], [0, 0, 0, 0]);
+      v = v + (v > i ? 2 : 0);
+    } else {
+      r.splice(i + 1, 2, -1, r[i + 1]);
+      v = v + (v == i + 1 ? 1 : 0);
+    }
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', v);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+
+  function firstI(e, i) {
+    var v = U.getP('setIndex');
+    r.splice(i[1], i[0] - i[1]);
+    if (r.length - i[1] < 2 || (exist(r[i[1] + 1]) && r[i[1] + 1] == -1)) {
+      r.splice(i[1] + 1, 0, [0, 0, 0, 0], [0, 0, 0, 0]);
+      v = v < i[1] ? v : v < i[0] ? i[1] : v - (i[0] - i[1]) + 2;
+    } else v = v < i[1] ? v : v < i[0] ? i[1] : v - (i[0] - i[1]);
+    if (U.getP('setZone') >= 0) {
+      U.setP('setIndex', v);
+    }
+    U.setD('LIST', list);
+    upTabs();
+  }
+  // fonctions de recherche
+  function cmdSearch(e, i) { // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|fin 3|res 4)
+    var keyA = isGo ? tasks.s[cat][U.getP('sim')] : null,
+      key = i[0] === null ? keyA : i[0];
+    if (key !== null) {
+      var v = tasks.w[key],
+        x = list[tasks.k[key][0]][tasks.k[key][1]];
+      // sauve les résultats
+      if (i[1] > 1) {
+        for (var j = 0; j < v.r.length; j++) {
+          x.r.push([]);
+          for (var k = 0, y = v.r[j]; k < y.length; k = k + 3) {
+            var a = y[k].slice(0, 4),
+              b = y[k + 1].slice(0, 4),
+              c = y[k + 2].slice(0, 4);
+            if (k === 0) x.r[x.r.length - 1].push(a, b, c);
+            else if (objCmp(a, y[k - 1].slice(0, 4)) === 0) x.r[x.r.length - 1].push(b, c);
+            else if (objCmp(b, y[k - 1].slice(0, 4)) === 0) x.r[x.r.length - 1].push(a, c);
+            else x.r[x.r.length - 1].push(-1, a, b, c);
+          }
+        }
+      }
+      // supprime le worker
+      if (i[1] < 4) {
+        v.id.terminate();
+        x.e = [i[1], v.r.length, v.d, v.f];
+        x.t = Date.now() - key;
+        delete tasks.w[key];
+        delete tasks.s[tasks.k[key][0]][tasks.k[key][1]];
+        if (Object.keys(tasks.s[tasks.k[key][0]]).length === 0) delete tasks.s[tasks.k[key][0]];
+        delete tasks.k[key];
+      }
+      U.setD('LIST', list);
+    }
+  }
+
+  function upSearch() {
+    function upTime(t) {
+      var sec = t / 1000,
+        d = Math.floor(sec / 86400),
+        hh = ('0' + Math.floor(sec / 3600) % 24).slice(-2),
+        mm = ('0' + Math.floor(sec / 60) % 60).slice(-2),
+        ss = ('0' + Math.floor(sec) % 60).slice(-2);
+      return (d > 0 ? d + 'j. ' : '') + hh + ':' + mm + ':' + ss;
+    }
+    var keyA = isGo ? tasks.s[cat][U.getP('sim')] : null,
+      cible = U.getP('shSim') && U.getP('shSchT');
+    if (keyA !== null && cible) {
+      if (tasks.t === null) tasks.t = window.setInterval(upSearch, 500);
+    } else if (tasks.t !== null) {
+      window.clearInterval(tasks.t);
+      tasks.t = null;
+    }
+    if (cible) {
+      if (keyA === null) {
+        rootIU.target_td35.style.display = 'table-cell';
+        rootIU.target_td36.style.display = 'none';
+        rootIU.target_td37.style.display = 'none';
+        rootIU.target_td38.style.display = 'none';
+        rootIU.target_td40.textContent = s.e[0] === 0 ? '-' : (s.e[0] == 1 ? 'Annulée' : (s.e[0] == 2 ?
+          'Stoppée : ' : 'Terminée : ') + (s.e[0] > 0 ? s.e[1] + ' résultat' + (s.e[1] > 1 ? 's' : '') +
+          (s.e[1] > 0 ? ' (écart ' + s.e[2][0] + (s.e[2][1] > s.e[2][0] ? '-' + s.e[2][1] : '') +
+            ' en ' + s.e[3][0] / 3 + (s.e[3][1] > s.e[3][0] ? '-' + s.e[3][1] / 3 : '') + ' fusion' + (
+              s.e[3][0] > 3 || s.e[3][1] > 3 ? 's' : '') + ')' : '') : ''));
+        rootIU.target_td41.textContent = upTime(new Date(s.t).getTime());
+      } else {
+        var v = tasks.w[keyA];
+        rootIU.target_td35.style.display = 'none';
+        rootIU.target_td36.style.display = 'table-cell';
+        rootIU.target_td37.style.display = 'table-cell';
+        rootIU.target_td38.style.display = 'table-cell';
+        rootIU.target_td40.textContent = 'En cours ' + v.e + '% : ' + v.r.length + ' résultat' + (v.r.length >
+          1 ? 's' : '') + (v.r.length > 0 ? ' (écart ' + v.d[0] + (v.d[1] > v.d[0] ? '-' + v.d[1] : '') +
+          ' en ' + v.f[0] / 3 + (v.f[1] > v.f[0] ? '-' + v.f[1] / 3 : '') + ' fusion' + (v.f[0] > 3 || v.f[
+            1] > 3 ? 's' : '') + ')' : '');
+        rootIU.target_td41.textContent = upTime(new Date(Date.now() - keyA).getTime());
+      }
+    }
+  }
+  // Algo de parcours en profondeur (DFS)
+  // data = liste d'objets
+  // d = écart entre l'objet v et l'objet but
+  // p = poids de l'ensemble
+  // diff = meilleur écart trouvé (
+  // niv = meilleur poids d'ensemble trouvé
+
+  // becart = false, bcout = false
+  function workSearch1(data, tmp) {
+    var n1 = data.length,
+      n2 = n1 - 2;
+    for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
+      var nb = data.concat();
+      nb.splice(i, 1);
+      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j]) {
+        if (res == max) {
+          return;
+        }
+        if (tmp[1] === 0) self.postMessage({
+          'cmd': 'adv',
+          'key': key,
+          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+        });
+        if (objCmp(b, a) >= 0) { //if (objCmp(b,a)>0) si qualité vide
+          var v = objMix(a, b).concat(0),
+            d = objDiff(v, but);
+          if (d <= diff) {
+            res++;
+            self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
+          }
+          if (d > 0 && tmp[0].length < fus) {
+            nb[j] = v;
+            workSearch1(nb, [tmp[0].concat([b, a, v]), 1]);
+            nb[j] = b;
+          }
+        }
+      }
+    }
+  }
+  // becart = false, bcout = true
+  function workSearch2(data, tmp) {
+    var n1 = data.length,
+      n2 = n1 - 2;
+    for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
+      var nb = data.concat();
+      nb.splice(i, 1);
+      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j]) {
+        if (tmp[1] === 0) self.postMessage({
+          'cmd': 'adv',
+          'key': key,
+          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+        });
+        if (objCmp(b, a) >= 0) {
+          var v = objMix(a, b).concat(0),
+            d = objDiff(v, but),
+            p = tmp[1] + a[4] + b[4];
+          if (d <= diff) {
+            if (p < niv) {
+              niv = p;
+              res = 0;
+              self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
+            }
+            if (p == niv && res < max) {
+              res++;
+              self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
+            }
+          }
+          if (d > 0 && tmp[0].length < fus) {
+            nb[j] = v;
+            workSearch2(nb, [tmp[0].concat([b, a, v]), p]);
+            nb[j] = b;
+          }
+        }
+      }
+    }
+  }
+  // becart = true, bcout = false
+  function workSearch3(data, tmp) {
+    var n1 = data.length,
+      n2 = n1 - 2;
+    for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
+      var nb = data.concat();
+      nb.splice(i, 1);
+      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j]) {
+        if (tmp[1] === 0) self.postMessage({
+          'cmd': 'adv',
+          'key': key,
+          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+        });
+        if (objCmp(b, a) >= 0) {
+          var v = objMix(a, b).concat(0),
+            d = objDiff(v, but);
+          if (d <= diff) {
+            if (d < diff) {
+              diff = d;
+              res = 0;
+              self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
+            }
+            if (res < max) {
+              res++;
+              self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
+            }
+          }
+          if (d > 0 && tmp[0].length < fus) {
+            nb[j] = v;
+            workSearch3(nb, [tmp[0].concat([b, a, v]), 1]);
+            nb[j] = b;
+          }
+        }
+      }
+    }
+  }
+  // becart = true, bcout = true
+  function workSearch4(data, tmp) {
+    var n1 = data.length,
+      n2 = n1 - 2;
+    for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
+      var nb = data.concat();
+      nb.splice(i, 1);
+      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j]) {
+        if (tmp[1] === 0) self.postMessage({
+          'cmd': 'adv',
+          'key': key,
+          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+        });
+        if (objCmp(b, a) >= 0) {
+          var v = objMix(a, b).concat(0),
+            d = objDiff(v, but),
+            p = tmp[1] + a[4] + b[4];
+          if (d <= diff) {
+            if (d < diff || p < niv) {
+              diff = d;
+              niv = p;
+              res = 0;
+              self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
+            }
+            if (p == niv && res < max) {
+              res++;
+              self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
+            }
+          }
+          if (d > 0 && tmp[0].length < fus) {
+            nb[j] = v;
+            workSearch4(nb, [tmp[0].concat([b, a, v]), p]);
+            nb[j] = b;
+          }
+        }
+      }
+    }
+  }
+  // élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
+  function postSearch(data) {
+    function dataReduce(p, c, i, t) {
+      var j = 0,
+        k = c.length - 1; //k = 1;//
+      while (j < c.length) {
+        if (k == j) {
+          p.push(data[c[j][0]]);
+          j++;
+          k = c.length;
+        } else if (c[j][1] == c[k][1]) { c.splice(k, 1); }
+        k--;
+      }
+      return p;
+    }
+    var tmp = {},
+      post = [];
+    for (var i = 0; i < data.length; i++) {
+      var v = JSON.stringify(data[i][data[i].length - 1]);
+      if (!exist(tmp[v])) tmp[v] = [];
+      tmp[v].push([i, JSON.stringify(data[i].reduce(function (p, c) {
+        if (c[4] !== 0) p.push(c);
+        return p;
+      }, []).sort(tabTri([0, 0])))]);
+    }
+    post = Object.keys(tmp).map(function (v) {
+      return tmp[v];
+    }).reduce(dataReduce, []);
+    return post;
+  }
+
+  function search() {
+    var k = Date.now(),
+      datas = [];
+    // prépare les données
+    for (var i = 0; i < s.s.length; i++) {
+      if (objDiff(s.s[i], but) === 0 && !!s.o.oBest) {
+        rootIU.target_td40.textContent = "Recherche annulée. Cible présente dans l'index.";
+        return;
+      } else if (objDiff(s.s[i], but) != Infinity && objCmp(s.s[i], [0, 0, 0, 0]) !== 0) {
+        if (s.o.oCoef !== '' && s.o.oCoef > 1) datas.push(s.s[i].concat(Math.pow(s.o.oCoef, s.s[i][0]) * s.o.oFQua
+          + Math.pow(s.o.oCoef, s.s[i][1]) * s.o.oFObj + Math.pow(s.o.oCoef, s.s[i][2]) * s.o.oFPre
+          + Math.pow(s.o.oCoef, s.s[i][3]) * s.o.oFSuf));
+        else datas.push(s.s[i].concat(s.s[i][0] * s.o.oFQua + s.s[i][1] * s.o.oFObj
+          + s.s[i][2] * s.o.oFPre + s.s[i][3] * s.o.oFSuf));
+      }
+    }
+    // prépare le worker
+    if (!exist(tasks.s[cat])) tasks.s[cat] = {};
+    if (exist(tasks.s[cat][U.getP('sim')])) cmdSearch(null, [null, 1]);
+    tasks.s[cat][U.getP('sim')] = k;
+    tasks.k[k] = [cat, U.getP('sim')];
+    tasks.w[k] = { 'r': [], 'd': [Infinity, -1], 'f': [Infinity, 0], 'e': 0 };
+    tasks.w[k].id = new window.Worker(URL.createObjectURL(new Blob([
+      "self.onmessage = function(e){",
+      exist.toString(),
+      objCmp.toString(),
+      objDiff.toString(),
+      objMix.toString(),
+      tabTri.toString(),
+      workSearch1.toString(),
+      workSearch2.toString(),
+      workSearch3.toString(),
+      workSearch4.toString(),
+      postSearch.toString(),
+      " var d = e.data, key = d.k;",
+      " if (d.cmd=='start') {",
+      "		var fus = d.o.oMaxfusion === '' ? Infinity : (d.o.oMaxfusion - 1)*3,",
+      "			becart = !!d.o.oBest,",
+      "			diff = d.o.oMaxEcart === '' ? Infinity : d.o.oMaxEcart,",
+      "			max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0,",
+      "			bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity,",
+      "			mix = d.m, but = d.b;",
+debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcout] });" : "",
+      "		if (!becart&&!bcout) {workSearch1(d.d,[[],0]);}",
+      "		else if (!becart && bcout) { workSearch2(d.d,[[],0]); }",
+      "		else if (becart && !bcout) { workSearch3(d.d,[[],0]); }",
+      "		else { workSearch4(d.d,[[],0]); }",
+      "		self.postMessage({ 'cmd': 'end1', 'key': key });",
+      " }",
+      "	else if (d.cmd=='post') {",
+      "		self.postMessage({ 'cmd': 'end2', 'key': key, 'd': postSearch(d.d) });",
+      "	}",
+      "};"
+    ], { 'type': 'text/javascript' })));
+    tasks.w[k].id.onmessage = function (e) {
+      var d = e.data,
+        w = tasks.w[d.key];
+      switch (d.cmd) {
+      case 'debug':
+        if (debug){ console.debug('Workdebug :', d.msg)};
+        break;
+      case 'adv':
+        w.e = d.e;
+        break;
+      case 'new':
+        w.r = [];
+        w.d = [Infinity, -1];
+        w.f = [Infinity, 0];
+        break;
+      case 'add':
+        w.r.push(d.fusion);
+        w.d[0] = d.diff < w.d[0] ? d.diff : w.d[0];
+        w.d[1] = d.diff > w.d[1] ? d.diff : w.d[1];
+        w.f[0] = d.fusion.length < w.f[0] ? d.fusion.length : w.f[0];
+        w.f[1] = d.fusion.length > w.f[1] ? d.fusion.length : w.f[1];
+        break;
+      case 'end1':
+        if (list[tasks.k[d.key][0]][tasks.k[d.key][1]].o.oPost) {
+          w.id.postMessage({ 'cmd': 'post', 'k': d.key, 'd': w.r });
+        }
+        else {
+          cmdSearch(null, [d.key, 3]);
+          upTabs();
+        }
+        break;
+      case 'end2':
+        w.r = d.d;
+        cmdSearch(null, [d.key, 3]);
+        upTabs();
+        break;
+      }
+    };
+    tasks.w[k].id.onerror = function (e) {
+      console.debug('Worker error: %o %o', cat, Jsons.encode(e.data));
+    };
+    tasks.w[k].id.postMessage({ 'cmd': 'start', 'k': k, 'd': datas, 'o': clone(s.o), 'm': mix, 'b': but });
+    s.e = [0, 0, null, 0];
+    s.t = 0;
+    upTabs();
+  }
+  // fonctions de colorisation
+  function itemAddClass(node, v) {
+    for (var j = 1; j < 5; j++) {
+      rootIU[node + '_' + j].classList.add(v);
+    }
+  }
+
+  function itemDelClass(node, v) {
+    for (var j = 1; j < 5; j++) {
+      rootIU[node + '_' + j].classList.remove(v);
+    }
+  }
+
+  function selectSameItem(e, i) {
+    for (var j = 0; j < i.length; j++) {
+      itemAddClass(i[j], 'selectedItem');
+    }
+  }
+
+  function unselectSameItem(e, i) {
+    for (var j = 0; j < i.length; j++) {
+      itemDelClass(i[j], 'selectedItem');
+    }
+  }
+  // création de l'interface
+  function upTabs() {
+    var link = {};
+    var target = [null, null];
+    var results = [];
+    var root = 0;
+    var lroot = null;
+    var copieTmp = exist(rootIU.get_area1) ? rootIU.get_area1.value : '';
+    var arm = exist(items[cat]) ? items[cat] : [];
+    if (!exist(list[cat]) || (exist(list[cat]) && list[cat].length === 0)) {
+      list[cat] = [{
+        'b': [0, 0, 0, 0],
+        'e': [0, 0, [], []],
+        'o': U.getP('defOpt'),
+        'r': [
+          [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ],
+        's': [],
+        't': 0
+      }];
+    } else if (exist(list[cat][U.getP('sim')])) {
+      // vérification options de recherche
+      var optTmp = clone(list[cat][U.getP('sim')].o);
+      var defOpt = U.getP('defOpt');
+      list[cat][U.getP('sim')].o = {};
+      for (var i in defOpt) {
+        list[cat][U.getP('sim')].o[i] = exist(optTmp[i])? optTmp[i] : defOpt[i] ; 
+      }
+      // vérification résultats
+      if (list[cat][U.getP('sim')].r.length === 0) {
+        list[cat][U.getP('sim')].r = [
+          [
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+          ]
+        ];
+      }
+      // vérification Index
+      if (list[cat][U.getP('sim')].s.length === 0) {
+        list[cat][U.getP('sim')].s = [
+          [0, 0, 0, 0]
+        ];
+        if (U.getP('setZone') === -2) {
+          U.razP('setIndex');
+        }
+      }
+    }
+    if (!exist(list[cat][U.getP('sim')])) {
+      U.razP('sim');
+      U.razP('result');
+      U.razP('setZone');
+      U.razP('setIndex');
+    } else if (!exist(list[cat][U.getP('sim')].r[U.getP('result')])) {
+      U.razP('result');
+      if (U.getP('setZone') >= 0) {
+        U.razP('setZone');
+        U.razP('setIndex');
+      }
+    }
+    c = list[cat];
+    s = c[U.getP('sim')];
+    r = s.r[U.getP('result')];
+    but = s.b;
+    isGo = exist(tasks.s[cat]) && exist(tasks.s[cat][U.getP('sim')]);
+    // pré-calcule les fusions pour cette catégorie (hors qualité)
+    for (var i = 0; i < 3; i++) {
+      var t = loc[i + 2][U.getP('cat')],
+        len = t.length;
+      mix[i] = [];
+      for (var j = 0; j < len; j++) {
+        mix[i][j] = [];
+        for (var k = 0; k < len; k++) {
+          mix[i][j][k] = fusion(Math.min(j, k), Math.max(j, k), U.getP('cat'), i);
+        }
+      }
+    }
+    // reconstruit l'interface
+    if (exist(rootIU.root)) { rootIU.root.parentNode.removeChild(rootIU.root); }
+    rootIU.root = DOM.newNode('div', { 'align': 'center' }, [], {}, null);
+    if (U.getP('shPos')) { bwIU.appendChild(rootIU.root); }
+    else { bwTop.parentNode.insertBefore(rootIU.root, bwTop.nextSibling); }
+    window.nd();
+    DOM.newNodes([
+      ['hr', 'div', { 'class': 'hr720' }, [], {}, 'root'],
+      ['head', 'table', { 'class': 'BWMtab3' }, [], {}, 'root'],
+      ['head_tr', 'tr', {}, [], {}, 'head'],
+      ['head_td0', 'td', { 'class': 'BWM20 BWMtitle' },
+        ['Haut/bas ' + (U.getP('shPos') ? '▲' : '▼')], { 'click': [show, 'shPos'] }, 'head_tr'],
+      ['head_td1', 'td', { 'class': 'BWM60' }, [], {}, 'head_tr'],
+      ['head_span10', 'span', { 'class': 'BWMtitle ' + (U.getP('shTitle') ? 'enabled' : 'disabled') },
+        [((typeof (GM_info) === 'object') ? GM_info.script.name : '?') + ' : '],
+        { 'click': [show, 'shTitle'] }, 'head_td1'],
+      ['head_span11', 'span', { 'class': 'BWMtitle' }, [], {}, 'head_td1'],
+      ['head_a110', 'a', { 'href': 'https://github.com/Ecilam/BloodWarsMix', 'TARGET': '_blank' },
+        [((typeof (GM_info) === 'object') ? GM_info.script.version : '?')], {}, 'head_span11'],
+      ['head_td2', 'td', { 'class': 'BWM20' }, [], {}, 'head_tr'],
+      ['head_span20', 'span', { 'class': 'BWMtitle ' + (U.getP('shHelp') ? 'enabled' : 'disabled') },
+        ['Aide '], { 'click': [show, 'shHelp'] }, 'head_td2'],
+      ['head_span21', 'span', {}, [' - '], {}, 'head_td2'],
+      ['head_span22', 'span', { 'class': 'BWMtitle' }, [], {}, 'head_td2'],
+      ['head_a210', 'a',
+        { 'href': 'http://forum.fr.bloodwars.net/index.php?page=Thread&threadID=235942', 'TARGET': '_blank' },
+        ['Sujet'], {}, 'head_span22'],
+      ['box', 'div', { 'class': 'BWMbox', 'style': 'display:' + (U.getP('shTitle') ? 'block;' : 'none;') },
+        [], {}, 'root'],
+      ['main', 'table', { 'class': 'BWMtab0' }, [], {}, 'box'],
+      ['main_colgrp', 'colgroup', {}, [], {}, 'main'],
+      ['main_col0', 'col', { 'class': 'BWM40' }, [], {}, 'main_colgrp'],
+      ['main_col1', 'col', { 'class': 'BWM60' }, [], {}, 'main_colgrp'],
+      ['main_tr0', 'tr', {}, [], {}, 'main'],
+      ['main_td0', 'td', { 'colspan': '2' }, [], {}, 'main_tr0'],
+      // Catégorie et Légendaire
+      ['cat', 'table', { 'class': 'BWMtab1' }, [], {}, 'main_td0'],
+      ['cat_tr0', 'tr', { 'class': 'tblheader' }, [], {}, 'cat'],
+      ['cat_th0', 'th', {}, [], {}, 'cat_tr0'],
+      ['cat_span0', 'span', {}, ['Catégories - Légendaire : '], {}, 'cat_th0'],
+      ['cat_span1', 'span', { 'class': 'BWMselect' + (U.getP('leg') === '' ? ' disabled' : '') },
+        ['non'], { 'click': [setL, ''] }, 'cat_th0'],
+      ['cat_span2', 'span', {}, [', '], {}, 'cat_th0'],
+      ['cat_span3', 'span', { 'class': 'BWMselect' + (U.getP('leg') === 'L' ? ' disabled' : '') },
+        ['oui'], { 'click': [setL, 'L'] }, 'cat_th0'],
+      ['cat_tr1', 'tr', {}, [], {}, 'cat'],
+      ['cat_td0', 'td', {}, [], {}, 'cat_tr1'],
+      ['main_tr1', 'tr', {}, [], {}, 'main'],
+      ['main_td10', 'td', {}, [], {}, 'main_tr1'],
+       // saisie
+      ['get', 'table', { 'class': 'BWMtab1' }, [], {}, 'main_td10'],
+      ['get_colgrp', 'colgroup', {}, [], {}, 'get'],
+      ['get_col0', 'col', { 'class': 'BWM10' }, [], {}, 'get_colgrp'],
+      ['get_col1', 'col', { 'class': 'BWM25' }, [], {}, 'get_colgrp'],
+      ['get_col2', 'col', { 'class': 'BWM25' }, [], {}, 'get_colgrp'],
+      ['get_col3', 'col', { 'class': 'BWM30' }, [], {}, 'get_colgrp'],
+      ['get_col4', 'col', { 'class': 'BWM10' }, [], {}, 'get_colgrp'],
+      ['main_td11', 'td', {}, [], {}, 'main_tr1'],
+      // simulations
+      ['sim', 'table', { 'class': 'BWMtab1' }, [], {}, 'main_td11'],
+      ['sim_colgrp', 'colgroup', {}, [], {}, 'sim'],
+      ['sim_col0', 'col', { 'class': 'BWM7' }, [], {}, 'sim_colgrp'],
+      ['sim_col1', 'col', { 'class': 'BWM8' }, [], {}, 'sim_colgrp'],
+      ['sim_col2', 'col', { 'class': 'BWM20' }, [], {}, 'sim_colgrp'],
+      ['sim_col3', 'col', { 'class': 'BWM20' }, [], {}, 'sim_colgrp'],
+      ['sim_col4', 'col', { 'class': 'BWM20' }, [], {}, 'sim_colgrp'],
+      ['sim_col5', 'col', { 'class': 'BWM5' }, [], {}, 'sim_colgrp'],
+      ['sim_col6', 'col', { 'class': 'BWM5' }, [], {}, 'sim_colgrp'],
+      ['sim_col7', 'col', { 'class': 'BWM5' }, [], {}, 'sim_colgrp'],
+      ['sim_col8', 'col', { 'class': 'BWM5' }, [], {}, 'sim_colgrp'],
+      ['sim_col9', 'col', { 'class': 'BWM5' }, [], {}, 'sim_colgrp'],
+      ['sim_tr0', 'tr', { 'class': 'tblheader' }, [], {}, 'sim'],
+      ['sim_th0', 'th',
+        { 'colspan': '2', 'class': 'BWMselect ' + (U.getP('shSim') ? 'enabled' : 'BWMcutth disabled') },
+        ['[' + (U.getP('shSim') ? '-' : '+') + ']'], { 'click': [show, 'shSim'] }, 'sim_tr0'],
+      ['sim_th1', 'th', { 'colspan': '3', 'class': (U.getP('shSim') ? '' : 'BWMcutth') }, [], {}, 'sim_tr0'],
+      ['sim_span0', 'span', {}, ['Simulations : '], {}, 'sim_th1'],
+      ['sim_th2', 'th', { 'class': 'BWMselect heal' }, ['+'], { 'click': [addS] }, 'sim_tr0'],
+      (U.getP('sim') > 0 ? ['sim_th3', 'th', { 'class': 'BWMselect' }, ['◄'], { 'click': [moveS, -1] }, 'sim_tr0'] :
+        ['sim_th3a', 'th', {}, [], {}, 'sim_tr0']),
+      (U.getP('sim') < c.length - 1 ? ['sim_th4', 'th', { 'class': 'BWMselect' },
+        ['►'], { 'click': [moveS, +1] }, 'sim_tr0'] : ['sim_th4a', 'th', {}, [], {}, 'sim_tr0']),
+      ['sim_th5', 'th', { 'class': 'BWMselect atkHit' }, ['X'], { 'click': [delS] }, 'sim_tr0'],
+      ['sim_th6', 'th', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetS] }, 'sim_tr0']
+    ], rootIU);
+    // Catégorie
+    for (var j = 0; j < loc[0].length; j++) {
+      if (exist(tasks.s[j])) {
+        rootIU.cat_span1.classList.add('BWMblink');
+      }
+      if (exist(tasks.s[j + 'L'])) {
+        rootIU.cat_span3.classList.add('BWMblink');
+      }
+      if (j !== 0) {
+        DOM.newNodes([['cat_span0a' + j, 'span', {}, [', '], {}, 'cat_td0']], rootIU);
+      }
+      DOM.newNodes([
+        ['cat_span0b' + j + U.getP('leg'), 'span',
+          { 'class': 'BWMselect' + (j === U.getP('cat') ? ' disabled' :
+              '') + (exist(tasks.s[j + U.getP('leg')]) ? ' BWMblink' : '') },
+          [loc[0][j]], { 'click': [setT, j] }, 'cat_td0']], rootIU);
+    }
+    // simulations
+    for (var j = 0; j < c.length; j++) {
+      if (j !== 0) {
+        DOM.newNodes([['sim_span1a' + j, 'span', {}, [', '], {}, 'sim_th1']], rootIU);
+      }
+      DOM.newNodes([
+        ['sim_span1b' + j, 'span', {
+            'class': 'BWMselect' + (j == U.getP('sim') ? ' disabled' : '') + (exist(
+              tasks.s[cat]) && exist(tasks.s[cat][j]) ? ' BWMblink' : '') },
+          [j], { 'click': [setS, j] }, 'sim_th1']
+      ], rootIU);
+    }
+    // affiche les recherches terminées
+    for (var i in list) {
+      if (list.hasOwnProperty(i)) {
+        for (var j in list[i]) {
+          if (list[i].hasOwnProperty(j) && list[i][j].e[0] === 3) {
+            if (i.indexOf('L') === -1) {
+              rootIU.cat_span1.textContent += '*';
+            }
+            else {
+              rootIU.cat_span3.textContent += '*';
+            }
+            if ((i.indexOf('L') !== -1) === (U.getP('leg') === 'L')) {
+              rootIU['cat_span0b' + i].textContent += '*';
+              if (i === cat) {
+                rootIU['sim_span1b' + j].textContent += '*';
+              }
+            }
+          }
+        }
+      }
+    }
+    if (U.getP('shSim')) {
+      // bloc Recherche - Index
+      DOM.newNodes([
+        ['idx_tr1', 'tr', { 'class': 'tblheader' },
+          [], {}, 'sim'],
+        ['idx_th10', 'th', {
+            'colspan': '2',
+            'class': 'BWMselect ' + (U.getP('shSchI') ? 'enabled' : 'disabled') },
+          ['[' + (U.getP('shSchI') ? '-' : '+') + ']'], { 'click': [show, 'shSchI'] }, 'idx_tr1'],
+        ['idx_th11', 'th', { 'colspan': '3' }, ['Recherche - Index (' + s.s.length + ')'], {}, 'idx_tr1'],
+        ['idx_th12', 'th', { 'colspan': '4' }, [], {}, 'idx_tr1'],
+        ['idx_th13', 'th', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [razIndex] }, 'idx_tr1']
+      ], rootIU);
+      if (U.getP('shSchI')) {
+        DOM.newNodes([
+          ['idx_tr2', 'tr', { 'class': 'tblheader' }, [], {}, 'sim'],
+          ['idx_td20', 'th', {}, [], {}, 'idx_tr2'],
+          ['idx_td21', 'th', {}, [], {}, 'idx_tr2'],
+          ['idx_span21a', 'span', {}, [], {}, 'idx_td21'],
+          ['idx_td22', 'th', {}, [], {}, 'idx_tr2'],
+          ['idx_span22a', 'span', {}, ['Objet'], {}, 'idx_td22'],
+          ['idx_td23', 'th', {}, [], {}, 'idx_tr2'],
+          ['idx_span23a', 'span', {}, ['Préfixe'], {}, 'idx_td23'],
+          ['idx_td24', 'th', {}, [], {}, 'idx_tr2'],
+          ['idx_span24a', 'span', {}, ['Suffixe'], {}, 'idx_td24'],
+          ['idx_td25a', 'th', { 'colspan': '5' }, ['Actions'], {}, 'idx_tr2']
+        ], rootIU);
+        if (!isGo) {
+          DOM.newNodes([
+            ['idx_span20b', 'span', { 'class': 'BWMselect' },
+              ['▼'], { 'click': [triSel, [5, 0]] }, 'idx_td20'],
+            ['idx_span20c', 'span', { 'class': 'BWMselect' },
+              ['▲'], { 'click': [triSel, [5, 1]] }, 'idx_td20'],
+            ['idx_span21b', 'span', { 'class': 'BWMselect' },
+              ['▼'], { 'click': [triSel, [0, 0]] }, 'idx_td21'],
+            ['idx_span21c', 'span', { 'class': 'BWMselect' },
+              ['▲'], { 'click': [triSel, [0, 1]] }, 'idx_td21'],
+            ['idx_span22b', 'span', { 'class': 'BWMselect' },
+              ['▼'], { 'click': [triSel, [1, 0]] }, 'idx_td22'],
+            ['idx_span22c', 'span', { 'class': 'BWMselect' },
+              ['▲'], { 'click': [triSel, [1, 1]] }, 'idx_td22'],
+            ['idx_span23b', 'span', { 'class': 'BWMselect' },
+              ['▼'], { 'click': [triSel, [2, 0]] }, 'idx_td23'],
+            ['idx_span23c', 'span', { 'class': 'BWMselect' },
+              ['▲'], { 'click': [triSel, [2, 1]] }, 'idx_td23'],
+            ['idx_span24b', 'span', { 'class': 'BWMselect' },
+              ['▼'], { 'click': [triSel, [3, 0]] }, 'idx_td24'],
+            ['idx_span24c', 'span', { 'class': 'BWMselect' },
+              ['▲'], { 'click': [triSel, [3, 1]] }, 'idx_td24']
+          ], rootIU);
+        }
+        for (var j = 0; j < s.s.length; j++) {
+          var v = Jsons.encode(s.s[j]);
+          if (!exist(link[v])) link[v] = {};
+          if (!exist(link[v].sel)) link[v].sel = [];
+          link[v].sel.push('idx_td3' + j);
+          if (U.getP('setZone') === -2 && U.getP('setIndex') === j) { target = [v, link[v].sel.length - 1]; }
+          v = objDiff(s.s[j], but);
+          DOM.newNodes([
+            ['idx_tr3' + j, 'tr', { 'class': 'BWMTR2' + (j % 2 === 0 ? '' : ' BWMeven') },
+              [], {}, 'sim'],
+            ['idx_td3' + j + '_0', 'td', { 'class': 'BWMcut' },
+              [v == Infinity ? '∞' : v], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_1', 'td', { 'class': 'BWMcut' },
+              [loc[1][s.s[j][0]][0]], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_2', 'td', { 'class': 'BWMcut' },
+              [(s.s[j][1] > 0 ? s.s[j][1] + ':' : '') + loc[2][U.getP('cat')][s.s[j][1]][0]], {
+                'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_3', 'td', { 'class': 'BWMcut' },
+              [(s.s[j][2] > 0 ? s.s[j][2] + ':' : '') + loc[3][U.getP('cat')][s.s[j][2]][exist(loc[2][U.getP('cat')]
+                [s.s[j][1]][1]) && exist(loc[3][U.getP('cat')][s.s[j][2]][1]) ? 1 : 0]], {
+                'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_4', 'td', { 'class': 'BWMcut' },
+              [(s.s[j][3] > 0 ? s.s[j][3] + ':' : '') + loc[4][U.getP('cat')][s.s[j][3]][0]], {
+                'click': [setI, [-2, j]] }, 'idx_tr3' + j]
+          ], rootIU);
+          if (isGo) {
+            DOM.newNodes([
+              ['idx_td3' + j + '_5', 'td', { 'colspan': '5' }, [], {}, 'idx_tr3' + j]
+            ], rootIU);
+          } else {
+            DOM.newNodes([
+              ['idx_td3' + j + '_5', 'td', { 'class': 'BWMselect heal' },
+                ['+'], { 'click': [addNewSel, j] }, 'idx_tr3' + j],
+              (j < s.s.length - 1 ? ['idx_td3' + j + '_6', 'td', { 'class': 'BWMselect' },
+                ['▼'], { 'click': [moveSel, [j, j + 1]] }, 'idx_tr3' + j] : 
+                  ['idx_td3' + j + '_6', 'td', { 'class': 'BWMselect' },
+                  [], {}, 'idx_tr3' + j]),
+              (j > 0 ? ['idx_td3' + j + '_7', 'td', { 'class': 'BWMselect' },
+                ['▲'], { 'click': [moveSel, [j, j - 1]] }, 'idx_tr3' + j] :
+                  ['idx_td3' + j + '_7', 'td', { 'class': 'BWMselect' },
+                  [], {}, 'idx_tr3' + j]),
+                ['idx_td3' + j + '_8', 'td', { 'colspan': '2', 'class': 'BWMselect atkHit' },
+                ['X'], { 'click': [delSel, j] }, 'idx_tr3' + j]
+            ], rootIU);
+          }
+        }
+      }
+      if (!!window.Worker) {
+        // bloc Options
+        DOM.newNodes([
+          ['opt_tr1', 'tr', { 'class': 'tblheader' },
+            [], {}, 'sim'],
+          ['opt_th10', 'th', {
+              'colspan': '2',
+              'class': 'BWMselect ' + (U.getP('shSchO') ? 'enabled' : 'disabled') },
+            ['[' + (U.getP('shSchO') ? '-' : '+') + ']'], { 'click': [show, 'shSchO'] }, 'opt_tr1'],
+          ['opt_th11', 'th', { 'colspan': '3' }, ['Recherche - Options'], {}, 'opt_tr1'],
+          ['opt_th12', 'th', { 'colspan': '5' }, ['Actions'], {}, 'opt_tr1']
+        ], rootIU);
+        if (U.getP('shSchO')) {
+          DOM.newNodes([
+            ['opt_tr2', 'tr', { 'class': 'BWMTR2' }, [], {}, 'sim'],
+            ['opt_td20', 'td', { 'colspan': '5' }, [], {}, 'opt_tr2'],
+            ['opt2', 'table', { 'class': 'BWMtab2' }, [], {}, 'opt_td20'],
+            ['opt2_tr0', 'tr', {}, [], {}, 'opt2'],
+            ['opt2_td00', 'td', {}, ['Max : '], {}, 'opt2_tr0'],
+            ['opt2_td01', 'td', {}, ['Fusions'], {}, 'opt2_tr0'],
+            ['opt2_td02', 'td', {}, [], {}, 'opt2_tr0'],
+            ['opt2_td03', 'td', {}, ['Ecart'], {}, 'opt2_tr0'],
+            ['opt2_td04', 'td', {}, [], {}, 'opt2_tr0'],
+            ['opt2_td05', 'td', {}, ['Résultats'], {}, 'opt2_tr0'],
+            ['opt2_td06', 'td', {}, [], {}, 'opt2_tr0'],
+            ['opt2_tr1', 'tr', {}, [], {}, 'opt2'],
+            ['opt2_td10', 'td', {}, ['Filtres :'], {}, 'opt2_tr1'],
+            ['opt2_td11', 'td', { 'class': 'atkHit' }, ['Coef.'], {}, 'opt2_tr1'],
+            ['opt2_td12', 'td', {}, [], {}, 'opt2_tr1'],
+            ['opt2_td13', 'td', { 'class': 'atkHit' }, ['Ecart'], {}, 'opt2_tr1'],
+            ['opt2_td14', 'td', {}, [], {}, 'opt2_tr1'],
+            ['opt2_td15', 'td', {}, ['Doublons'], {}, 'opt2_tr1'],
+            ['opt2_td16', 'td', {}, [], {}, 'opt2_tr1'],
+            ['opt2_tr2', 'tr', {}, [], {}, 'opt2'],
+            ['opt2_td20', 'td', {}, ['Facteurs : '], {}, 'opt2_tr2'],
+            ['opt2_td21', 'td', {}, [], {}, 'opt2_tr2'],
+            ['opt2_td22', 'td', {}, [], {}, 'opt2_tr2'],
+            ['opt2_td23', 'td', {}, [], {}, 'opt2_tr2'],
+            ['opt2_td24', 'td', {}, [], {}, 'opt2_tr2']
+          ], rootIU);
+          if (isGo) {
+            DOM.newNodes([
+              ['opt2_mfusion', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oMaxfusion },
+                [], {}, 'opt2_td02'],
+              ['opt2_mecart', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oMaxEcart },
+                [], {}, 'opt2_td04'],
+              ['opt2_mres', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oMaxRes },
+                [], {}, 'opt2_td06'],
+              ['opt2_fcout', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oCoef },
+                [], {}, 'opt2_td12'
+              ],
+              ['opt2_fecart', 'input', {
+                  'class': 'BWMinput',
+                  'type': 'checkbox',
+                  'disabled': true,
+                  'checked': !!s.o.oBest },
+                [], {}, 'opt2_td14'],
+              ['opt2_fpost', 'input', {
+                  'class': 'BWMinput',
+                  'type': 'checkbox',
+                  'disabled': true,
+                  'checked': !!s.o.oPost },
+                [], {}, 'opt2_td16'],
+              ['opt2_fqua', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oFQua },
+                [], {}, 'opt2_td21'],
+              ['opt2_fobj', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oFObj },
+                [], {}, 'opt2_td22'],
+              ['opt2_fpre', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oFPre },
+                [], {}, 'opt2_td23'],
+              ['opt2_fsuf', 'input', {
+                  'class': 'inputbox BWMinput',
+                  'type': 'text',
+                  'disabled': true,
+                  'value': s.o.oFSuf },
+                [], {}, 'opt2_td24'],
+              ['opt_td21a', 'td', { 'colspan': '2' },
+                [], {}, 'opt_tr2']
+            ], rootIU);
+          } else {
+            DOM.newNodes([
+              ['opt2_mres', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oMaxfusion, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oMaxfusion', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oMaxfusion', '^(|[0-9]+)$']] }, 'opt2_td02'
+              ],
+              ['opt2_mecart', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oMaxEcart, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oMaxEcart', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oMaxEcart', '^(|[0-9]+)$']] }, 'opt2_td04'
+              ],
+              ['opt2_mfusion', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oMaxRes, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oMaxRes', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oMaxRes', '^(|[0-9]+)$']] }, 'opt2_td06'
+              ],
+              ['opt2_fcout', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oCoef, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oCoef', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oCoef', '^(|[0-9]+)$']] }, 'opt2_td12'
+              ],
+              ['opt2_fecart', 'input', { 'class': 'BWMinput', 'type': 'checkbox', 'checked': !!s.o.oBest },
+                [], { 'change': [optCheck, 'oBest'] }, 'opt2_td14'
+              ],
+              ['opt2_fpost', 'input', { 'class': 'BWMinput', 'type': 'checkbox', 'checked': !!s.o.oPost },
+                [], { 'change': [optCheck, 'oPost'] }, 'opt2_td16'
+              ],
+              ['opt2_fqua', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFQua, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oFQua', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFQua', '^([1-9][0-9]*)$']] }, 'opt2_td21'
+              ],
+              ['opt2_fobj', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFObj, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oFObj', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFObj', '^([1-9][0-9]*)$']] }, 'opt2_td22'
+              ],
+              ['opt2_fpre', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFPre, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oFPre', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFPre', '^([1-9][0-9]*)$']] }, 'opt2_td23'
+              ],
+              ['opt2_fsuf', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFSuf, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']] }, 'opt2_td24'
+              ],
+              
+              ['opt_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' },
+                ['▲'], { 'click': [getOpt] }, 'opt_tr2'
+              ]
+            ], rootIU);
+          }
+          DOM.newNodes([
+            ['opt_td22', 'td', { 'colspan': '2', 'class': 'BWMselect atkHit' }, ['▼'], { 'click': [setOpt] }, 'opt_tr2'],
+            ['opt_td23', 'td', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetOpt] }, 'opt_tr2'],
+          ], rootIU);
+        }
+        // bloc Cible
+        DOM.newNodes([
+          ['target_tr1', 'tr', { 'class': 'tblheader' },
+            [], {}, 'sim'],
+          ['target_th10', 'th', {
+              'colspan': '2',
+              'class': 'BWMselect ' + (U.getP('shSchT') ? 'enabled' : 'disabled') },
+            ['[' + (U.getP('shSchT') ? '-' : '+') + ']'], { 'click': [show, 'shSchT'] }, 'target_tr1'],
+          ['target_th11', 'th', { 'colspan': '3' }, ['Recherche - Cible'], {}, 'target_tr1'],
+          ['target_th12', 'th', { 'colspan': '4' }, [], {}, 'target_tr1'],
+          ['target_th13', 'th', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [razTarget] }, 'target_tr1']
+        ], rootIU);
+        if (U.getP('shSchT')) {
+          var v = Jsons.encode(but);
+          if (!exist(link[v])) link[v] = {};
+          link[v].but = ['target_td3'];
+          if (U.getP('setZone') === -1) {
+            target = [v, 0];
+          }
+          DOM.newNodes([
+            ['target_tr2', 'tr', { 'class': 'tblheader' }, [], {}, 'sim'],
+            ['target_td20', 'th', { 'colspan': '2' }, [], {}, 'target_tr2'],
+            ['target_td21', 'th', {}, ['Objet'], {}, 'target_tr2'],
+            ['target_td22', 'th', {}, ['Préfixe'], {}, 'target_tr2'],
+            ['target_td23', 'th', {}, ['Suffixe'], {}, 'target_tr2'],
+            ['target_td24', 'th', { 'colspan': '5' }, ['Actions'], {}, 'target_tr2'],
+            ['target_tr3', 'tr', { 'class': 'BWMTR2' }, [], {}, 'sim'],
+            ['target_td3_0', 'td', { 'class': 'BWMcut' }, [], { 'click': [setI, [-1, 0]] }, 'target_tr3'],
+            ['target_td3_1', 'td', { 'class': 'BWMcut' }, [loc[1][but[0]][0]], { 'click': [setI, [-1, 0]] }, 'target_tr3'],
+            ['target_td3_2', 'td', { 'class': 'BWMcut' },
+              [(but[1] > 0 ? but[1] + ':' : '') + loc[2][U.getP('cat')][but[1]][0]],
+              { 'click': [setI, [-1, 0]] }, 'target_tr3'],
+            ['target_td3_3', 'td', { 'class': 'BWMcut' },
+              [(but[2] > 0 ? but[2] + ':' : '') +
+              loc[3][U.getP('cat')][but[2]][exist(loc[2][U.getP('cat')][but[1]][1]) &&
+              exist(loc[3][U.getP('cat')][but[2]][1]) ? 1 : 0]], { 'click': [setI, [-1, 0]] },
+              'target_tr3'],
+            ['target_td3_4', 'td', { 'class': 'BWMcut' },
+              [(but[3] > 0 ? but[3] + ':' : '') + loc[4][U.getP('cat')][but[3]][0]],
+              { 'click': [setI, [-1, 0]] }, 'target_tr3'],
+            ['target_td35', 'td', {
+                'colspan': '5',
+                'class': (s.s.length < 2 ? 'atkHit' :
+                  'BWMselect heal') },
+              ['►►'], (s.s.length < 2 ? {} : { 'click': [search] }), 'target_tr3'],
+            ['target_td36', 'td', { 'colspan': '1', 'class': 'BWMselect atkHit' },
+              ['X'], { 'click': [actSearch, 1] }, 'target_tr3'],
+            ['target_td37', 'td', { 'colspan': '2', 'class': 'BWMselect atkHit' },
+              ['X▼'], { 'click': [actSearch, 2] }, 'target_tr3'],
+            ['target_td38', 'td', { 'colspan': '2', 'class': 'BWMselect' },
+              ['▼'], { 'click': [actSearch, 4] }, 'target_tr3'],
+            ['target_tr4', 'tr', { 'class': 'BWMTR2' }, [], {}, 'sim'],
+            ['target_td40', 'td', { 'colspan': '5' }, [], {}, 'target_tr4'],
+            ['target_td41', 'td', { 'colspan': '5' }, [], {}, 'target_tr4'],
+          ], rootIU);
+          upSearch();
+        }
+      }
+      DOM.newNodes([ // Résultats
+        ['res_tr5', 'tr', { 'class': 'tblheader' },
+          [], {}, 'sim'],
+        ['res_th50', 'th', { 'colspan': '2', 'class': 'BWMselect ' + (U.getP('shRes') ? 'enabled' : 'disabled') },
+          ['[' + (U.getP('shRes') ? '-' : '+') + ']'], { 'click': [show, 'shRes'] }, 'res_tr5'],
+        ['res_th51', 'th', { 'colspan': '3', 'class': (U.getP('shRes') ? '' : 'BWMcutth') },
+          [], {}, 'res_tr5'],
+        ['res_span510', 'span', {}, ['Résultats : '], {}, 'res_th51'],
+        ['res_th52', 'th', { 'class': 'BWMselect heal' },
+          ['+'], { 'click': [addR] }, 'res_tr5'],
+        (U.getP('result') > 0 ? ['res_th53', 'th', { 'class': 'BWMselect' },
+          ['◄'], { 'click': [moveR, -1] }, 'res_tr5'] : ['res_th53a', 'th', {},
+          [], {}, 'res_tr5']),
+        (U.getP('result') < s.r.length - 1 ? ['res_th54', 'th', { 'class': 'BWMselect' },
+          ['►'], { 'click': [moveR, +1] }, 'res_tr5'] : ['res_th54a', 'th', {},
+          [], {}, 'res_tr5']), ['res_th55', 'th', { 'class': 'BWMselect atkHit' },
+          ['X'], { 'click': [delR] }, 'res_tr5'],
+        ['res_th56', 'th', { 'class': 'BWMselect atkHit' },
+          ['R'], { 'click': [resetR] }, 'res_tr5']
+      ], rootIU);
+      for (var j = 0; j < s.r.length; j++) {
+        DOM.newNodes([
+          ['res_span41a' + j, 'span', { 'class': 'BWMselect' + (j === U.getP('result') ? ' disabled' : '') },
+            [j], { 'click': [setR, j] }, 'res_th51']
+        ], rootIU);
+        if (j < s.r.length - 1) DOM.newNodes([
+          ['res_span41b' + j, 'span', {}, [', '], {}, 'res_th51']
+        ], rootIU);
+      }
+      if (U.getP('shRes')) {
+        DOM.newNodes([
+          ['res_tr6', 'tr', { 'class': 'tblheader' },
+            [], {}, 'sim'
+          ],
+          ['res_th60', 'th', { 'colspan': '2' },
+            [], {}, 'res_tr6'
+          ],
+          ['res_th61', 'th', {},
+            ['Objet'], {}, 'res_tr6'
+          ],
+          ['res_th62', 'th', {},
+            ['Préfixe'], {}, 'res_tr6'
+          ],
+          ['res_th63', 'th', {},
+            ['Suffixe'], {}, 'res_tr6'
+          ],
+          ['res_th64', 'th', { 'colspan': '5' },
+            ['Actions'], {}, 'res_tr6'
+          ]
+        ], rootIU);
+        for (var j = 0; j < r.length; j++) {
+          if (r[j] == -1) { // séparateur
+            if (lroot !== null) lroot.setAttribute('rowspan', j - root);
+            root = j + 1;
+            DOM.newNodes([
+              ['res_tr6' + j, 'tr', { 'class': 'BWMTR2' },
+                [], {}, 'sim'
+              ],
+              ['res_td6' + j + '_0', 'td', { 'colspan': '5' },
+                [], {}, 'res_tr6' + j
+              ],
+              ['res_span6' + j + '_0', 'span', { 'align': 'center' },
+                ['---------------------------------'], {}, 'res_td6' + j + '_0'
+              ],
+              ['res_td6' + j + '_1', 'td', { 'class': 'BWMselect atkHit', 'colspan': '5' },
+                ['X'], { 'click': [delI, [j, root]] }, 'res_tr6' + j
+              ]
+            ], rootIU);
+          } else if (j - root > 0 && ((j - root) % 2 === 0)) { // fusions
+            r[j] = objMix(r[j - 2], r[j - 1]);
+            if (objCmp(r[j], [0, 0, 0, 0]) !== 0) {
+              results.push(r[j]);
+              var v = Jsons.encode(r[j]);
+              if (!exist(link[v])) link[v] = {};
+              if (!exist(link[v].fus)) link[v].fus = [];
+              link[v].fus.push('res_td6' + j);
+            }
+            DOM.newNodes([
+              ['res_tr6' + j, 'tr', { 'class': 'BWMTR2 BWMeven' },
+                [], {}, 'sim'
+              ],
+              ['res_td6' + j + '_0', 'td', { 'class': 'BWMcut2 heal' },
+                ['='], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_1', 'td', { 'class': 'BWMcut2 heal' },
+                [loc[1][r[j][0]][0]], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_2', 'td', { 'class': 'BWMcut2 heal' },
+                [(r[j][1] > 0 ? r[j][1] + ':' : '') + loc[2][U.getP('cat')][r[j][1]][0]], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_3', 'td', { 'class': 'BWMcut2 heal' },
+                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][exist(loc[2][U.getP('cat')]
+                  [r[j][1]][1]) && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_4', 'td', { 'class': 'BWMcut2 heal' },
+                [(r[j][3] > 0 ? r[j][3] + ':' : '') + loc[4][U.getP('cat')][r[j][3]][0]], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_5', 'td', { 'class': 'BWMselect heal' },
+                ['+'], { 'click': [addI, j] }, 'res_tr6' + j
+              ],
+              (!(exist(r[j + 1]) && r[j + 1] == -1)) ? ['res_td6' + j + '_6', 'td', { 'class': 'BWMselect' },
+                ["<>"], { 'click': [sepI, j] }, 'res_tr6' + j
+              ] : ['res_td6' + j + '_6', 'td', {},
+                [], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_7', 'td', { 'class': 'BWMselect atkHit' },
+                ['◄'], { 'click': [firstI, [j, root]] }, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_8', 'td', { 'class': 'BWMselect atkHit' },
+                ['▲'], { 'click': [firstI, [j, 0]] }, 'res_tr6' + j
+              ]
+            ], rootIU);
+            if (lroot !== null) lroot.setAttribute('rowspan', j - root + 1);
+          } else { // objets
+            var v = Jsons.encode(r[j]);
+            if (!exist(link[v])) link[v] = {};
+            if (!exist(link[v].res)) link[v].res = [];
+            link[v].res.push('res_td6' + j);
+            if (U.getP('setZone') >= 0 && U.getP('setIndex') == j) { target = [v, link[v].res.length - 1]; }
+            DOM.newNodes([
+              ['res_tr6' + j, 'tr', { 'class': 'BWMTR2' },
+                [], {}, 'sim'
+              ],
+              ['res_td6' + j + '_0', 'td', { 'class': 'BWMcut' },
+                [(j - root === 0 ? '' : '+')], { 'click': [setI, [U.getP('result'), j]] }, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_1', 'td', { 'class': 'BWMcut' },
+                [loc[1][r[j][0]][0]], { 'click': [setI, [U.getP('result'), j]] }, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_2', 'td', { 'class': 'BWMcut' },
+                [(r[j][1] > 0 ? r[j][1] + ':' : '') + loc[2][U.getP('cat')][r[j][1]][0]], {
+                  'click': [setI, [U.getP('result'), j]] }, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_3', 'td', { 'class': 'BWMcut' },
+                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][exist(loc[2][U.getP('cat')]
+                  [r[j][1]][1]) && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]], {
+                  'click': [setI, [
+                    U.getP('result'), j
+                  ]]
+                }, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_4', 'td', { 'class': 'BWMcut' },
+                [(r[j][3] > 0 ? r[j][3] + ':' : '') + loc[4][U.getP('cat')][r[j][3]][0]], {
+                  'click': [setI, [
+                    U.getP('result'), j
+                  ]]
+                }, 'res_tr6' + j
+              ],
+              (j - root === 0) ? ['res_td6' + j + '_5', 'td', { 'class': 'BWMselect heal' },
+                ["+"], { 'click': [addI, j] }, 'res_tr6' + j
+              ] : ['res_td6' + j + '_5', 'td', {},
+                [], {}, 'res_tr6' + j
+              ],
+              (exist(r[j + 2]) && r[j + 2] != -1) ? ['res_td6' + j + '_7', 'td', { 'class': 'BWMselect' },
+                ['▼'], { 'click': [moveI, [j, (j == root ? j + 1 : j + 2)]] }, 'res_tr6' + j
+              ] : ['res_td6' + j + '_7', 'td', {},
+                [], {}, 'res_tr6' + j
+              ],
+              (j - root > 0) ? ['res_td6' + j + '_6', 'td', { 'class': 'BWMselect' },
+                ['▲'], { 'click': [moveI, [j, (j - root > 2 ? j - 2 : j - 1)]] }, 'res_tr6' + j
+              ] : ['res_td6' + j + '_6', 'td', {},
+                [], {}, 'res_tr6' + j
+              ],
+              ['res_td6' + j + '_8', 'td', { 'class': 'BWMselect atkHit' },
+                ['X'], { 'click': [delI, [j, root]] }, 'res_tr6' + j
+              ]
+            ], rootIU);
+            if (j == root) lroot = DOM.newNode('td', { 'class': 'BWMselect atkHit' }, ['B'], {
+              'click': [
+                delB, root
+              ]
+            }, rootIU['res_tr6' + j]);
+          }
+        }
+        if (results.length > 0) {
+          var v = objDiff(results[results.length - 1], but);
+          DOM.newNodes([
+            ['res_tr6' + (j + 1), 'tr', { 'class': 'BWMTR2' },
+              [], {}, 'sim'
+            ],
+            ['res_td6' + (j + 1) + '_0', 'td', { 'colspan': '5' },
+              ['Ecart ' + (v == Infinity ? '∞' : v) + ' en ' + results.length + ' fusion' + (results.length >
+                1 ? 's' : '')], {}, 'res_tr6' + (j + 1)
+            ],
+            ['res_td6' + (j + 1) + '_1', 'td', { 'class': 'BWMselect atkHit', 'colspan': '5' },
+              [], {}, 'res_tr6' + (j + 1)
+            ]
+          ], rootIU);
+        }
+      }
+    }
+    // Saisie
+    DOM.newNodes([
+      ['get_tr', 'tr', { 'class': 'tblheader' },
+        [], {}, 'get'
+      ],
+      ['get_th0', 'th', { 'class': 'BWMselect ' + (U.getP('shGet') ? 'enabled' : 'disabled') },
+        ['[' + (U.getP('shGet') ? '-' : '+') + ']'], { 'click': [show, 'shGet'] }, 'get_tr'
+      ],
+      ['get_th1', 'th', { 'colspan': '4' },
+        [], {}, 'get_tr'
+      ],
+      ['get_span10', 'span', {},
+        ['Saisie : '], {}, 'get_th1'
+      ],
+      ['get_span11', 'span', { 'class': 'BWMselect' + (U.getP('mode') === 0 ? ' disabled' : '') },
+        ['listes (' + arm.length + '+' + results.length + ')'], { 'click': [selectMode, 0] }, 'get_th1'
+      ],
+      ['get_span12', 'span', {},
+        [', '], {}, 'get_th1'
+      ],
+      ['get_span13', 'span', { 'class': 'BWMselect' + (U.getP('mode') === 1 ? ' disabled' : '') },
+        ['copie'], { 'click': [selectMode, 1] }, 'get_th1'
+      ],
+      ['get_span14', 'span', {},
+        [', '], {}, 'get_th1'
+      ],
+      ['get_span15', 'span', { 'class': 'BWMselect' + (U.getP('mode') === 2 ? ' disabled' : '') },
+        ['libre'], { 'click': [selectMode, 2] }, 'get_th1'
+      ]
+    ], rootIU);
+    if (U.getP('shGet')) {
+      if (U.getP('mode') === 0) { // saisie par liste
+        var sel = [
+          [arm, 'Armurerie', 'shLArm'],
+          [clone(s.s), 'Copie Index', 'shLInd'],
+          [results, 'Synthèses', 'shLSyn']
+        ];
+        for (var k = 0; k < sel.length; k++) {
+          if (sel[k][0].length > 0) {
+            sel[k][0].sort(tabTri([U.getP('triCol'), U.getP('triOrder')]));
+            DOM.newNodes([
+              ['get_tr0' + k, 'tr', { 'class': 'tblheader' },
+                [], {}, 'get'
+              ],
+              ['get_th0' + k + '_0', 'th', {
+                  'class': 'BWMselect ' + (!!U.getP(sel[k][2]) ? 'enabled' :
+                    'disabled')
+                },
+                ['[' + (!!U.getP(sel[k][2]) ? '-' : '+') + ']'], { 'click': [show, sel[k][2]] }, 'get_tr0' + k
+              ],
+              ['get_th0' + k + '_1', 'th', { 'colspan': '4' },
+                [sel[k][1] + ' (' + sel[k][0].length + ')'], {}, 'get_tr0' + k
+              ]
+            ], rootIU);
+            if (!!U.getP(sel[k][2])) {
+              DOM.newNodes([
+                ['get_tr1' + k, 'tr', { 'class': 'tblheader' },
+                  [], {}, 'get'
+                ],
+                ['get_th1' + k + '_0', 'th', { 'class': 'BWMtitle' },
+                  [], { 'click': [selectTri, 0] }, 'get_tr1' + k
+                ],
+                ['get_th1' + k + '_1', 'th', { 'class': 'BWMtitle' },
+                  ['Objet'], { 'click': [selectTri, 1] }, 'get_tr1' + k
+                ],
+                ['get_th1' + k + '_2', 'th', { 'class': 'BWMtitle' },
+                  ['Préfixe'], { 'click': [selectTri, 2] }, 'get_tr1' + k
+                ],
+                ['get_th1' + k + '_3', 'th', { 'class': 'BWMtitle' },
+                  ['Suffixe'], { 'click': [selectTri, 3] }, 'get_tr1' + k
+                ],
+                (U.getP('setZone') == -1 || (isGo && U.getP('setZone') < 0)) ? ['get_th1' + k + '_4', 'th', {},
+                  [], {}, 'get_tr1' + k
+                ] : ['get_th1' + k + '_4', 'th', { 'class': 'BWMselect heal' },
+                  ['►►'], { 'click': [selectAll, sel[k][0]] }, 'get_tr1' + k
+                ],
+                ['get_span11' + k, 'span', { 'class': 'BWMtriSelect' },
+                  [(U.getP('triOrder') === 1 ? '▲' : '▼')], {}, 'get_th1' + k + '_' + U.getP('triCol').toString()
+                ]
+              ], rootIU);
+              for (var i = 0; i < sel[k][0].length; i++) {
+                var x = sel[k][0][i],
+                  v = Jsons.encode(x);
+                if (!exist(link[v])) link[v] = {};
+                if (!exist(link[v]['s' + k])) link[v]['s' + k] = [];
+                link[v]['s' + k].push('get_td2' + k + '_' + i);
+                DOM.newNodes([
+                  ['get_tr2' + k + '_' + i, 'tr', { 'class': 'BWMTR2' + (i % 2 === 0 ? '' : ' BWMeven') },
+                    [], {}, 'get'
+                  ]
+                ], rootIU);
+                if (isGo && U.getP('setZone') < 0) {
+                  DOM.newNodes([
+                    ['get_td2' + k + '_' + i + '_1', 'td', { 'class': 'BWMcut2' },
+                      [loc[1][x[0]][0]], {}, 'get_tr2' + k + '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_2', 'td', { 'class': 'BWMcut2' },
+                      [(x[1] > 0 ? x[1] + ':' : '') + loc[2][U.getP('cat')][x[1]][0]], {}, 'get_tr2' + k +
+                      '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut2' },
+                      [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][exist(loc[2][U.getP('cat')][x[
+                        1]][1]) && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], {}, 'get_tr2' + k + '_' +
+                      i
+                    ],
+                    ['get_td2' + k + '_' + i + '_4', 'td', { 'class': 'BWMcut2' },
+                      [(x[3] > 0 ? x[3] + ':' : '') + loc[4][U.getP('cat')][x[3]][0]], {}, 'get_tr2' + k +
+                      '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_5', 'td', {},
+                      [], {}, 'get_tr2' + k + '_' + i
+                    ],
+                  ], rootIU);
+                } else {
+                  DOM.newNodes([
+                    ['get_td2' + k + '_' + i + '_1', 'td', { 'class': 'BWMcut' },
+                      [loc[1][x[0]][0]], { 'click': [selectSet, x] }, 'get_tr2' + k + '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_2', 'td', { 'class': 'BWMcut' },
+                      [(x[1] > 0 ? x[1] + ':' : '') + loc[2][U.getP('cat')][x[1]][0]], {
+                        'click': [
+                          selectSet, x
+                        ]
+                      }, 'get_tr2' + k + '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut' },
+                      [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][exist(loc[2][U.getP('cat')][x[
+                        1]][1]) && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], {
+                        'click': [selectSet,
+                          x
+                        ]
+                      }, 'get_tr2' + k + '_' + i
+                    ],
+                    ['get_td2' + k + '_' + i + '_4', 'td', { 'class': 'BWMcut' },
+                      [(x[3] > 0 ? x[3] + ':' : '') + loc[4][U.getP('cat')][x[3]][0]], {
+                        'click': [
+                          selectSet, x
+                        ]
+                      }, 'get_tr2' + k + '_' + i
+                    ],
+                    (U.getP('setZone') == -1) ? ['get_td2' + k + '_' + i + '_5', 'td', {},
+                      [], {}, 'get_tr2' + k + '_' + i
+                    ] : ['get_td2' + k + '_' + i + '_5', 'td', { 'class': 'BWMselect heal' },
+                      ['►'], { 'click': [selectAdd, x] }, 'get_tr2' + k + '_' + i
+                    ],
+                  ], rootIU);
+                }
+              }
+            }
+          }
+        }
+      } else if (U.getP('mode') == 1) { // copier/coller
+        DOM.newNodes([
+          ['get_tr0', 'tr', {},
+            [], {}, 'get'
+          ],
+          ['get_td00', 'td', { 'colspan': '5' },
+            [], {}, 'get_tr0'
+          ],
+          ['get_tr1', 'tr', {},
+            [], {}, 'get'
+          ],
+          ['get_td10', 'td', { 'colspan': '5' },
+            [], {}, 'get_tr1'
+          ],
+          ['get_tr2', 'tr', {},
+            [], {}, 'get'
+          ],
+          ['get_td20', 'td', { 'class': 'BWMselect atkHit' },
+            ['X'], { 'click': [chgArea, 'clean'] }, 'get_tr2'
+          ],
+          ['get_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' },
+            ['◄◄'], { 'click': [chgArea, 'copy'] }, 'get_tr2'
+          ],
+          ['get_td22', 'td', { 'colspan': '2' },
+            [], {}, 'get_tr2'
+          ],
+          ['get_div220', 'div', { 'class': 'BWM100 BWMselect heal' },
+            ['►►'], { 'click': [chgArea, 'paste'] }, 'get_td22'
+          ],
+          ['get_tr3', 'tr', {},
+            [], {}, 'get'
+          ],
+          ['get_td30', 'td', { 'colspan': '1', 'class': 'BWMcut2 BWMeven' },
+            [], {}, 'get_tr3'
+          ],
+          ['get_area0', 'textarea', { 'class': 'textarea BWMdivarea', 'readonly': 'readonly', 'spellcheck': 'false' },
+            [], {}, 'get_td30'
+          ],
+          ['get_td31', 'td', { 'colspan': '4', 'class': 'BWMcut2 BWMeven' },
+            [], {}, 'get_tr3'
+          ],
+          ['get_area1', 'textarea', { 'class': 'textarea BWMdivarea', 'spellcheck': 'false' },
+            [copieTmp], { 'input': [chgArea, 'update'] }, 'get_td31'
+          ],
+        ], rootIU);
+        chgArea(null, 'update');
+      } else { // saisie manuelle
+        var max = Math.max(loc[1].length, loc[2][U.getP('cat')].length, loc[3][U.getP('cat')].length, loc[4][U.getP('cat')].length);
+        DOM.newNodes([
+          ['get_tr0', 'tr', { 'class': 'tblheader' },
+            [], {}, 'get'
+          ],
+          ['get_th00', 'th', {},
+            [], {}, 'get_tr0'
+          ],
+          ['get_th01', 'th', {},
+            ['Objet'], {}, 'get_tr0'
+          ],
+          ['get_th02', 'th', {},
+            ['Préfixe'], {}, 'get_tr0'
+          ],
+          ['get_th03', 'th', {},
+            ['Suffixe'], {}, 'get_tr0'
+          ],
+          ['get_th04', 'th', {},
+            [], {}, 'get_tr0'
+          ]
+        ], rootIU);
+        for (var i = 0; i < max; i++) {
+          DOM.newNodes([
+            ['get_tr1' + i, 'tr', { 'class': 'BWMTR' },
+              [], {}, 'get'
+            ]
+          ], rootIU);
+          for (var j = 0; j < 4; j++) {
+            var x = j === 0 ? loc[j + 1] : loc[j + 1][U.getP('cat')];
+            if (i < x.length) DOM.newNodes([
+              ['get_td1' + i + '_' + j, 'td', {
+                  'class': (isGo && U.getP('setZone') < 0 ? 'BWMcut2' : 'BWMcut') +
+                    ((U.getP('setZone') == -1 ? but[j] : U.getP('setZone') == -2 ? s.s[U.getP('setIndex')][j] : r[U.getP('setIndex')][j]) ==
+                      i ? ' disabled' : '')
+                },
+                [(j > 0 && i > 0 ? i + ':' : '') + x[i][0]], (isGo && U.getP('setZone') < 0 ? {} : {
+                  'click': [
+                    selectMSet, [j, i]
+                  ]
+                }), 'get_tr1' + i
+              ]
+            ], rootIU);
+            else DOM.newNodes([
+              ['get_td1' + i + '_' + j, 'td', {},
+                [], {}, 'get_tr1' + i
+              ]
+            ], rootIU);
+          }
+          DOM.newNodes([
+            ['get_td15' + i + '_5', 'td', {},
+              [], {}, 'get_tr1' + i
+            ]
+          ], rootIU);
+        }
+      }
+    }
+    // colorisation des objets sélectionnés/identiques
+    for (var key in link) {
+      if (link.hasOwnProperty(key)) {
+        var v = U.getP('setZone') == -1 ? 'but' : U.getP('setZone') == -2 ? 'sel' : 'res';
+        if (exist(link[key][v])) {
+          for (var i = 0; i < link[key][v].length; i++) {
+            var x = exist(link[key].s0) && exist(link[key].s0[i]) ? link[key].s0[i] : null;
+            var y = exist(link[key].s1) && exist(link[key].s1[i]) ? link[key].s1[i] : null;
+            var z = exist(link[key].s2) && exist(link[key].s2[i]) ? link[key].s2[i] : null;
+            if (target[0] == key && target[1] == i) {
+              itemAddClass(link[key][v][i], 'disabled');
+              itemAddClass(link[key][v][i], 'BWMborder');
+              if (x !== null) itemAddClass(x, 'disabled');
+              if (y !== null) itemAddClass(y, 'disabled');
+              if (z !== null) itemAddClass(z, 'disabled');
+            } else if (x !== null || y !== null || z !== null) {
+              itemAddClass(link[key][v][i], 'item-link');
+              if (x !== null) itemAddClass(x, 'item-link');
+              if (y !== null) itemAddClass(y, 'item-link');
+              if (z !== null) itemAddClass(z, 'item-link');
+            }
+          }
+        }
+        if (key != "[0,0,0,0]") {
+          var all = Object.keys(link[key]).map(function (v) {
+            return link[key][v];
+          }).reduce(function (pre, cur) {
+            return pre.concat(cur);
+          });
+          for (var i = 0; i < all.length; i++) {
+            for (var j = 0; j < 10; j++) { //all[i]['td0'+j]
+              if (exist(rootIU[all[i] + '_' + j])) {
+                DOM.addEvent(rootIU[all[i] + '_' + j], 'mouseover', selectSameItem, all);
+                DOM.addEvent(rootIU[all[i] + '_' + j], 'mouseout', unselectSameItem, all);
+              }
+            }
+          }
+        }
+      }
+    }
+    // Bulles d'aide
+    if (!!U.getP('shHelp')) {
+      var aides = {
+        'head_td0': ['Position',
+          "<tr><td>Clic : déplace l'interface en zone haute/basse.</td></tr>"
+        ],
+        'head_span10': ['Titre',
+          "<tr><td>Clic : affiche/masque l'interface.</td></tr>"
+        ],
+        'head_span20': ['Aide',
+          "<tr><td>Clic : active/désactive l'affichage des bulles d'aides.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>Passer la souris sur les titres/commandes pour plus de détails.</td></tr>"
+        ],
+        'head_span22': ['Lien du forum',
+          "<tr><td>Ce script est basé sur les réflexions d'un sujet sur le forum.</td></tr>"
+        ],
+        'get_th0': ['Saisie',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone de saisie.</span></td></tr>"
+        ],
+        'get_span10': ['Saisie',
+          "<tr><td>La zone de saisie permet de modifier les objets dans la zone de droite.</td></tr>" +
+          "<tr><td>Sélectionner la ligne/zone de droite que vous souhaitez modifier avant d'utiliser la zone de saisie.</td></tr>"
+        ],
+        'get_span11': ['Listes',
+          "<tr><td><b>- Armurerie :</b> Liste des objets de votre armurerie correspondant à la Catégorie sélectionnée.</td></tr>" +
+          "<tr><td><b>- Index :</b> Copie de l'Index de recherche utilisable en saisie.</td></tr>" +
+          "<tr><td><b>- Synthèses :</b> Copie des fusions obtenues dans le Résultat de droite.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Commandes En-têtes :</b></td></tr>" +
+          "<tr><td>- Clic : tri le tableau suivant cette colonne.</td></tr>" +
+          "<tr><td>- <span class='heal'><b>►►</b></span> : ajoute tous les objets à la zone sélectionnée. Le dernier objet ajouté devient la sélection en cours.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Commandes par objets :</b></td></tr>" +
+          "<tr><td>- Clic : remplace l'objet sélectionné dans la zone de droite par cet objet.</td></tr>" +
+          "<tr><td>- <span class='heal'>►</span> : ajoute l'objet à la zone sélectionnée qui devient la sélection en cours.</td></tr>"
+        ],
+        'get_th00_0': ['Armurerie',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque cette liste.</span></td></tr>"
+        ],
+        'get_th01_0': ['Index',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque cette liste.</span></td></tr>"
+        ],
+        'get_th02_0': ['Synthèses',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque cette liste.</span></td></tr>"
+        ],
+        'get_span13': ['Copie',
+          "<tr><td>Cette zone permet l'échange d'une liste d'objets que ce soit entre résultats ou avec d'autres joueurs.</td></tr>" +
+          "<tr><td>Elle permet la saisie manuelle et le copier/coller.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Lignes valides</b> et <b>invalides</b> vous indiquent si les lignes sont correctement formatées.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>La zone reconnait les objets au format du jeu. Vous pouvez ne pas saisir certains éléments qui seront considérés comme vide.</td></tr>" +
+          "<tr><td>Les objets peuvent être précédés des opérateurs '+','=' ou du séparateur '-' pour une copie dans la zone résultat.</td></tr>" +
+          "<tr><td>Lors de l'import la ligne '=' sera automatiquement recalculée et peut donc être laissé à vide ou erronée.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Exemple :</b></td></tr>" +
+          "<tr><td>Short Renforcé De L`Athlète (+1)</td></tr>" +
+          "<tr><td>+ Short Satiné De L`Athlète (+1)</td></tr>" +
+          "<tr><td>= Short Clouté De L`Athlète (+2)</td></tr>" +
+          "<tr><td>-</td></tr>" +
+          "<tr><td>Flexible Du Brigand</td></tr>" +
+          "<tr><td>+ Parfaite Jupe Satinée Du Trafiquant D`Armes (+1)</td></tr>" +
+          "<tr><td>=</td></tr>"
+        ],
+        'get_td20': ['Reset',
+          "<tr><td>Supprime le contenu de cette zone.</td></tr>"
+        ],
+        'get_td21': ['Export',
+          "<tr><td>Copie la sélection de droite dans cette zone.</td></tr>" +
+          "<tr><td>Cette liste est pré-sélectionnée pour permettre une copie à usage externe.</td></tr>"
+        ],
+        'get_td22': ['Import',
+          "<tr><td>Ajoute la liste à la sélection de droite.</td></tr>" +
+          "<tr><td>Ce bouton n'apparaîtra que si cette liste est compatible avec la zone concernée.</td></tr>"
+        ],
+        'get_span15': ['Saisie libre',
+          "<tr><td>Permet de saisir indépendamment chaque élément de la sélection.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Commandes :</b></td></tr>" +
+          "<tr><td>- Clic élément : remplace l'élément dans la sélection de droite par cet élément.</td></tr>"
+        ],
+        'sim_th0': ['Simulations',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone des simulations.</span></td></tr>"
+        ],
+        'sim_span0': ['Simulations',
+          "<tr><td>Une simulation comprend l'ensemble des éléments permettant de chercher une solution.</td></tr>"
+        ],
+        'sim_th2': ['Ajout',
+          "<tr><td>Ajoute une simulation.</td></tr>"
+        ],
+        'sim_th3': ['Déplacement',
+          "<tr><td>Déplace la simulation à gauche.</td></tr>"
+        ],
+        'sim_th4': ['Déplacement',
+          "<tr><td>Déplace la simulation à droite.</td></tr>"
+        ],
+        'sim_th5': ['Suppression',
+          "<tr><td>Supprime la simulation.</td></tr>"
+        ],
+        'sim_th6': ['Reset',
+          "<tr><td>Supprime toutes les simulations.</td></tr>"
+        ],
+        'idx_th10': ['Index',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Index.</span></td></tr>"
+        ],
+        'idx_th11': ['Index',
+          "<tr><td>Liste des objets utilisés dans le cadre de la recherche (minimun 2) ou"
+          + " pouvant servir pour constituer une liste perso.</td></tr>"
+          + "<tr><td>Tri manuel possible sur les colonnes.</td></tr>"
+          + "<tr><td>La colonne de gauche indique la différence de points entre l'objet et la cible."
+          + "Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>"
+          + "<tr><td><hr></hr></td></tr>"
+          + "<tr><td><b>Commandes par objets :</b></td></tr>"
+          + "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
+          + "<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
+          + "<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
+          + "<tr><td>- ► : ajoute cet objet après l'objet sélectionné du résultat en cours ou sinon en fin du résultat.</span></td></tr>"
+        ],
+        'idx_th13': ['Reset',
+          "<tr><td>Supprime les éléments de l'Index.</td></tr>"
+        ],
+        'opt_th10': ['Options',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Options.</span></td></tr>"
+        ],
+        'opt_th11': ['Options',
+          "<tr><td>Ensemble d'options permettant de modifier le comportement de la recherche.</td></tr>"
+          + "<tr><td>Pour plus de détails passer la souris sur l'option concernée.</td></tr>"
+        ],
+        'opt2_td01': ['Max - Fusions',
+          "<tr><td>Limite le nombre de fusions utilisées pour cette recherche. Cette valeur permet de diminuer grandement le temps de recherche.</td></tr>"
+        ],
+        'opt2_td03': ['Max - Ecart',
+          "<tr><td>Ne retient que les solutions ayant un écart avec la cible inférieur à cette valeur.</td></tr>"
+        ],
+        'opt2_td05': ['Max - Résultats',
+          "<tr><td>Limite le nombre de résultats retenus pendant la recherche.</td></tr>"
+        ],
+        'opt2_td11': ['Filtres - Coef',
+          "<tr><td>Certains objets ayant plus de valeur que d'autres, ce filtre permet de chercher en priorité les solutions plus ou moins coûteuses.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>Ce filtre applique un coefficient à chaque élément :</td></tr>" +
+          "<tr><td>- 0 ou vide : désactive le filtre.</td></tr>" +
+          "<tr><td>- 1 : élément = élément (par défaut).</td></tr>" +
+          "<tr><td>- 2 et + : élément = coef^élément.</td></tr>" +
+          "<tr><td>Un coefficient élevé tendra a chercher des solutions moins coûteuses mais avec plus de fusions.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><span class='atkHit'>Désactiver cette option engendre énormément de résultats et par conséquent il est conseillé de limiter le nombre de résultats.</span></td></tr>"
+        ],
+        'opt2_td13': ['Filtres - Ecart',
+          "<tr><td>Cherche les solutions au plus proche de la cible." +
+          "<tr><td>Consigne de sécurité identique à l'option Coef.</td></tr>"
+        ],
+        'opt2_td15': ['Filtres - Doublons',
+          "<tr><td>Supprime les doublons en fin de recherche (résultats utilisant les mêmes objets mais avec des permutations différentes).</td></tr>"
+        ],
+        'opt2_td20': ['Facteur multiplicateur',
+          "<tr><td>La valeur d'un objet est basé sur le total de ses éléments. Chaque élément se voit appliquer un facteur multiplicateur permettant de prioriser certains élements :</td></tr>" +
+          "<tr><td><i>Valeur par défaut = Qualité*1 + Objet*2 + Préfixe*3 + Suffixe*3</i></td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>Par défaut Préfixe et Suffixe sont prioritaires mais vous pouvez changer ces valeurs suivant vos besoins.</td></tr>"
+        ],
+        'opt_td21': ['Chargement des options',
+          "<tr><td>Charge les valeurs par défaut.</td></tr>"
+        ],
+        'opt_td22': ['Sauvegarde des options',
+          "<tr><td>Sauvegarde les options en tant que valeurs par défaut.</td></tr>"
+        ],
+        'opt_td23': ['Reset',
+          "<tr><td>Charge les valeurs d'usine.</td></tr>"
+        ],
+        'target_th10': ['Cible',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Cible.</span></td></tr>"
+        ],
+        'target_th11': ['Cible',
+          "<tr><td>Permet d'indiquer la cible recherchée.</td></tr>"
+          + "<tr><td>Un élément vide n'est pas pris en compte.</td></tr>"
+        ],
+        'target_th13': ['Reset',
+          "<tr><td>Efface la zone Cible.</td></tr>"
+        ],
+        'target_td35': ['Lancement',
+          "<tr><td>Lance la recherche. Au moins deux objets doivent être saisie dans l'Index.</td></tr>"
+        ],
+        'target_td36': ['Stop',
+          "<tr><td>Stop la recherche sans afficher les résultats trouvés.</td></tr>"
+        ],
+        'target_td37': ['Stop + résultats',
+          "<tr><td>Stop la recherche et affiche les résultats trouvés.</td></tr>"
+        ],
+        'target_td38': ['Affiche les résultats',
+          "<tr><td>Affiche les résultats trouvés sans stopper la recherche.</td></tr>"
+        ],
+        'res_th50': ['Résultats',
+          "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone des résultats.</span></td></tr>"
+        ],
+        'res_span510': ['Résultats',
+          "<tr><td>Affiche les solutions trouvées par la Recherche. Permet aussi de saisir manuellement vos solutions.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Commandes par objets :</b></td></tr>" +
+          "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne.</span></td></tr>" +
+          "<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>" +
+          "<tr><td>- <> : ajoute un nouveau bloc indépendant du précédent.</td></tr>" +
+          "<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>" +
+          "<tr><td>- <span class='atkHit'>◄</span><span> : supprime tous les éléments précédents du bloc.</span></td></tr>" +
+          "<tr><td>- <span class='atkHit'>▲</span><span> : supprime tous les éléments précédents.</span></td></tr>" +
+          "<tr><td>- <span class='atkHit'>B</span><span> : supprime le bloc.</span></td></tr>"
+        ],
+        'res_th52': ['Ajout',
+          "<tr><td>Ajoute un résultat.</td></tr>"
+        ],
+        'res_th53': ['Déplacement',
+          "<tr><td>Déplace le résultat à gauche.</td></tr>"
+        ],
+        'res_th54': ['Déplacement',
+          "<tr><td>Déplace le résultat à droite.</td></tr>"
+        ],
+        'res_th55': ['Suppression',
+          "<tr><td>Supprime le résultat.</td></tr>"
+        ],
+        'res_th56': ['Reset',
+          "<tr><td>Supprime tous les résultats.</td></tr>"
+        ],
+      };
+      for (var key in aides) {
+        if (exist(rootIU[key])) {
+          rootIU[key].setAttribute('onmouseout', 'nd();');
+          rootIU[key].setAttribute('onmouseover', "return overlib('<table class=\"BWMoverlib\">" +
+            addslashes(aides[key][1]) + "</table>',CAPTION,'" + aides[key][0] +
+            "',CAPTIONFONTCLASS,'action-caption',WIDTH,300,VAUTO,HAUTO);");
+        }
+      }
+    }
+  }
+
+  /******************************************************
+   * START
+   *
+   ******************************************************/
+
+  var page = G.page();
+if (debug) console.debug('BWMstart: page = %o, U.name = %o', page, U.name);
+  if (page == 'pMixitem') {
+    if (!isNull(U.name)) {
+      var bwIU = DOM.getFirstNode("//div[@id='content-mid']");
+      var bwTop = DOM.getFirstNode("./div[@class='top-options']", bwIU);
+      if (bwIU !== null && bwTop !== null) {
+        // datas
+        var loc = L.get("listes");
+        var list = U.getD('LIST', {});
+        var tasks = { 't': null, 'k': {}, 's': {}, 'w': {} };
+        var mix = [];
+        var cat = U.getP('cat').toString() + U.getP('leg');
+        var but, c, s, r, isGo;
+        var rootIU = {};
+        // recherche les objets de l'armurerie
+        var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li");
+        var items = {};
+        var pat = ["Légendaire |", "Bon |Bonne |Parfait |Parfaite |", "", "", "", "\\(\\+[0-5]\\)|"];
+        var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, [], [], []];
+        for (var i = 2; i < 5; i++) {
+          for (var j = 0; j < loc[i].length; j++) {
+            if (i != 2) indexPat[i - 1][j] = {};
+            for (var k = 1; k < loc[i][j].length; k++) {
+              for (var x = 0; x < loc[i][j][k].length; x++) {
+                if (loc[i][j][k][x] !== true) {
+                  pat[i] += loc[i][j][k][x] + '(?:[ ]|$)|';
+                  if (i == 2) indexPat[1][loc[i][j][k][x]] = [j, k];
+                  else indexPat[i - 1][j][loc[i][j][k][x]] = k;
+                }
+              }
+            }
+          }
+        }
+        for (var i = 0; i < nodes.snapshotLength; i++) {
+          var obj = DOM.getFirstNodeTextContent("./div/span", '', nodes.snapshotItem(i));
+          var v = new RegExp("^(" + pat[0] + ")(" + pat[1] + ")(" + pat[2] + ")(" + pat[3] + ")(" + pat[4] + ")(" +
+              pat[5] + ")$").exec(obj);
+          if (v !== null && v[3] !== '') {
+            var leg = v[1] !== '' ? 'L' : '';
+            var grade = v[2] !== '' ? indexPat[0][v[2].trim()] : 0;
+            var type = indexPat[1][v[3].trim()];
+            var pre = v[4] !== '' ? indexPat[2][type[0]][v[4].trim()] : 0;
+            var suf = v[5] !== '' ? indexPat[3][type[0]][v[5].trim()] : 0;
+            var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
+            if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
+            items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
+          } else console.debug('BWM - Objet inconnu :', obj);
+        }
+        // Création de l'interface
+        upTabs();
+      }
+    }
+    else {
+      alert(L.get("sUnknowID"));
+    }
+  }
+if (debug) console.debug('BWMend - time %oms', Date.now() - debugTime);
 })();
