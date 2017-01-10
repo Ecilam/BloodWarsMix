@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2016.06.21
+// @version     2017.01.10
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -311,7 +311,7 @@
     var locStr = {
       "sDeconnecte": "Vous avez été déconnecté en raison d`une longue inactivité.",
       "sCourtePause": "Une courte pause est en court en raison de l`actualisation du classement général",
-      "sUnknowID": "BloorWarsMix - Erreur :\n\nLe nom de ce vampire doit être lié à son ID. Merci de consulter la Salle du Trône pour rendre le script opérationnel.\nCe message est normal si vous utilisez ce script pour la première fois ou si vous avez changé le nom du vampire.",
+      "sUnknowID": "Blood Wars Mix - Erreur :\n\nLe nom de ce vampire doit être lié à son ID. Merci de consulter la Salle du Trône pour rendre le script opérationnel.\nCe message est normal si vous utilisez ce script pour la première fois ou si vous avez changé le nom du vampire.",
       "listes": [
         // 0 - types
         ['Casque', 'Armure', 'Pantalon', 'Amulette', 'Anneau', 'Arme à une main',
@@ -1433,7 +1433,7 @@
           [0, 0, 0, 0]
         ]
       ],
-      's': [],
+      's': [[0, 0, 0, 0]],
       't': 0
     });
     U.setD('LIST', list);
@@ -2152,16 +2152,20 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
             [0, 0, 0, 0]
           ]
         ],
-        's': [],
+        's': [[0, 0, 0, 0]],
         't': 0
       }];
     } else if (exist(list[cat][U.getP('sim')])) {
       // vérification options de recherche
-      var optTmp = clone(list[cat][U.getP('sim')].o);
       var defOpt = U.getP('defOpt');
-      list[cat][U.getP('sim')].o = {};
-      for (var i in defOpt) {
-        list[cat][U.getP('sim')].o[i] = exist(optTmp[i])? optTmp[i] : defOpt[i] ; 
+      var optTmp = exist(list[cat][U.getP('sim')].o) ? clone(list[cat][U.getP('sim')].o) : {};
+      if (!Array.isArray(optTmp)) {
+        list[cat][U.getP('sim')].o = {};
+        for (var i in defOpt) {
+          list[cat][U.getP('sim')].o[i] = exist(optTmp[i])? optTmp[i] : defOpt[i] ; 
+        }
+      } else {
+        list[cat][U.getP('sim')].o = defOpt;
       }
       // vérification résultats
       if (list[cat][U.getP('sim')].r.length === 0) {
