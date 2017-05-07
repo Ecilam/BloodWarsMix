@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.01.10
+// @version     2017.05.07
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -1834,7 +1834,7 @@
   // niv = meilleur poids d'ensemble trouvé
 
   // becart = false, bcout = false
-  function workSearch1(data, tmp) {
+  function workSearch1(data, tmp, tmpd) {
     var n1 = data.length,
       n2 = n1 - 2;
     for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
@@ -1847,7 +1847,7 @@
         if (tmp[1] === 0) self.postMessage({
           'cmd': 'adv',
           'key': key,
-          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+          'e': [n1, n2, i, j]
         });
         if (objCmp(b, a) >= 0) { //if (objCmp(b,a)>0) si qualité vide
           var v = objMix(a, b).concat(0),
@@ -1856,7 +1856,7 @@
             res++;
             self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
           }
-          if (d > 0 && tmp[0].length < fus) {
+          if (d > 0 && d < tmpd && tmp[0].length < fus) {
             nb[j] = v;
             workSearch1(nb, [tmp[0].concat([b, a, v]), 1]);
             nb[j] = b;
@@ -1866,7 +1866,7 @@
     }
   }
   // becart = false, bcout = true
-  function workSearch2(data, tmp) {
+  function workSearch2(data, tmp, tmpd) {
     var n1 = data.length,
       n2 = n1 - 2;
     for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
@@ -1876,7 +1876,7 @@
         if (tmp[1] === 0) self.postMessage({
           'cmd': 'adv',
           'key': key,
-          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+          'e': [n1, n2, i, j]
         });
         if (objCmp(b, a) >= 0) {
           var v = objMix(a, b).concat(0),
@@ -1893,7 +1893,7 @@
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && tmp[0].length < fus) {
+          if (d > 0 && d < tmpd && tmp[0].length < fus) {
             nb[j] = v;
             workSearch2(nb, [tmp[0].concat([b, a, v]), p]);
             nb[j] = b;
@@ -1903,7 +1903,7 @@
     }
   }
   // becart = true, bcout = false
-  function workSearch3(data, tmp) {
+  function workSearch3(data, tmp, tmpd) {
     var n1 = data.length,
       n2 = n1 - 2;
     for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
@@ -1913,7 +1913,7 @@
         if (tmp[1] === 0) self.postMessage({
           'cmd': 'adv',
           'key': key,
-          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+          'e': [n1, n2, i, j]
         });
         if (objCmp(b, a) >= 0) {
           var v = objMix(a, b).concat(0),
@@ -1929,7 +1929,7 @@
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && tmp[0].length < fus) {
+          if (d > 0 && d < tmpd && tmp[0].length < fus) {
             nb[j] = v;
             workSearch3(nb, [tmp[0].concat([b, a, v]), 1]);
             nb[j] = b;
@@ -1939,9 +1939,10 @@
     }
   }
   // becart = true, bcout = true
-  function workSearch4(data, tmp) {
+  function workSearch4(data, tmp, tmpd) {
     var n1 = data.length,
       n2 = n1 - 2;
+//console.debug('data, tmp, tmpd, n1, n2: ', JSON.stringify(data), JSON.stringify(tmp), tmpd, n1, n2);
     for (var i = 0, a = data[i]; i < n1; a = data[++i]) {
       var nb = data.concat();
       nb.splice(i, 1);
@@ -1949,7 +1950,7 @@
         if (tmp[1] === 0) self.postMessage({
           'cmd': 'adv',
           'key': key,
-          'e': Math.floor((100 / n1) * i + ((100 / n1) / (n2 + 1)) * j)
+          'e': [n1, n2, i, j]
         });
         if (objCmp(b, a) >= 0) {
           var v = objMix(a, b).concat(0),
@@ -1967,9 +1968,9 @@
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && tmp[0].length < fus) {
+          if (d > 0 && d < tmpd && tmp[0].length < fus) {
             nb[j] = v;
-            workSearch4(nb, [tmp[0].concat([b, a, v]), p]);
+            workSearch4(nb, [tmp[0].concat([b, a, v]), p], d);
             nb[j] = b;
           }
         }
@@ -2050,10 +2051,10 @@
       "			bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity,",
       "			mix = d.m, but = d.b;",
 debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcout] });" : "",
-      "		if (!becart&&!bcout) {workSearch1(d.d,[[],0]);}",
-      "		else if (!becart && bcout) { workSearch2(d.d,[[],0]); }",
-      "		else if (becart && !bcout) { workSearch3(d.d,[[],0]); }",
-      "		else { workSearch4(d.d,[[],0]); }",
+      "		if (!becart&&!bcout) {workSearch1(d.d, [[], 0], Infinity);}",
+      "		else if (!becart && bcout) { workSearch2(d.d, [[], 0], Infinity); }",
+      "		else if (becart && !bcout) { workSearch3(d.d, [[], 0], Infinity); }",
+      "		else { workSearch4(d.d, [[],0], Infinity); }",
       "		self.postMessage({ 'cmd': 'end1', 'key': key });",
       " }",
       "	else if (d.cmd=='post') {",
@@ -2069,7 +2070,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         if (debug){ console.debug('Workdebug :', d.msg)};
         break;
       case 'adv':
-        w.e = d.e;
+        w.e = Math.floor((100 / d.e[0]) * d.e[2] + ((100 / d.e[0]) / (d.e[1] + 1)) * d.e[3]);
         break;
       case 'new':
         w.r = [];
