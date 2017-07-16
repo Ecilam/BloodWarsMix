@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.07.13b0
+// @version     2017.07.16b
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -2181,7 +2181,7 @@
   {
     var n1 = data.length,
       n2 = n1 - 2;
-    //console.debug('data, tmp, tmpd, n1, n2: ', JSON.stringify(data), JSON.stringify(tmp), tmpd, n1, n2);
+//console.debug('data, tmp, tmpd, n1, n2: ', JSON.stringify(data), JSON.stringify(tmp), tmpd, n1, n2);
     for (var i = 0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
@@ -3221,7 +3221,6 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       }
     }
     // Saisie
-if (debug) console.debug('BWM - début zone Saisie');
     DOM.newNodes([
       ['get_tr', 'tr', { 'class': 'tblheader' },
         [], {}, 'get'
@@ -3260,7 +3259,6 @@ if (debug) console.debug('BWM - début zone Saisie');
           [clone(s.s), 'Copie Index', 'shLInd'],
           [results, 'Synthèses', 'shLSyn']
         ];
-if (debug) console.debug('BWM - Saisie par liste');
         for (var k = 0; k < sel.length; k++)
         {
           if (sel[k][0].length > 0)
@@ -3286,7 +3284,6 @@ if (debug) console.debug('BWM - Saisie par liste');
               {
                 var x = sel[k][0][i];
                 var v = Jsons.encode(x);
-if (debug) console.debug('BWM - objet : ', sel[k][1], v);
                 if (!exist(link[v])) link[v] = {};
                 if (!exist(link[v]['s' + k])) link[v]['s' + k] = [];
                 link[v]['s' + k].push('get_td2' + k + '_' + i);
@@ -3320,7 +3317,6 @@ if (debug) console.debug('BWM - objet : ', sel[k][1], v);
       }
       else if (U.getP('mode') == 1)
       { // copier/coller
-if (debug) console.debug('BWM - Saisie Copier/Coller');
         DOM.newNodes([
           ['get_tr0', 'tr', {},
             [], {}, 'get'
@@ -3369,7 +3365,6 @@ if (debug) console.debug('BWM - Saisie Copier/Coller');
       }
       else
       { // saisie manuelle
-if (debug) console.debug('BWM - Saisie manuelle');
         var max = Math.max(loc[1].length, loc[2][U.getP('cat')].length, loc[3][U.getP('cat')].length, loc[4][U.getP('cat')].length);
         DOM.newNodes([
           ['get_tr0', 'tr', { 'class': 'tblheader' },
