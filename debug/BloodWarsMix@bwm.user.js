@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.07.16b
+// @version     2017.07.17b
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -2408,6 +2408,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
   // création de l'interface
   function upTabs()
   {
+if (debug) console.debug('BWM upTabs - début');
     var link = {};
     var target = [null, null];
     var results = [];
@@ -2509,6 +2510,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         }
       }
     }
+if (debug) console.debug('BWM upTabs - début interface');
     // reconstruit l'interface
     if (exist(rootIU.root))
     {
@@ -2595,6 +2597,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       ['sim_th5', 'th', { 'class': 'BWMselect atkHit' }, ['X'], { 'click': [delS] }, 'sim_tr0'],
       ['sim_th6', 'th', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetS] }, 'sim_tr0']
     ], rootIU);
+if (debug) console.debug('BWM upTabs - catégorie');
     // Catégorie
     for (var j = 0; j < loc[0].length; j++)
     {
@@ -2618,6 +2621,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           },
           [loc[0][j]], { 'click': [setT, j] }, 'cat_td0']], rootIU);
     }
+if (debug) console.debug('BWM upTabs - simulations');
     // simulations
     for (var j = 0; j < c.length; j++)
     {
@@ -2634,6 +2638,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           [j], { 'click': [setS, j] }, 'sim_th1']
       ], rootIU);
     }
+if (debug) console.debug('BWM upTabs - recherches terminées');
     // affiche les recherches terminées
     for (var i in list)
     {
@@ -2665,6 +2670,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
     }
     if (U.getP('shSim'))
     {
+if (debug) console.debug('BWM upTabs - bloc recherche');
       // bloc Recherche - Index
       DOM.newNodes([
         ['idx_tr1', 'tr', { 'class': 'tblheader' },
@@ -2776,6 +2782,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       }
       if (!!window.Worker)
       {
+if (debug) console.debug('BWM upTabs - bloc options');
         // bloc Options
         DOM.newNodes([
           ['opt_tr1', 'tr', { 'class': 'tblheader' },
@@ -2950,6 +2957,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
             ['opt_td23', 'td', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetOpt] }, 'opt_tr2'],
           ], rootIU);
         }
+if (debug) console.debug('BWM upTabs - bloc cible');
         // bloc Cible
         DOM.newNodes([
           ['target_tr1', 'tr', { 'class': 'tblheader' },
@@ -3014,6 +3022,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           upSearch();
         }
       }
+if (debug) console.debug('BWM upTabs - résultats');
       DOM.newNodes([ // Résultats
         ['res_tr5', 'tr', { 'class': 'tblheader' },
           [], {}, 'sim'],
@@ -3220,6 +3229,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         }
       }
     }
+if (debug) console.debug('BWM upTabs - début Saisie');
     // Saisie
     DOM.newNodes([
       ['get_tr', 'tr', { 'class': 'tblheader' },
@@ -3254,6 +3264,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
     {
       if (U.getP('mode') === 0)
       { // saisie par liste
+if (debug) console.debug('BWM upTabs - saisie liste');
         var sel = [
           [arm, 'Armurerie', 'shLArm'],
           [clone(s.s), 'Copie Index', 'shLInd'],
@@ -3317,6 +3328,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       }
       else if (U.getP('mode') == 1)
       { // copier/coller
+if (debug) console.debug('BWM upTabs - saisie copier/coller');
         DOM.newNodes([
           ['get_tr0', 'tr', {},
             [], {}, 'get'
@@ -3365,6 +3377,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       }
       else
       { // saisie manuelle
+if (debug) console.debug('BWM upTabs - saisie manuelle');
         var max = Math.max(loc[1].length, loc[2][U.getP('cat')].length, loc[3][U.getP('cat')].length, loc[4][U.getP('cat')].length);
         DOM.newNodes([
           ['get_tr0', 'tr', { 'class': 'tblheader' },
@@ -3425,7 +3438,8 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         }
       }
     }
-    // colorisation des objets sélectionnés/identiques
+    // coloration des objets sélectionnés/identiques
+if (debug) console.debug('BWM upTabs - coloration');
     for (var key in link)
     {
       if (link.hasOwnProperty(key))
@@ -3478,6 +3492,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         }
       }
     }
+if (debug) console.debug('BWM upTabs - aides');
     // Bulles d'aide
     if (!!U.getP('shHelp'))
     {
@@ -3788,6 +3803,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
             var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
             if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
             items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
+if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, loc[0][type[0]], loc[1][grade + niv][0], loc[2][type[0]][type[1]][0], loc[3][type[0]][pre][0], loc[4][type[0]][suf][0]);
           }
           else console.debug('BWM - Objet inconnu :', obj);
         }
@@ -3800,5 +3816,5 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
       alert(L.get("sUnknowID"));
     }
   }
-  if (debug) console.debug('BWMend - time %oms', Date.now() - debugTime);
+if (debug) console.debug('BWMend - time %oms', Date.now() - debugTime);
 })();
