@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.07.17b
+// @version     2017.07.20b
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -3803,7 +3803,12 @@ if (debug) console.debug('BWM upTabs - aides');
             var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
             if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
             items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
-if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, loc[0][type[0]], loc[1][grade + niv][0], loc[2][type[0]][type[1]][0], loc[3][type[0]][pre][0], loc[4][type[0]][suf][0]);
+if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv,
+ exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error',
+ exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error',
+ exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error',
+ exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error',
+ exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
           }
           else console.debug('BWM - Objet inconnu :', obj);
         }
