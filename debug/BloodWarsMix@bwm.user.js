@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.08.01b
+// @version     2017.08.04b
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
@@ -353,7 +353,7 @@
           ['P4'],
           ['P5']
         ],
-        [ // 2 - sous-types
+        [ // 2 - sous-types (true si objet féminin)
           [
             ['-'],
             ['Casquette', true],
@@ -1416,20 +1416,15 @@
         }
         else
         {
-          if (U.getP('setZone') >= 0) text += j - root > 0 && (j - root) % 2 === 0 ? '= ' : j - root === 0 ? '' :
-            '+ ';
+          if (U.getP('setZone') >= 0) text += j - root > 0 && (j - root) % 2 === 0 ? '= ' : j - root === 0 ? '' : '+ ';
           if (objCmp(v[j], [0, 0, 0, 0]) !== 0)
           {
             var grade = { 0: ['', ''], 1: ['Bon ', 'Bonne '], 2: ['Parfait ', 'Parfaite '] };
-            text += U.getP('leg') == 'L' ? 'Légendaire ' : '';
-            text += v[j][0] > 0 ? grade[Math.floor(v[j][0] / 6)][exist(loc[2][U.getP('cat')][v[j][1]][1]) ? 1 :
-              0
-            ] : '';
+            text += U.getP('leg') === 'L' ? 'Légendaire ' : '';
+            text += v[j][0] > 0 ? grade[Math.floor(v[j][0] / 6)][exist(loc[2][U.getP('cat')][v[j][1]][1]) ? 1 : 0] : '';
             text += v[j][1] > 0 ? loc[2][U.getP('cat')][v[j][1]][0] + ' ' : '';
-            text += v[j][2] > 0 ? loc[3][U.getP('cat')][v[j][2]][exist(loc[2][U.getP('cat')][v[j][1]][1]) && exist(
-              loc[3][U.getP('cat')][v[j][2]][1]) ? 1 : 0] + ' ' : '';
-            text += v[j][3] > 0 ? loc[4][U.getP('cat')][v[j][3]][exist(loc[4][U.getP('cat')][v[j][3]][1]) ? 1 : 0] +
-              ' ' : '';
+            text += v[j][2] > 0 ? loc[3][U.getP('cat')][v[j][2]][exist(loc[2][U.getP('cat')][v[j][1]][1]) && exist(loc[3][U.getP('cat')][v[j][2]][1]) ? 1 : 0] + ' ' : '';
+            text += v[j][3] > 0 ? loc[4][U.getP('cat')][v[j][3]][exist(loc[4][U.getP('cat')][v[j][3]][1]) ? 1 : 0] + ' ' : '';
             text += v[j][0] > 0 && v[j][0] % 6 > 0 ? '(+' + v[j][0] % 6 + ')' : '';
           }
         }
@@ -1439,59 +1434,48 @@
       area1.focus();
       area1.select();
     }
-    var v = area1.value.split(/[\r\n]/g),
-      lines = '',
-      pattern = "^(?:(\\+[ ]*|=[ ]*|)(" + pat[0] + ")(" + pat[1] + ")(" + pat[2] + ")(" + pat[3] + ")(" +
-      pat[4] + ")(" + pat[5] + "))$";
+    var v = area1.value.split(/[\r\n]/g);
+    var lines = '';
     // analyse objets
     for (var j = 0; j < v.length; j++)
     {
-      var w = new RegExp(pattern).exec(v[j]);
-      if (v[j] == '-') { v[j] = ['-', -1]; }
+      var w = new RegExp('^(?:(\\+|=|)(?:[ ]?|$)' + pat + ')$').exec(v[j]);
+      if (v[j] === '-') { v[j] = ['-', -1]; }
       else if (w !== null)
       {
-        var op = w[1] !== '' ? w[1].trim() : -1,
-          leg = w[2].trim() == U.getP('leg') ? U.getP('leg') : -1,
-          grade = w[3] !== '' ? indexPat[0][w[3].trim()] : 0,
-          type = w[4] !== '' ? indexPat[1][w[4].trim()][0] == U.getP('cat') ? indexPat[1][w[4].trim()] : -1 : [
-            U.getP('cat'), 0
-          ],
-          pre = w[5] !== '' ? exist(indexPat[2][U.getP('cat')][w[5].trim()]) ? indexPat[2][U.getP('cat')][w[5].trim()] :
-          -1 : 0,
-          suf = w[6] !== '' ? exist(indexPat[3][U.getP('cat')][w[6].trim()]) ? indexPat[3][U.getP('cat')][w[6].trim()] :
-          -1 : 0,
-          niv = w[7] !== '' ? Number(w[7].replace(new RegExp('[()+]', 'g'), '')) : 0;
-        if (leg != -1 && type != -1 && pre != -1 && suf != -1)
+        w = w.reduce(function(a, b) { if (exist(b)) { a.push(b); } return a; } , [] );
+        var op = w[1] !== '' ? w[1].trim() : -1;
+        var leg = w[2] !== '' && U.getP('leg') !== 'L' ? -1 : 0;
+        var grade = w[3] !== '' ? indexPat[0][w[3].trim()] : 0;
+        var type = w[4] !== '' ? indexPat[1][w[4].trim()][0] == U.getP('cat') ? indexPat[1][w[4].trim()] : -1 : [U.getP('cat'), 0];
+        var pre = w[5] !== '' ? exist(indexPat[2][U.getP('cat')][w[5].trim()]) ? indexPat[2][U.getP('cat')][w[5].trim()] : -1 : 0;
+        var suf = w[6] !== '' ? exist(indexPat[3][U.getP('cat')][w[6].trim()]) ? indexPat[3][U.getP('cat')][w[6].trim()] : -1 : 0;
+        var niv = w[7] !== '' ? Number(w[7].replace(new RegExp('[()+]', 'g'), '')) : 0;
+        if (leg !== -1 && type !== -1 && pre !== -1 && suf !== -1)
         {
-          v[j] = [op, [grade + niv, type[1], pre,
-            suf
-          ]];
+          v[j] = [op, [grade + niv, type[1], pre, suf]];
         }
         else { v[j] = false; }
       }
       else { v[j] = false; }
       lines += (j + 1) + (j < v.length - 1 ? '\n' : '');
     }
+if (debug) console.debug('BWM - v :', v);
     area0.value = lines;
     area0.setAttribute('style', 'height:auto');
     area1.setAttribute('style', 'height:auto');
-    area0.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight +
-      area1.scrollTop + 1) + 'px');
-    area1.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight +
-      area1.scrollTop + 1) + 'px');
+    area0.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight + area1.scrollTop + 1) + 'px');
+    area1.setAttribute('style', 'height:' + (area1.scrollHeight + area1.offsetHeight - area1.clientHeight + area1.scrollTop + 1) + 'px');
     // analyse du format
     var root = 0;
     for (var j = 0; j < v.length; j++)
     {
       if (v[j] !== false)
       {
-        if (v[j][0] == '-' && j > 2 && v[j - 1][0] == '=') { root = j + 1; }
-        else if (v[j][0] == -1 && (j -
-            root === 0 || (root === 0 && j > 0 && v[j - 1][0] == -1))) {}
-        else if (v[j][0] == '+' && ((j -
-            root == 1 && v[j - 1][0] == -1) || (j - root > 1 && v[j - 1][0] == '='))) {}
-        else if (v[j][0] ==
-          '=' && j - root > 1 && v[j - 1][0] == '+') {}
+        if (v[j][0] === '-' && j > 2 && v[j - 1][0] === '=') { root = j + 1; }
+        else if (v[j][0] === -1 && (j - root === 0 || (root === 0 && j > 0 && v[j - 1][0] === -1))) {}
+        else if (v[j][0] === '+' && ((j - root === 1 && v[j - 1][0] === -1) || (j - root > 1 && v[j - 1][0] === '='))) {}
+        else if (v[j][0] === '=' && j - root > 1 && v[j - 1][0] === '+') {}
         else { v[j] = false; }
       }
       if (v[j] === false) linesBad.push(j + 1);
@@ -3765,37 +3749,31 @@ if (debug) console.debug('BWM upTabs - aides');
         var cat = U.getP('cat').toString() + U.getP('leg');
         var but, c, s, r, isGo;
         var rootIU = {};
-        // recherche les objets de l'armurerie
+        // création du pattern de recherche et analyse des objets de l'armurerie
         var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li");
         var items = {};
-        var pat = ["Légendaire |", "Bon |Bonne |Parfait |Parfaite |", "", "", "", "\\(\\+[0-5]\\)|"];
         var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, [], [], []];
-        for (var i = 2; i < 5; i++)
+        var pat = "(Légendaire|)(?:[ ]?|$)(Bon|Bonne|Parfait|Parfaite|)(?:[ ]?|$)(?:"; 
+        for (var j = 0; j < loc[2].length; j++)
         {
-          for (var j = 0; j < loc[i].length; j++)
+          if (j > 0)
           {
-            if (i != 2) indexPat[i - 1][j] = {};
-            for (var k = 1; k < loc[i][j].length; k++)
-            {
-              for (var x = 0; x < loc[i][j][k].length; x++)
-              {
-                if (loc[i][j][k][x] !== true)
-                {
-                  pat[i] += loc[i][j][k][x] + '(?:[ ]|$)|';
-                  if (i == 2) indexPat[1][loc[i][j][k][x]] = [j, k];
-                  else indexPat[i - 1][j][loc[i][j][k][x]] = k;
-                }
-              }
-            }
+            pat += '|';
           }
+          pat += '(?:(' + loc[2][j].reduce(function(a, b, c, d) { indexPat[1][b[0]] = [j, c]; return (c > 0 ? a + b[0] + '|' : ''); }, '') + ')(?:[ ]?|$)';
+          indexPat[2][j] = {};
+          pat += '(' + loc[3][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z){ indexPat[2][j][x] = c; return w + x + '|'; }, a) : '', '') + ')(?:[ ]?|$)';
+          indexPat[3][j] = {};
+          pat += '(' + loc[4][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z){ indexPat[3][j][x] = c; return w + x + '|'; }, a) : '', '') + ')(?:[ ]?|$))';
         }
+        pat += ")(\\(\\+[0-5]\\)|)";
         for (var i = 0; i < nodes.snapshotLength; i++)
         {
           var obj = DOM.getFirstNodeTextContent("./div/span", '', nodes.snapshotItem(i));
-          var v = new RegExp("^(" + pat[0] + ")(" + pat[1] + ")(" + pat[2] + ")(" + pat[3] + ")(" + pat[4] + ")(" +
-            pat[5] + ")$").exec(obj);
-          if (v !== null && v[3] !== '')
+          var v = new RegExp('^' + pat + '$').exec(obj);
+          if (v !== null)
           {
+            v = v.reduce(function(a, b) { if (exist(b)) { a.push(b); } return a; } , [] );
             var leg = v[1] !== '' ? 'L' : '';
             var grade = v[2] !== '' ? indexPat[0][v[2].trim()] : 0;
             var type = indexPat[1][v[3].trim()];
@@ -3805,29 +3783,6 @@ if (debug) console.debug('BWM upTabs - aides');
             if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
             items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
 // if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
-if (debug) {
-  if (!exist(type[0])) console.debug('BWM type[0] error : ', obj, v);
-  else {
-    if (!exist(loc[0][type[0]])) console.debug('BWM loc[0][type[0]] error : ', obj, v);
-    else if (!exist(loc[1][grade + niv])) console.debug('BWM loc[1][grade + niv] error : ', obj, v);
-    else if (!exist(loc[1][grade + niv][0])) console.debug('BWM loc[1][grade + niv][0] error : ', obj, v);
-
-    if (!exist(type[1])) console.debug('BWM type[1] error : ', obj, v);
-    else if (!exist(loc[2][type[0]])) console.debug('BWM loc[2][type[0]] error : ', obj, v);
-    else if (!exist(loc[2][type[0]][type[1]])) console.debug('BWM loc[2][type[0]][type[1]] error : ', obj, v);
-    else if (!exist(loc[2][type[0]][type[1]][0])) console.debug('BWM loc[2][type[0]][type[1]][0] error : ', obj, v);
-
-    if (!exist(pre)) console.debug('BWM pre error : ', obj, v);
-    else if (!exist(loc[3][type[0]])) console.debug('BWM loc[3][type[0]] error : ', obj, v);
-    else if (!exist(loc[3][type[0]][pre])) console.debug('BWM loc[3][type[0]][pre] error : ', obj, v);
-    else if (!exist(loc[3][type[0]][pre][0])) console.debug('BWM loc[3][type[0]][pre][0] error : ', obj, v);
-
-    if (!exist(suf)) console.debug('BWM suf error : ', obj, v);
-    else if (!exist(loc[4][type[0]])) console.debug('BWM loc[4][type[0]] error : ', obj, v);
-    else if (!exist(loc[4][type[0]][suf])) console.debug('BWM loc[4][type[0]][suf] error : ', obj, v);
-    else if (!exist(loc[4][type[0]][suf][0])) console.debug('BWM loc[4][type[0]][suf][0] error : ', obj, v);
-  }
-}
           }
           else console.debug('BWM - Objet inconnu :', obj);
         }
