@@ -2,21 +2,21 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.08.04b
+// @version     2017.08.10
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2016, Ecilam
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
-// @include     /^http:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
+// @include     /^https:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
 // @grant       none
 // ==/UserScript==
 (function ()
 {
   "use strict";
   var debugTime = Date.now(); // @type {Date} permet de mesurer le temps d'execution du script.
-  var debug = true; // @type {Boolean} Active l'affichage des messages sur la console de débogages.
+  var debug = false; // @type {Boolean} Active l'affichage des messages sur la console de débogages.
   /**
    * @method exist
    * Test l'existence d'une valeur
@@ -1460,7 +1460,6 @@
       else { v[j] = false; }
       lines += (j + 1) + (j < v.length - 1 ? '\n' : '');
     }
-if (debug) console.debug('BWM - v :', v);
     area0.value = lines;
     area0.setAttribute('style', 'height:auto');
     area1.setAttribute('style', 'height:auto');
@@ -2165,7 +2164,6 @@ if (debug) console.debug('BWM - v :', v);
   {
     var n1 = data.length,
       n2 = n1 - 2;
-//console.debug('data, tmp, tmpd, n1, n2: ', JSON.stringify(data), JSON.stringify(tmp), tmpd, n1, n2);
     for (var i = 0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
@@ -2392,7 +2390,6 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
   // création de l'interface
   function upTabs()
   {
-if (debug) console.debug('BWM upTabs - début');
     var link = {};
     var target = [null, null];
     var results = [];
@@ -2494,7 +2491,6 @@ if (debug) console.debug('BWM upTabs - début');
         }
       }
     }
-if (debug) console.debug('BWM upTabs - début interface');
     // reconstruit l'interface
     if (exist(rootIU.root))
     {
@@ -2524,7 +2520,7 @@ if (debug) console.debug('BWM upTabs - début interface');
       ['head_span21', 'span', {}, [' - '], {}, 'head_td2'],
       ['head_span22', 'span', { 'class': 'BWMtitle' }, [], {}, 'head_td2'],
       ['head_a210', 'a',
-        { 'href': 'http://forum.fr.bloodwars.net/index.php?page=Thread&threadID=235942', 'TARGET': '_blank' },
+        { 'href': 'https://forum.fr.bloodwars.net/index.php?page=Thread&threadID=235942', 'TARGET': '_blank' },
         ['Sujet'], {}, 'head_span22'],
       ['box', 'div', { 'class': 'BWMbox', 'style': 'display:' + (U.getP('shTitle') ? 'block;' : 'none;') },
         [], {}, 'root'],
@@ -2581,7 +2577,6 @@ if (debug) console.debug('BWM upTabs - début interface');
       ['sim_th5', 'th', { 'class': 'BWMselect atkHit' }, ['X'], { 'click': [delS] }, 'sim_tr0'],
       ['sim_th6', 'th', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetS] }, 'sim_tr0']
     ], rootIU);
-if (debug) console.debug('BWM upTabs - catégorie');
     // Catégorie
     for (var j = 0; j < loc[0].length; j++)
     {
@@ -2605,7 +2600,6 @@ if (debug) console.debug('BWM upTabs - catégorie');
           },
           [loc[0][j]], { 'click': [setT, j] }, 'cat_td0']], rootIU);
     }
-if (debug) console.debug('BWM upTabs - simulations');
     // simulations
     for (var j = 0; j < c.length; j++)
     {
@@ -2622,7 +2616,6 @@ if (debug) console.debug('BWM upTabs - simulations');
           [j], { 'click': [setS, j] }, 'sim_th1']
       ], rootIU);
     }
-if (debug) console.debug('BWM upTabs - recherches terminées');
     // affiche les recherches terminées
     for (var i in list)
     {
@@ -2654,7 +2647,6 @@ if (debug) console.debug('BWM upTabs - recherches terminées');
     }
     if (U.getP('shSim'))
     {
-if (debug) console.debug('BWM upTabs - bloc recherche');
       // bloc Recherche - Index
       DOM.newNodes([
         ['idx_tr1', 'tr', { 'class': 'tblheader' },
@@ -2766,7 +2758,6 @@ if (debug) console.debug('BWM upTabs - bloc recherche');
       }
       if (!!window.Worker)
       {
-if (debug) console.debug('BWM upTabs - bloc options');
         // bloc Options
         DOM.newNodes([
           ['opt_tr1', 'tr', { 'class': 'tblheader' },
@@ -2941,7 +2932,6 @@ if (debug) console.debug('BWM upTabs - bloc options');
             ['opt_td23', 'td', { 'class': 'BWMselect atkHit' }, ['R'], { 'click': [resetOpt] }, 'opt_tr2'],
           ], rootIU);
         }
-if (debug) console.debug('BWM upTabs - bloc cible');
         // bloc Cible
         DOM.newNodes([
           ['target_tr1', 'tr', { 'class': 'tblheader' },
@@ -3006,7 +2996,6 @@ if (debug) console.debug('BWM upTabs - bloc cible');
           upSearch();
         }
       }
-if (debug) console.debug('BWM upTabs - résultats');
       DOM.newNodes([ // Résultats
         ['res_tr5', 'tr', { 'class': 'tblheader' },
           [], {}, 'sim'],
@@ -3213,7 +3202,6 @@ if (debug) console.debug('BWM upTabs - résultats');
         }
       }
     }
-if (debug) console.debug('BWM upTabs - début Saisie');
     // Saisie
     DOM.newNodes([
       ['get_tr', 'tr', { 'class': 'tblheader' },
@@ -3248,7 +3236,6 @@ if (debug) console.debug('BWM upTabs - début Saisie');
     {
       if (U.getP('mode') === 0)
       { // saisie par liste
-if (debug) console.debug('BWM upTabs - saisie liste');
         var sel = [
           [arm, 'Armurerie', 'shLArm'],
           [clone(s.s), 'Copie Index', 'shLInd'],
@@ -3279,7 +3266,6 @@ if (debug) console.debug('BWM upTabs - saisie liste');
               {
                 var x = sel[k][0][i];
                 var v = Jsons.encode(x);
-if (debug) console.debug('BWM upTabs : ', x);
                 if (!exist(link[v])) link[v] = {};
                 if (!exist(link[v]['s' + k])) link[v]['s' + k] = [];
                 link[v]['s' + k].push('get_td2' + k + '_' + i);
@@ -3313,7 +3299,6 @@ if (debug) console.debug('BWM upTabs : ', x);
       }
       else if (U.getP('mode') == 1)
       { // copier/coller
-if (debug) console.debug('BWM upTabs - saisie copier/coller');
         DOM.newNodes([
           ['get_tr0', 'tr', {},
             [], {}, 'get'
@@ -3362,7 +3347,6 @@ if (debug) console.debug('BWM upTabs - saisie copier/coller');
       }
       else
       { // saisie manuelle
-if (debug) console.debug('BWM upTabs - saisie manuelle');
         var max = Math.max(loc[1].length, loc[2][U.getP('cat')].length, loc[3][U.getP('cat')].length, loc[4][U.getP('cat')].length);
         DOM.newNodes([
           ['get_tr0', 'tr', { 'class': 'tblheader' },
@@ -3424,7 +3408,6 @@ if (debug) console.debug('BWM upTabs - saisie manuelle');
       }
     }
     // coloration des objets sélectionnés/identiques
-if (debug) console.debug('BWM upTabs - coloration');
     for (var key in link)
     {
       if (link.hasOwnProperty(key))
@@ -3477,7 +3460,6 @@ if (debug) console.debug('BWM upTabs - coloration');
         }
       }
     }
-if (debug) console.debug('BWM upTabs - aides');
     // Bulles d'aide
     if (!!U.getP('shHelp'))
     {
