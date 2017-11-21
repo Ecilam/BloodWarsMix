@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.08.10
+// @version     2017.11.21
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2017, Ecilam
@@ -67,8 +67,7 @@
       if (typeof v === 'string')
       {
         var a = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*)?)Z$/.exec(v);
-        if (!isNull(a)) return new Date(Date.UTC(Number(a[1]), Number(a[2]) - 1, Number(a[3]), Number(a[
-          4]), Number(a[5]), Number(a[6])));
+        if (!isNull(a)) return new Date(Date.UTC(Number(a[1]), Number(a[2]) - 1, Number(a[3]), Number(a[4]), Number(a[5]), Number(a[6])));
       }
       return v;
     }
@@ -1649,7 +1648,7 @@
   function delSel(e, i)
   {
     s.s.splice(i, 1);
-    if (U.getP('setZone') === -2 && U.getP('setIndex') >= i && i > 0)
+    if (U.getP('setZone') === -2 && U.getP('setIndex') >= i && U.getP('setIndex') > 0)
     {
       U.setP('setIndex', U.getP('setIndex') - 1);
     }
@@ -2162,25 +2161,23 @@
   // becart = true, bcout = true
   function workSearch4(data, tmp, tmpd)
   {
-    var n1 = data.length,
-      n2 = n1 - 2;
+    var n1 = data.length;
+    var n2 = n1 - 2;
     for (var i = 0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
       nb.splice(i, 1);
       for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
       {
-        if (tmp[1] === 0) self.postMessage(
+        if (tmp[1] === 0)
         {
-          'cmd': 'adv',
-          'key': key,
-          'e': [n1, n2, i, j]
-        });
+          self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
+        }
         if (objCmp(b, a) >= 0)
         {
-          var v = objMix(a, b).concat(0),
-            d = objDiff(v, but),
-            p = tmp[1] + a[4] + b[4];
+          var v = objMix(a, b).concat(0);
+          var d = objDiff(v, but);
+          var p = tmp[1] + a[4] + b[4];
           if (d <= diff)
           {
             if (d < diff || p < niv)
@@ -2286,13 +2283,12 @@
       postSearch.toString(),
       " var d = e.data, key = d.k;",
       " if (d.cmd=='start') {",
-      "		var fus = d.o.oMaxfusion === '' ? Infinity : (d.o.oMaxfusion - 1)*3,",
-      "			becart = !!d.o.oBest,",
-      "			diff = d.o.oMaxEcart === '' ? Infinity : d.o.oMaxEcart,",
-      "			max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0,",
-      "			bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity,",
-      "			mix = d.m, but = d.b;",
-debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcout] });" : "",
+      "		var fus = d.o.oMaxfusion === '' ? Infinity : (d.o.oMaxfusion - 1)*3;",
+      "		var	becart = !!d.o.oBest;",
+      "		var	diff = d.o.oMaxEcart === '' ? Infinity : d.o.oMaxEcart;",
+      "		var	max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0;",
+      "		var	bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity;",
+      "		var	mix = d.m, but = d.b;",
       "		if (!becart&&!bcout) {workSearch1(d.d, [[], 0], Infinity);}",
       "		else if (!becart && bcout) { workSearch2(d.d, [[], 0], Infinity); }",
       "		else if (becart && !bcout) { workSearch3(d.d, [[], 0], Infinity); }",
@@ -2310,9 +2306,6 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
         w = tasks.w[d.key];
       switch (d.cmd)
       {
-      case 'debug':
-        if (debug) { console.debug('Workdebug :', d.msg) };
-        break;
       case 'adv':
         w.e = Math.floor((100 / d.e[0]) * d.e[2] + ((100 / d.e[0]) / (d.e[1] + 1)) * d.e[3]);
         break;
@@ -3378,21 +3371,22 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           for (var j = 0; j < 4; j++)
           {
             var x = j === 0 ? loc[j + 1] : loc[j + 1][U.getP('cat')];
-            if (i < x.length) DOM.newNodes([
-              ['get_td1' + i + '_' + j, 'td',
-                {
-                  'class': (isGo && U.getP('setZone') < 0 ? 'BWMcut2' : 'BWMcut') +
-                    ((U.getP('setZone') == -1 ? but[j] : U.getP('setZone') == -2 ? s.s[U.getP('setIndex')][j] : r[U.getP('setIndex')][j]) ==
-                      i ? ' disabled' : '')
-                },
-                [(j > 0 && i > 0 ? i + ':' : '') + x[i][0]], (isGo && U.getP('setZone') < 0 ? {} :
-                {
-                  'click': [
-                    selectMSet, [j, i]
-                  ]
-                }), 'get_tr1' + i
-              ]
-            ], rootIU);
+            if (i < x.length)
+            {
+              DOM.newNodes([
+                ['get_td1' + i + '_' + j, 'td',
+                  {
+                    'class': (isGo && U.getP('setZone') < 0 ? 'BWMcut2' : 'BWMcut') +
+                      ((U.getP('setZone') == -1 ? but[j] : U.getP('setZone') == -2 ? s.s[U.getP('setIndex')][j] : r[U.getP('setIndex')][j]) ==
+                        i ? ' disabled' : '')
+                  },
+                  [(j > 0 && i > 0 ? i + ':' : '') + x[i][0]], (isGo && U.getP('setZone') < 0 ? {} :
+                  {
+                    'click': [selectMSet, [j, i]]
+                  }), 'get_tr1' + i
+                ]
+              ], rootIU);
+            }
             else DOM.newNodes([
               ['get_td1' + i + '_' + j, 'td', {},
                 [], {}, 'get_tr1' + i
@@ -3568,26 +3562,16 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Index.</span></td></tr>"
         ],
         'idx_th11': ['Index',
-          "<tr><td>Liste des objets utilisés dans le cadre de la recherche (minimun 2) ou"
-          +
-          " pouvant servir pour constituer une liste perso.</td></tr>"
-          +
-          "<tr><td>Tri manuel possible sur les colonnes.</td></tr>"
-          +
-          "<tr><td>La colonne de gauche indique la différence de points entre l'objet et la cible."
-          +
-          "Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>"
-          +
-          "<tr><td><hr></hr></td></tr>"
-          +
-          "<tr><td><b>Commandes par objets :</b></td></tr>"
-          +
-          "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>"
-          +
-          "<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>"
-          +
-          "<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>"
-          +
+          "<tr><td>Liste des objets utilisés dans le cadre de la recherche (minimun 2) ou" +
+          " pouvant servir pour constituer une liste perso.</td></tr>" +
+          "<tr><td>Tri manuel possible sur les colonnes.</td></tr>" +
+          "<tr><td>La colonne de gauche indique la différence de points entre l'objet et la cible." +
+          "Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td><b>Commandes par objets :</b></td></tr>" +
+          "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>" +
+          "<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>" +
+          "<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>" +
           "<tr><td>- ► : ajoute cet objet après l'objet sélectionné du résultat en cours ou sinon en fin du résultat.</span></td></tr>"
         ],
         'idx_th13': ['Reset',
@@ -3597,8 +3581,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Options.</span></td></tr>"
         ],
         'opt_th11': ['Options',
-          "<tr><td>Ensemble d'options permettant de modifier le comportement de la recherche.</td></tr>"
-          +
+          "<tr><td>Ensemble d'options permettant de modifier le comportement de la recherche.</td></tr>" +
           "<tr><td>Pour plus de détails passer la souris sur l'option concernée.</td></tr>"
         ],
         'opt2_td01': ['Max - Fusions',
@@ -3647,8 +3630,7 @@ debug ? "self.postMessage({ 'cmd': 'debug', 'msg': [fus, becart, diff, max, bcou
           "<tr><td><span class='atkHit'>[+]</span><span class='heal'>[-]</span><span> : affiche/masque la zone Cible.</span></td></tr>"
         ],
         'target_th11': ['Cible',
-          "<tr><td>Permet d'indiquer la cible recherchée.</td></tr>"
-          +
+          "<tr><td>Permet d'indiquer la cible recherchée.</td></tr>" +
           "<tr><td>Un élément vide n'est pas pris en compte.</td></tr>"
         ],
         'target_th13': ['Reset',
