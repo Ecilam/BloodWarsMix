@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.11.21
+// @version     2017.12.18
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2017, Ecilam
@@ -12,6 +12,12 @@
 // @include     /^https:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
 // @grant       none
 // ==/UserScript==
+/* TODO
+- algo par largeur (mémoire ? limite ?)
+- tester le pré-calcul des fusions
+- workers multiples ?
+- adaptation Greasemonkey ?
+*/
 (function ()
 {
   "use strict";
@@ -1218,22 +1224,58 @@
     return d;
   }
 
-  function fusion(a, b, c, i)
-  { // a,b = x (a<=b), c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
-    if (c === 0 && i === 0 && a == 1 && b == 3) return 4; // exception casquette+Casque Militaire = masque
-    else return a == b ? a : (b == loc[i + 2][c].length - 1 && b - a < 3) ? b - a == 1 ? b - 2 : b - 1 : b -
-      a == 1 ? b + 1 : b - Math.floor((b - a - 2) / 2);
+  function eltMix(a, b, c, i)
+  { // a,b = x, c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
+    var min = a < b ? a : b;
+    var max = a < b ? b : a;
+    if (c === 0 && i === 0 && min === 1 && max === 3)
+    { // exception casquette+Casque Militaire = masque
+      return 4; 
+    }
+    else
+    {
+      return min === max ? min : (max === loc[i + 2][c].length - 1 && max - min < 3) ? max - min === 1 ? max - 2 : max - 1 : max - min === 1 ? max + 1 : max - Math.floor((max - min - 2) / 2);
+    }
   }
 
-  function objMix(a, b)
-  { // utilise le tableau mix
-    var v = [],
-      min = Math.min(a[0], b[0]);
-    v[0] = min + ((min !== 0 && a[1] !== 0 && a[1] == b[1] && min < 17) ? 1 : 0);
-    for (var i = 1; i < 4; i++)
+  function preMix(c)
+  { // c = catégorie objet
+    allMix[c] = [[], [], []];
+    for (var i = 0; i < 3; i++)
     {
-      if (a[i] === 0 || b[i] === 0) v[i] = 0;
-      else v[i] = mix[i - 1][a[i]][b[i]];
+      var t = loc[i + 2][c].length;
+  //    catMix[i] = [];
+      for (var j = 0; j < t; j++)
+      {
+        allMix[c][i][j] = [];
+        for (var k = 0; k < t; k++)
+        {
+          allMix[c][i][j][k] = eltMix(j, k, c, i);
+        }
+      }
+    }
+if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
+    return allMix[c];
+  }
+  
+  function objMix(a, b)
+  { // utilise le tableau catMix 
+    var v = [];
+    for (var i = 0; i < 4; i++)
+    {
+      if (a[i] === 0 || b[i] === 0)
+      {
+        v[i] = 0;
+      }
+      else if (i === 0)
+      {
+        var min = a[0] > b[0] ? b[0] : a[0];
+        v[0] = min + ((a[1] !== 0 && a[1] === b[1] && min < 17) ? 1 : 0);
+      }
+      else
+      {
+        v[i] = catMix[i - 1][a[i]][b[i]];
+      }
     }
     return v;
   }
@@ -1392,20 +1434,24 @@
   // commandes Copie
   function chgArea(e, cmd)
   {
-    var area0 = rootIU.get_area0,
-      area1 = rootIU.get_area1,
-      linesOk = [],
-      linesBad = [];
+    var area0 = rootIU.get_area0;
+    var area1 = rootIU.get_area1;
+    var linesOk = [];
+    var linesBad = [];
     area0.value = "";
-    if (cmd == 'clean' || cmd == 'copy')
+    if (cmd == 'init')
+    {
+      area1.value = exist(copieTmp[cat])? copieTmp[cat] : '';
+    }
+    else if (cmd == 'clean')
     {
       area1.value = "";
     }
-    if (cmd == 'copy')
+    else if (cmd == 'copy')
     {
-      var v = U.getP('setZone') === -1 ? [but] : U.getP('setZone') === -2 ? s.s : r,
-        root = 0,
-        text = '';
+      var v = U.getP('setZone') === -1 ? [but] : U.getP('setZone') === -2 ? s.s : r;
+      var root = 0;
+      var text = '';
       for (var j = 0; j < v.length; j++)
       {
         if (v[j] == -1)
@@ -1429,10 +1475,11 @@
         }
         text += (j < v.length - 1 ? '\n' : '');
       }
-      area1.value = text;
+      area1.value += (area1.value !== "" ? '\n' : '') + text;
       area1.focus();
       area1.select();
     }
+    copieTmp[cat] = area1.value;
     var v = area1.value.split(/[\r\n]/g);
     var lines = '';
     // analyse objets
@@ -1481,8 +1528,7 @@
     }
     rootIU.get_td00.textContent = 'Lignes valides : ' + (linesOk.length > 0 ? linesOk.toString() : '-');
     rootIU.get_td10.textContent = 'Lignes invalides : ' + (linesBad.length > 0 ? linesBad.toString() : '-');
-    if (v.indexOf(false) == -1 && (v.length == 1 || (v.length > 1 && ((U.getP('setZone') === -2 && v[1][0] == -1) ||
-        (U.getP('setZone') >= 0 && v[1][0] == '+')))))
+    if (v.indexOf(false) == -1 && (v.length == 1 || (v.length > 1 && ((U.getP('setZone') === -2 && v[1][0] == -1) || (U.getP('setZone') >= 0 && v[1][0] == '+')))))
     {
       rootIU.get_div220.style.display = 'block';
       if (cmd == 'paste')
@@ -2042,12 +2088,7 @@
         {
           return;
         }
-        if (tmp[1] === 0) self.postMessage(
-        {
-          'cmd': 'adv',
-          'key': key,
-          'e': [n1, n2, i, j]
-        });
+        if (tmp[1] === 0) self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
         if (objCmp(b, a) >= 0)
         { //if (objCmp(b,a)>0) si qualité vide
           var v = objMix(a, b).concat(0),
@@ -2078,12 +2119,7 @@
       nb.splice(i, 1);
       for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
       {
-        if (tmp[1] === 0) self.postMessage(
-        {
-          'cmd': 'adv',
-          'key': key,
-          'e': [n1, n2, i, j]
-        });
+        if (tmp[1] === 0) self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
         if (objCmp(b, a) >= 0)
         {
           var v = objMix(a, b).concat(0),
@@ -2288,7 +2324,7 @@
       "		var	diff = d.o.oMaxEcart === '' ? Infinity : d.o.oMaxEcart;",
       "		var	max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0;",
       "		var	bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity;",
-      "		var	mix = d.m, but = d.b;",
+      "		var	catMix = d.m, but = d.b;",
       "		if (!becart&&!bcout) {workSearch1(d.d, [[], 0], Infinity);}",
       "		else if (!becart && bcout) { workSearch2(d.d, [[], 0], Infinity); }",
       "		else if (becart && !bcout) { workSearch3(d.d, [[], 0], Infinity); }",
@@ -2343,7 +2379,7 @@
     {
       console.debug('Worker error: %o %o', cat, Jsons.encode(e.data));
     };
-    tasks.w[k].id.postMessage({ 'cmd': 'start', 'k': k, 'd': datas, 'o': clone(s.o), 'm': mix, 'b': but });
+    tasks.w[k].id.postMessage({ 'cmd': 'start', 'k': k, 'd': datas, 'o': clone(s.o), 'm': catMix, 'b': but });
     s.e = [0, 0, null, 0];
     s.t = 0;
     upTabs();
@@ -2388,7 +2424,6 @@
     var results = [];
     var root = 0;
     var lroot = null;
-    var copieTmp = exist(rootIU.get_area1) ? rootIU.get_area1.value : '';
     var arm = exist(items[cat]) ? items[cat] : [];
     if (!exist(list[cat]) || (exist(list[cat]) && list[cat].length === 0))
     {
@@ -2469,21 +2504,8 @@
     r = s.r[U.getP('result')];
     but = s.b;
     isGo = exist(tasks.s[cat]) && exist(tasks.s[cat][U.getP('sim')]);
-    // pré-calcule les fusions pour cette catégorie (hors qualité)
-    for (var i = 0; i < 3; i++)
-    {
-      var t = loc[i + 2][U.getP('cat')],
-        len = t.length;
-      mix[i] = [];
-      for (var j = 0; j < len; j++)
-      {
-        mix[i][j] = [];
-        for (var k = 0; k < len; k++)
-        {
-          mix[i][j][k] = fusion(Math.min(j, k), Math.max(j, k), U.getP('cat'), i);
-        }
-      }
-    }
+    // pré-calcule si besoin les fusions pour cette catégorie (hors qualité)
+    catMix = exist(allMix[U.getP('cat')]) ? allMix[U.getP('cat')] : preMix(U.getP('cat'));
     // reconstruit l'interface
     if (exist(rootIU.root))
     {
@@ -3293,50 +3315,22 @@
       else if (U.getP('mode') == 1)
       { // copier/coller
         DOM.newNodes([
-          ['get_tr0', 'tr', {},
-            [], {}, 'get'
-          ],
-          ['get_td00', 'td', { 'colspan': '5' },
-            [], {}, 'get_tr0'
-          ],
-          ['get_tr1', 'tr', {},
-            [], {}, 'get'
-          ],
-          ['get_td10', 'td', { 'colspan': '5' },
-            [], {}, 'get_tr1'
-          ],
-          ['get_tr2', 'tr', {},
-            [], {}, 'get'
-          ],
-          ['get_td20', 'td', { 'class': 'BWMselect atkHit' },
-            ['X'], { 'click': [chgArea, 'clean'] }, 'get_tr2'
-          ],
-          ['get_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' },
-            ['◄◄'], { 'click': [chgArea, 'copy'] }, 'get_tr2'
-          ],
-          ['get_td22', 'td', { 'colspan': '2' },
-            [], {}, 'get_tr2'
-          ],
-          ['get_div220', 'div', { 'class': 'BWM100 BWMselect heal' },
-            ['►►'], { 'click': [chgArea, 'paste'] }, 'get_td22'
-          ],
-          ['get_tr3', 'tr', {},
-            [], {}, 'get'
-          ],
-          ['get_td30', 'td', { 'colspan': '1', 'class': 'BWMcut2 BWMeven' },
-            [], {}, 'get_tr3'
-          ],
-          ['get_area0', 'textarea', { 'class': 'textarea BWMdivarea', 'readonly': 'readonly', 'spellcheck': 'false' },
-            [], {}, 'get_td30'
-          ],
-          ['get_td31', 'td', { 'colspan': '4', 'class': 'BWMcut2 BWMeven' },
-            [], {}, 'get_tr3'
-          ],
-          ['get_area1', 'textarea', { 'class': 'textarea BWMdivarea', 'spellcheck': 'false' },
-            [copieTmp], { 'input': [chgArea, 'update'] }, 'get_td31'
-          ],
+          ['get_tr0', 'tr', {}, [], {}, 'get'],
+          ['get_td00', 'td', { 'colspan': '5' }, [], {}, 'get_tr0'],
+          ['get_tr1', 'tr', {}, [], {}, 'get'],
+          ['get_td10', 'td', { 'colspan': '5' }, [], {}, 'get_tr1'],
+          ['get_tr2', 'tr', {}, [], {}, 'get'],
+          ['get_td20', 'td', { 'class': 'BWMselect atkHit' }, ['X'], { 'click': [chgArea, 'clean'] }, 'get_tr2'],
+          ['get_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' }, ['◄◄'], { 'click': [chgArea, 'copy'] }, 'get_tr2'],
+          ['get_td22', 'td', { 'colspan': '2' }, [], {}, 'get_tr2'],
+          ['get_div220', 'div', { 'class': 'BWM100 BWMselect heal' }, ['►►'], { 'click': [chgArea, 'paste'] }, 'get_td22'],
+          ['get_tr3', 'tr', {}, [], {}, 'get'],
+          ['get_td30', 'td', { 'colspan': '1', 'class': 'BWMcut2 BWMeven' }, [], {}, 'get_tr3'],
+          ['get_area0', 'textarea', { 'class': 'textarea BWMdivarea', 'readonly': 'readonly', 'spellcheck': 'false' }, [], {}, 'get_td30'],
+          ['get_td31', 'td', { 'colspan': '4', 'class': 'BWMcut2 BWMeven' }, [], {}, 'get_tr3'],
+          ['get_area1', 'textarea', { 'class': 'textarea BWMdivarea', 'spellcheck': 'false' }, [], { 'input': [chgArea, 'update'] }, 'get_td31'],
         ], rootIU);
-        chgArea(null, 'update');
+        chgArea(null, 'init');
       }
       else
       { // saisie manuelle
@@ -3709,9 +3703,10 @@
         var loc = L.get("listes");
         var list = U.getD('LIST', {});
         var tasks = { 't': null, 'k': {}, 's': {}, 'w': {} };
-        var mix = [];
+        var allMix = {};
         var cat = U.getP('cat').toString() + U.getP('leg');
-        var but, c, s, r, isGo;
+        var copieTmp = {};
+        var but, c, s, r, isGo, catMix;
         var rootIU = {};
         // création du pattern de recherche et analyse des objets de l'armurerie
         var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li");
