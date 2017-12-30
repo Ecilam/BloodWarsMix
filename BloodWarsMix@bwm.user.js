@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.12.18
+// @version     2017.12.30
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2017, Ecilam
@@ -14,7 +14,6 @@
 // ==/UserScript==
 /* TODO
 - algo par largeur (mémoire ? limite ?)
-- tester le pré-calcul des fusions
 - workers multiples ?
 - adaptation Greasemonkey ?
 */
@@ -375,7 +374,7 @@
           [
             ['-'],
             ['T-shirt'],
-            ['Veste', true],
+            ['Veste', 'Cadeau', true],
             ['Veston'],
             ['Gilet'],
             ['Corset'],
@@ -426,7 +425,7 @@
             ['Espadon'],
             ['Hache Lourde', true],
             ['Morgenstern', true],
-            ['Faux', true],
+            ['Faux', 'Luge', true],
             ['Pique'],
             ['Hallebarde', true],
             ['Katana'],
@@ -436,7 +435,7 @@
             ['-'],
             ['Glock'],
             ['Beretta'],
-            ['Uzi'],
+            ['Uzi', 'Lanceur de boule de neige'],
             ['Magnum'],
             ['Desert Eagle'],
             ['Mp5k'],
@@ -456,7 +455,7 @@
             ['-'],
             ['Arc Court'],
             ['Arc'],
-            ['Shuriken'],
+            ['Shuriken', 'Foie gras'],
             ['Arc Long'],
             ['Arbalète'],
             ['Couteau de lancer'],
@@ -1254,7 +1253,7 @@
         }
       }
     }
-if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
+//if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
     return allMix[c];
   }
   
@@ -1464,11 +1463,12 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
           if (U.getP('setZone') >= 0) text += j - root > 0 && (j - root) % 2 === 0 ? '= ' : j - root === 0 ? '' : '+ ';
           if (objCmp(v[j], [0, 0, 0, 0]) !== 0)
           {
+            var genre = loc[2][U.getP('cat')][v[j][1]].slice(-1)[0] === true;
             var grade = { 0: ['', ''], 1: ['Bon ', 'Bonne '], 2: ['Parfait ', 'Parfaite '] };
             text += U.getP('leg') === 'L' ? 'Légendaire ' : '';
-            text += v[j][0] > 0 ? grade[Math.floor(v[j][0] / 6)][exist(loc[2][U.getP('cat')][v[j][1]][1]) ? 1 : 0] : '';
+            text += v[j][0] > 0 ? grade[Math.floor(v[j][0] / 6)][genre ? 1 : 0] : '';
             text += v[j][1] > 0 ? loc[2][U.getP('cat')][v[j][1]][0] + ' ' : '';
-            text += v[j][2] > 0 ? loc[3][U.getP('cat')][v[j][2]][exist(loc[2][U.getP('cat')][v[j][1]][1]) && exist(loc[3][U.getP('cat')][v[j][2]][1]) ? 1 : 0] + ' ' : '';
+            text += v[j][2] > 0 ? loc[3][U.getP('cat')][v[j][2]][genre && exist(loc[3][U.getP('cat')][v[j][2]][1]) ? 1 : 0] + ' ' : '';
             text += v[j][3] > 0 ? loc[4][U.getP('cat')][v[j][3]][exist(loc[4][U.getP('cat')][v[j][3]][1]) ? 1 : 0] + ' ' : '';
             text += v[j][0] > 0 && v[j][0] % 6 > 0 ? '(+' + v[j][0] % 6 + ')' : '';
           }
@@ -2076,8 +2076,8 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
   // becart = false, bcout = false
   function workSearch1(data, tmp, tmpd)
   {
-    var n1 = data.length,
-      n2 = n1 - 2;
+    var n1 = data.length;
+    var n2 = n1 - 2;
     for (var i = 0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
@@ -2160,12 +2160,10 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
       nb.splice(i, 1);
       for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
       {
-        if (tmp[1] === 0) self.postMessage(
+        if (tmp[1] === 0)
         {
-          'cmd': 'adv',
-          'key': key,
-          'e': [n1, n2, i, j]
-        });
+          self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
+        }
         if (objCmp(b, a) >= 0)
         {
           var v = objMix(a, b).concat(0),
@@ -2223,13 +2221,14 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
               res = 0;
               self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
             }
-            if (p == niv && res < max)
+            if (p === niv && res < max)
             {
               res++;
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && d < tmpd && tmp[0].length < fus)
+          if (d > 0 && d < (tmpd + 0) && tmp[0].length < fus) // ne poursuit pas si le résultat s'éloigne
+          // if (d > 0 && tmp[0].length < fus)
           {
             nb[j] = v;
             workSearch4(nb, [tmp[0].concat([b, a, v]), p], d);
@@ -2732,21 +2731,9 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
             ['idx_td3' + j + '_1', 'td', { 'class': 'BWMcut' },
               [loc[1][s.s[j][0]][0]], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j],
             ['idx_td3' + j + '_2', 'td', { 'class': 'BWMcut' },
-              [(s.s[j][1] > 0 ? s.s[j][1] + ':' : '') + loc[2][U.getP('cat')][s.s[j][1]][0]],
-              {
-                'click': [setI, [-2, j]]
-              }, 'idx_tr3' + j],
-            ['idx_td3' + j + '_3', 'td', { 'class': 'BWMcut' },
-              [(s.s[j][2] > 0 ? s.s[j][2] + ':' : '') + loc[3][U.getP('cat')][s.s[j][2]][exist(loc[2][U.getP('cat')]
-                [s.s[j][1]][1]) && exist(loc[3][U.getP('cat')][s.s[j][2]][1]) ? 1 : 0]],
-              {
-                'click': [setI, [-2, j]]
-              }, 'idx_tr3' + j],
-            ['idx_td3' + j + '_4', 'td', { 'class': 'BWMcut' },
-              [(s.s[j][3] > 0 ? s.s[j][3] + ':' : '') + loc[4][U.getP('cat')][s.s[j][3]][0]],
-              {
-                'click': [setI, [-2, j]]
-              }, 'idx_tr3' + j]
+              [(s.s[j][1] > 0 ? s.s[j][1] + ':' : '') + loc[2][U.getP('cat')][s.s[j][1]][0]], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_3', 'td', { 'class': 'BWMcut' }, [(s.s[j][2] > 0 ? s.s[j][2] + ':' : '') + loc[3][U.getP('cat')][s.s[j][2]][loc[2][U.getP('cat')][s.s[j][1]].slice(-1)[0] === true && exist(loc[3][U.getP('cat')][s.s[j][2]][1]) ? 1 : 0]], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j],
+            ['idx_td3' + j + '_4', 'td', { 'class': 'BWMcut' }, [(s.s[j][3] > 0 ? s.s[j][3] + ':' : '') + loc[4][U.getP('cat')][s.s[j][3]][0]], { 'click': [setI, [-2, j]] }, 'idx_tr3' + j]
           ], rootIU);
           if (isGo)
           {
@@ -2985,7 +2972,7 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
               { 'click': [setI, [-1, 0]] }, 'target_tr3'],
             ['target_td3_3', 'td', { 'class': 'BWMcut' },
               [(but[2] > 0 ? but[2] + ':' : '') +
-              loc[3][U.getP('cat')][but[2]][exist(loc[2][U.getP('cat')][but[1]][1]) &&
+              loc[3][U.getP('cat')][but[2]][loc[2][U.getP('cat')][but[1]].slice(-1)[0] === true &&
               exist(loc[3][U.getP('cat')][but[2]][1]) ? 1 : 0]], { 'click': [setI, [-1, 0]] },
               'target_tr3'],
             ['target_td3_4', 'td', { 'class': 'BWMcut' },
@@ -3109,8 +3096,8 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
                 [(r[j][1] > 0 ? r[j][1] + ':' : '') + loc[2][U.getP('cat')][r[j][1]][0]], {}, 'res_tr6' + j
               ],
               ['res_td6' + j + '_3', 'td', { 'class': 'BWMcut2 heal' },
-                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][exist(loc[2][U.getP('cat')]
-                  [r[j][1]][1]) && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]], {}, 'res_tr6' + j
+                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][loc[2][U.getP('cat')]
+                  [r[j][1]].slice(-1)[0] === true && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]], {}, 'res_tr6' + j
               ],
               ['res_td6' + j + '_4', 'td', { 'class': 'BWMcut2 heal' },
                 [(r[j][3] > 0 ? r[j][3] + ':' : '') + loc[4][U.getP('cat')][r[j][3]][0]], {}, 'res_tr6' + j
@@ -3156,8 +3143,8 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
                 }, 'res_tr6' + j
               ],
               ['res_td6' + j + '_3', 'td', { 'class': 'BWMcut' },
-                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][exist(loc[2][U.getP('cat')]
-                  [r[j][1]][1]) && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]],
+                [(r[j][2] > 0 ? r[j][2] + ':' : '') + loc[3][U.getP('cat')][r[j][2]][loc[2][U.getP('cat')]
+                  [r[j][1]].slice(-1)[0] === true && exist(loc[3][U.getP('cat')][r[j][2]][1]) ? 1 : 0]],
                 {
                   'click': [setI, [
                     U.getP('result'), j
@@ -3292,7 +3279,7 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
                   DOM.newNodes([
                     ['get_td2' + k + '_' + i + '_1', 'td', { 'class': 'BWMcut2' }, [loc[1][x[0]][0]], {}, 'get_tr2' + k + '_' + i],
                     ['get_td2' + k + '_' + i + '_2', 'td', { 'class': 'BWMcut2' }, [(x[1] > 0 ? x[1] + ':' : '') + loc[2][U.getP('cat')][x[1]][0]], {}, 'get_tr2' + k + '_' + i],
-                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut2' }, [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][exist(loc[2][U.getP('cat')][x[1]][1]) && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], {}, 'get_tr2' + k + '_' + i],
+                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut2' }, [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][loc[2][U.getP('cat')][x[1]].slice(-1)[0] === true && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], {}, 'get_tr2' + k + '_' + i],
                     ['get_td2' + k + '_' + i + '_4', 'td', { 'class': 'BWMcut2' }, [(x[3] > 0 ? x[3] + ':' : '') + loc[4][U.getP('cat')][x[3]][0]], {}, 'get_tr2' + k + '_' + i],
                     ['get_td2' + k + '_' + i + '_5', 'td', {}, [], {}, 'get_tr2' + k + '_' + i],
                   ], rootIU);
@@ -3302,7 +3289,7 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
                   DOM.newNodes([
                     ['get_td2' + k + '_' + i + '_1', 'td', { 'class': 'BWMcut' }, [loc[1][x[0]][0]], { 'click': [selectSet, x] }, 'get_tr2' + k + '_' + i],
                     ['get_td2' + k + '_' + i + '_2', 'td', { 'class': 'BWMcut' }, [(x[1] > 0 ? x[1] + ':' : '') + loc[2][U.getP('cat')][x[1]][0]], { 'click': [selectSet, x] }, 'get_tr2' + k + '_' + i],
-                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut' }, [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][exist(loc[2][U.getP('cat')][x[1]][1]) && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], { 'click': [selectSet, x] }, 'get_tr2' + k + '_' + i],
+                    ['get_td2' + k + '_' + i + '_3', 'td', { 'class': 'BWMcut' }, [(x[2] > 0 ? x[2] + ':' : '') + loc[3][U.getP('cat')][x[2]][loc[2][U.getP('cat')][x[1]].slice(-1)[0] === true && exist(loc[3][U.getP('cat')][x[2]][1]) ? 1 : 0]], { 'click': [selectSet, x] }, 'get_tr2' + k + '_' + i],
                     ['get_td2' + k + '_' + i + '_4', 'td', { 'class': 'BWMcut' }, [(x[3] > 0 ? x[3] + ':' : '') + loc[4][U.getP('cat')][x[3]][0]], { 'click': [ selectSet, x] }, 'get_tr2' + k + '_' + i],
                     (U.getP('setZone') == -1) ? ['get_td2' + k + '_' + i + '_5', 'td', {}, [], {}, 'get_tr2' + k + '_' + i] : ['get_td2' + k + '_' + i + '_5', 'td', { 'class': 'BWMselect heal' }, ['►'], { 'click': [selectAdd, x] }, 'get_tr2' + k + '_' + i],
                   ], rootIU);
@@ -3711,7 +3698,7 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
         // création du pattern de recherche et analyse des objets de l'armurerie
         var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li");
         var items = {};
-        var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, [], [], []];
+        var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, {}, [], []];
         var pat = "(Légendaire|)(?:[ ]?|$)(Bon|Bonne|Parfait|Parfaite|)(?:[ ]?|$)(?:"; 
         for (var j = 0; j < loc[2].length; j++)
         {
@@ -3719,13 +3706,29 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
           {
             pat += '|';
           }
-          pat += '(?:(' + loc[2][j].reduce(function(a, b, c, d) { indexPat[1][b[0]] = [j, c]; return (c > 0 ? a + b[0] + '|' : ''); }, '') + ')(?:[ ]?|$)';
+      //    pat += '(?:(' + loc[2][j].reduce(function(a, b, c, d) { indexPat[1][b[0]] = [j, c]; return (c > 0 ? a + b[0] + '|' : ''); }, '') + ')(?:[ ]?|$)';
+          pat += '(?:(' + loc[2][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z)
+          {
+            if (x !== true)
+            {
+              indexPat[1][x] = [j, c];
+              return w + x + '|';
+            }
+            return w;
+          }, a) : '', '') + ')(?:[ ]?|$)';
           indexPat[2][j] = {};
-          pat += '(' + loc[3][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z){ indexPat[2][j][x] = c; return w + x + '|'; }, a) : '', '') + ')(?:[ ]?|$)';
+          pat += '(' + loc[3][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z)
+          {
+            indexPat[2][j][x] = c; return w + x + '|'; 
+          }, a) : '', '') + ')(?:[ ]?|$)';
           indexPat[3][j] = {};
-          pat += '(' + loc[4][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z){ indexPat[3][j][x] = c; return w + x + '|'; }, a) : '', '') + ')(?:[ ]?|$))';
+          pat += '(' + loc[4][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z)
+          {
+            indexPat[3][j][x] = c; return w + x + '|'; 
+          }, a) : '', '') + ')(?:[ ]?|$))';
         }
         pat += ")(\\(\\+[0-5]\\)|)";
+//if (debug) console.debug('BWM test : ', pat, indexPat);
         for (var i = 0; i < nodes.snapshotLength; i++)
         {
           var obj = DOM.getFirstNodeTextContent("./div/span", '', nodes.snapshotItem(i));
@@ -3741,7 +3744,7 @@ if (debug) console.debug('BWM - preMix : ', JSON.stringify(allMix));
             var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
             if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
             items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
-// if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
+ //if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
           }
           else console.debug('BWM - Objet inconnu :', obj);
         }
