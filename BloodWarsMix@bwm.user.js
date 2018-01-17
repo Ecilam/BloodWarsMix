@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2017.12.30
+// @version     2018.01.17
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2017, Ecilam
@@ -416,7 +416,7 @@
             ['Kama'],
             ['Hache', true],
             ['Wakizashi'],
-            ['Poing des Cieux']
+            ['Poing des Cieux', 'Boule de neige']
           ],
           [
             ['-'],
@@ -1222,7 +1222,17 @@
     for (var i = 0; i < 4; i++) { d += (b[i] === 0 ? 0 : a[i] === 0 ? Infinity : Math.abs(a[i] - b[i])); }
     return d;
   }
-
+  
+  function objTabToBin(obj)
+  {
+// todo
+  }
+  
+  function objBinToTab(obj)
+  {
+// todo
+  }
+  
   function eltMix(a, b, c, i)
   { // a,b = x, c = catégorie, i = 0:objet, 1:préfixe, 2:suffixe
     var min = a < b ? a : b;
@@ -2067,177 +2077,111 @@
       }
     }
   }
+/********************************************/
   // Algo de parcours en profondeur (DFS)
   // data = liste d'objets
   // d = écart entre l'objet v et l'objet but
   // p = poids de l'ensemble
-  // diff = meilleur écart trouvé (
+  // diff = meilleur écart trouvé
   // niv = meilleur poids d'ensemble trouvé
-  // becart = false, bcout = false
-  function workSearch1(data, tmp, tmpd)
+  // Version originale
+  function workDfs(data, tmp, tmpd)
   {
     var n1 = data.length;
-    var n2 = n1 - 2;
-    for (var i = 0, a = data[i]; i < n1; a = data[++i])
+    var n2 = n1-2;
+    for (var i =0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
-      nb.splice(i, 1);
+      nb.splice(i,1);
       for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
       {
-        if (res == max)
+        if (res == max && !bcout && !becart)
         {
           return;
         }
-        if (tmp[1] === 0) self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
-        if (objCmp(b, a) >= 0)
-        { //if (objCmp(b,a)>0) si qualité vide
-          var v = objMix(a, b).concat(0),
-            d = objDiff(v, but);
-          if (d <= diff)
-          {
-            res++;
-            self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
-          }
-          if (d > 0 && d < tmpd && tmp[0].length < fus)
-          {
-            nb[j] = v;
-            workSearch1(nb, [tmp[0].concat([b, a, v]), 1]);
-            nb[j] = b;
-          }
-        }
-      }
-    }
-  }
-  // becart = false, bcout = true
-  function workSearch2(data, tmp, tmpd)
-  {
-    var n1 = data.length,
-      n2 = n1 - 2;
-    for (var i = 0, a = data[i]; i < n1; a = data[++i])
-    {
-      var nb = data.concat();
-      nb.splice(i, 1);
-      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
-      {
-        if (tmp[1] === 0) self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
-        if (objCmp(b, a) >= 0)
-        {
-          var v = objMix(a, b).concat(0),
-            d = objDiff(v, but),
-            p = tmp[1] + a[4] + b[4];
-          if (d <= diff)
-          {
-            if (p < niv)
-            {
-              niv = p;
-              res = 0;
-              self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
-            }
-            if (p == niv && res < max)
-            {
-              res++;
-              self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
-            }
-          }
-          if (d > 0 && d < tmpd && tmp[0].length < fus)
-          {
-            nb[j] = v;
-            workSearch2(nb, [tmp[0].concat([b, a, v]), p]);
-            nb[j] = b;
-          }
-        }
-      }
-    }
-  }
-  // becart = true, bcout = false
-  function workSearch3(data, tmp, tmpd)
-  {
-    var n1 = data.length,
-      n2 = n1 - 2;
-    for (var i = 0, a = data[i]; i < n1; a = data[++i])
-    {
-      var nb = data.concat();
-      nb.splice(i, 1);
-      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
-      {
         if (tmp[1] === 0)
         {
           self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
         }
-        if (objCmp(b, a) >= 0)
+        if (objCmp(b, a) >= 0 || !becart)
         {
-          var v = objMix(a, b).concat(0),
-            d = objDiff(v, but);
-          if (d <= diff)
-          {
-            if (d < diff)
-            {
-              diff = d;
-              res = 0;
-              self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
-            }
-            if (res < max)
-            {
-              res++;
-              self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
-            }
-          }
-          if (d > 0 && d < tmpd && tmp[0].length < fus)
-          {
-            nb[j] = v;
-            workSearch3(nb, [tmp[0].concat([b, a, v]), 1]);
-            nb[j] = b;
-          }
-        }
-      }
-    }
-  }
-  // becart = true, bcout = true
-  function workSearch4(data, tmp, tmpd)
-  {
-    var n1 = data.length;
-    var n2 = n1 - 2;
-    for (var i = 0, a = data[i]; i < n1; a = data[++i])
-    {
-      var nb = data.concat();
-      nb.splice(i, 1);
-      for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
-      {
-        if (tmp[1] === 0)
-        {
-          self.postMessage({ 'cmd': 'adv', 'key': key, 'e': [n1, n2, i, j] });
-        }
-        if (objCmp(b, a) >= 0)
-        {
-          var v = objMix(a, b).concat(0);
-          var d = objDiff(v, but);
+          var v = objMix(a,b).concat(0);
+          var d = objDiff(v,but);
           var p = tmp[1] + a[4] + b[4];
           if (d <= diff)
           {
-            if (d < diff || p < niv)
+            if ((d < diff && becart) || (p < niv && bcout))
             {
-              diff = d;
-              niv = p;
+              if (becart){ diff = d; }
+              if (bcout){ niv = p; }
               res = 0;
               self.postMessage({ 'cmd': 'new', 'key': key, 'diff': d });
             }
-            if (p === niv && res < max)
+            if ((((p === niv && bcout)||(!bcout && becart)) && res < max) || (!bcout && !becart))
             {
               res++;
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && d < (tmpd + 0) && tmp[0].length < fus) // ne poursuit pas si le résultat s'éloigne
-          // if (d > 0 && tmp[0].length < fus)
+          if (d > 0 && d < (tmpd + 0) && tmp[0].length < fus)
           {
             nb[j] = v;
-            workSearch4(nb, [tmp[0].concat([b, a, v]), p], d);
+            workDfs(nb, [tmp[0].concat([b, a, v]), p], d);
             nb[j] = b;
           }
         }
       }
     }
   }
+/********************************************/
+  // Algo de parcours en largeur (BFS)
+  // saturation mémoire à 11 objets
+  function workBfs(data)
+  {
+    var table = {'1':{}};
+    var best = [];
+    var nb = 0;
+    for (var i = 0; i < data.length; i++) // pré-rempli le tableau avec les valeurs de base
+    {
+      table['1'][Math.pow(2, i)] = [[[0, 0], [0, 0], data[i]]];
+    }
+//console.debug('BWM test : ', data, JSON.stringify(table));
+    for (var p = 2; p <= data.length; p++) // balayage
+    {
+      table[p] = {};
+      for (var p2 = 1; p2 <= p - p2; p2++) // balayage
+      {
+        for (var i in table[p2])
+        {
+          for (var j in table[p - p2])
+          {
+//console.debug('BWM test3 : ', p, p2, p - p2, parseInt(i).toString(2), parseInt(j).toString(2), parseInt(i^j).toString(2), parseInt(i|j).toString(2), ((i^j) === (i|j)), i>j);
+            if (((i^j) === (i|j)) && i>j)
+            {
+              if (!exist(table[p][i^j])) table[p][i^j] = [];
+              for (var k = 0; k < table[p2][i].length; k++)
+              {
+                var a = table[p2][i][k][2];
+                for (var l = 0; l < table[p - p2][j].length; l++)
+                {
+                  var b = table[p - p2][j][l][2];
+             /*     var v = objMix(a,b).concat(0);
+                  if (objCmp(b, a) >= 0 || !becart)
+                  var d = objDiff(v,but);*/
+//console.debug('BWM test4 : ', i, j, k, l, JSON.stringify(a), JSON.stringify(b));
+                  table[p][i^j].push([[i, k], [j, l], objMix(a, b).concat(a[4] + b[4])]);
+                  nb++;
+                }
+              }
+//console.debug('BWM test5 : ', i^j, JSON.stringify(table[p]));
+            }
+          }
+        }
+      }
+    }
+console.debug('BWM test7 : ', p, nb, );
+  }
+/********************************************/
   // élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
   function postSearch(data)
   {
@@ -2311,10 +2255,8 @@
       objDiff.toString(),
       objMix.toString(),
       tabTri.toString(),
-      workSearch1.toString(),
-      workSearch2.toString(),
-      workSearch3.toString(),
-      workSearch4.toString(),
+      workDfs.toString(),
+      workBfs.toString(),
       postSearch.toString(),
       " var d = e.data, key = d.k;",
       " if (d.cmd=='start') {",
@@ -2324,10 +2266,8 @@
       "		var	max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0;",
       "		var	bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity;",
       "		var	catMix = d.m, but = d.b;",
-      "		if (!becart&&!bcout) {workSearch1(d.d, [[], 0], Infinity);}",
-      "		else if (!becart && bcout) { workSearch2(d.d, [[], 0], Infinity); }",
-      "		else if (becart && !bcout) { workSearch3(d.d, [[], 0], Infinity); }",
-      "		else { workSearch4(d.d, [[],0], Infinity); }",
+      "   workDfs(d.d, [[], 0], Infinity);",
+//      "   workBfs(d.d);",
       "		self.postMessage({ 'cmd': 'end1', 'key': key });",
       " }",
       "	else if (d.cmd=='post') {",
@@ -3696,7 +3636,7 @@
         var but, c, s, r, isGo, catMix;
         var rootIU = {};
         // création du pattern de recherche et analyse des objets de l'armurerie
-        var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li");
+        var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li[@id]");
         var items = {};
         var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, {}, [], []];
         var pat = "(Légendaire|)(?:[ ]?|$)(Bon|Bonne|Parfait|Parfaite|)(?:[ ]?|$)(?:"; 
@@ -3728,14 +3668,16 @@
           }, a) : '', '') + ')(?:[ ]?|$))';
         }
         pat += ")(\\(\\+[0-5]\\)|)";
-//if (debug) console.debug('BWM test : ', pat, indexPat);
+if (debug) console.debug('BWM test1 : ', pat, indexPat, nodes);
         for (var i = 0; i < nodes.snapshotLength; i++)
         {
           var obj = DOM.getFirstNodeTextContent("./div/span", '', nodes.snapshotItem(i));
           var v = new RegExp('^' + pat + '$').exec(obj);
+if (debug) console.debug('BWM test2 : ', obj, v);
           if (v !== null)
           {
             v = v.reduce(function(a, b) { if (exist(b)) { a.push(b); } return a; } , [] );
+if (debug) console.debug('BWM test3 : ', v);
             var leg = v[1] !== '' ? 'L' : '';
             var grade = v[2] !== '' ? indexPat[0][v[2].trim()] : 0;
             var type = indexPat[1][v[3].trim()];
@@ -3744,7 +3686,7 @@
             var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
             if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
             items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
- //if (debug) console.debug('BWM test : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
+ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
           }
           else console.debug('BWM - Objet inconnu :', obj);
         }
