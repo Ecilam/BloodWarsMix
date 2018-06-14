@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2018.01.17
+// @version     2018.06.14
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2017, Ecilam
@@ -1205,6 +1205,31 @@
    * FUNCTIONS
    *
    ******************************************************/
+  function updateItems()
+  {
+    items = {};
+    var itemsList = DOM.getNodes("./li[@id]/div/span", itemsNode);
+    for (var i = 0; i < itemsList.snapshotLength; i++)
+    {
+      var obj = itemsList.snapshotItem(i).textContent;
+      var v = new RegExp('^' + pat + '$').exec(obj);
+      if (v !== null && v[0] !== '')
+      {
+        v = v.reduce(function(a, b) { if (exist(b)) { a.push(b); } return a; } , [] );
+        var leg = v[1] !== '' ? 'L' : '';
+        var grade = v[2] !== '' ? indexPat[0][v[2].trim()] : 0;
+        var type = indexPat[1][v[3].trim()];
+        var pre = v[4] !== '' ? indexPat[2][type[0]][v[4].trim()] : 0;
+        var suf = v[5] !== '' ? indexPat[3][type[0]][v[5].trim()] : 0;
+        var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
+        if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
+        items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
+if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
+      }
+      else console.debug('BWM - Objet inconnu :', obj);
+    }
+  }
+  
   function addslashes(str)
   {
     return (str + '').replace(/[\\"']/g, '\\$&').replace(/\u0000/g, '\\0');
@@ -3159,7 +3184,7 @@ console.debug('BWM test7 : ', p, nb, );
         ['Saisie : '], {}, 'get_th1'
       ],
       ['get_span11', 'span', { 'class': 'BWMselect' + (U.getP('mode') === 0 ? ' disabled' : '') },
-        ['listes (' + arm.length + '+' + results.length + ')'], { 'click': [selectMode, 0] }, 'get_th1'
+        ['listes (' + arm.length + '+' + results.length + ')!!'], { 'click': [selectMode, 0] }, 'get_th1'
       ],
       ['get_span12', 'span', {},
         [', '], {}, 'get_th1'
@@ -3402,6 +3427,7 @@ console.debug('BWM test7 : ', p, nb, );
         ],
         'get_span11': ['Listes',
           "<tr><td><b>- Armurerie :</b> Liste des objets de votre armurerie correspondant à la Catégorie sélectionnée.</td></tr>" +
+          "<tr><td><span class='disabled'><b>!! Important : pour prendre en compte la totalité de l'armurerie il faut faire défiler la liste complète des objets de cette page !!</b></span></td></tr>" +
           "<tr><td><b>- Index :</b> Copie de l'Index de recherche utilisable en saisie.</td></tr>" +
           "<tr><td><b>- Synthèses :</b> Copie des fusions obtenues dans le Résultat de droite.</td></tr>" +
           "<tr><td><hr></hr></td></tr>" +
@@ -3635,9 +3661,7 @@ console.debug('BWM test7 : ', p, nb, );
         var copieTmp = {};
         var but, c, s, r, isGo, catMix;
         var rootIU = {};
-        // création du pattern de recherche et analyse des objets de l'armurerie
-        var nodes = DOM.getNodes("//div[@id='content-mid']//ul[@class='inv-select']/li[@id]");
-        var items = {};
+        // création du pattern de recherche
         var indexPat = [{ "": 0, "Bon": 6, "Bonne": 6, "Parfait": 12, "Parfaite": 12 }, {}, [], []];
         var pat = "(Légendaire|)(?:[ ]?|$)(Bon|Bonne|Parfait|Parfaite|)(?:[ ]?|$)(?:"; 
         for (var j = 0; j < loc[2].length; j++)
@@ -3646,7 +3670,6 @@ console.debug('BWM test7 : ', p, nb, );
           {
             pat += '|';
           }
-      //    pat += '(?:(' + loc[2][j].reduce(function(a, b, c, d) { indexPat[1][b[0]] = [j, c]; return (c > 0 ? a + b[0] + '|' : ''); }, '') + ')(?:[ ]?|$)';
           pat += '(?:(' + loc[2][j].reduce((a, b, c, d) => c > 0 ? b.reduce(function(w, x, y, z)
           {
             if (x !== true)
@@ -3668,27 +3691,15 @@ console.debug('BWM test7 : ', p, nb, );
           }, a) : '', '') + ')(?:[ ]?|$))';
         }
         pat += ")(\\(\\+[0-5]\\)|)";
-if (debug) console.debug('BWM test1 : ', pat, indexPat, nodes);
-        for (var i = 0; i < nodes.snapshotLength; i++)
+if (debug) console.debug('BWM test1 : ', pat, indexPat);
+        // analyse des objets de l'armurerie
+        var items = {};
+        var itemsNode = DOM.getFirstNode("//div[@id='content-mid']//ul[@id='itemListContainer']");
+        if (!isNull(itemsNode))
         {
-          var obj = DOM.getFirstNodeTextContent("./div/span", '', nodes.snapshotItem(i));
-          var v = new RegExp('^' + pat + '$').exec(obj);
-if (debug) console.debug('BWM test2 : ', obj, v);
-          if (v !== null)
-          {
-            v = v.reduce(function(a, b) { if (exist(b)) { a.push(b); } return a; } , [] );
-if (debug) console.debug('BWM test3 : ', v);
-            var leg = v[1] !== '' ? 'L' : '';
-            var grade = v[2] !== '' ? indexPat[0][v[2].trim()] : 0;
-            var type = indexPat[1][v[3].trim()];
-            var pre = v[4] !== '' ? indexPat[2][type[0]][v[4].trim()] : 0;
-            var suf = v[5] !== '' ? indexPat[3][type[0]][v[5].trim()] : 0;
-            var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
-            if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
-            items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
- if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
-          }
-          else console.debug('BWM - Objet inconnu :', obj);
+          var observer = new MutationObserver(function(){updateItems(); upTabs();});
+          observer.observe(itemsNode, { childList: true, attributes: true, subtree: true });
+          updateItems();
         }
         // Création de l'interface
         upTabs();
