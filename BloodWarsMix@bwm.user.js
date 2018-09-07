@@ -2,10 +2,10 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2018.06.14
+// @version     2018.09.07
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
-// @copyright   2011-2017, Ecilam
+// @copyright   2011-2018, Ecilam
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
@@ -20,8 +20,8 @@
 (function ()
 {
   "use strict";
-  var debugTime = Date.now(); // @type {Date} permet de mesurer le temps d'execution du script.
-  var debug = false; // @type {Boolean} Active l'affichage des messages sur la console de débogages.
+  var debugTime = Date.now();
+  var debug = false;
   /**
    * @method exist
    * Test l'existence d'une valeur
@@ -77,12 +77,6 @@
       return v;
     }
     return {
-      /**
-       * @method init
-       * Fonction d'initialisation.
-       * Vérifie si le service JSON est bien disponible.
-       * @return {Objet}
-       */
       init: function ()
       {
         if (!JSON) throw new Error("Erreur : le service JSON n\'est pas disponible.");
@@ -126,12 +120,6 @@
   var LS = (function ()
   {
     return {
-      /**
-       * @method init
-       * Fonction d'initialisation.
-       * Vérifie si le service localStorage est bien disponible.
-       * @return {Objet}
-       */
       init: function ()
       {
         if (!window.localStorage) throw new Error("Erreur : le service localStorage n\'est pas disponible.");
@@ -171,6 +159,25 @@
       {
         window.localStorage.removeItem(key);
         return key;
+      },
+      /**
+       * @method size
+       * Taille des données.
+       * @return {Number}
+       */
+      size: function()
+      {
+        return window.localStorage.length;
+      },
+      /**
+       * @method key
+       * Nom de la valeur situénombre de données.
+       * @param {number} index - entier représentant le numéro de la clé voulue (0 à length).
+       * @return {String} 
+       */
+      key: function(index)
+      {
+        return window.localStorage.key(index);
       }
     };
   })().init();
@@ -248,8 +255,7 @@
        * @method newNode
        * Créé un noeud à partir d'une description
        * @example
-       * DOM.newNode('input', { 'type': 'checkbox', 'checked': true }, ['texte'],
-                    {'click': [funcname, param]}, parentNode);
+       * DOM.newNode('input', { 'type': 'checkbox', 'checked': true }, ['texte'], {'click': [funcname, param]}, parentNode);
        * @param {String} type - balise html
        * @param {{...Objet}} attributes - liste des attributs
        * @param {String[]} content - texte
@@ -295,8 +301,7 @@
         for (var i = 0; i < list.length; i++)
         {
           var node = exist(nodes[list[i][5]]) ? nodes[list[i][5]] : list[i][5];
-          nodes[list[i][0]] = this.newNode(list[i][1], list[i][2],
-            list[i][3], list[i][4], node);
+          nodes[list[i][0]] = this.newNode(list[i][1], list[i][2], list[i][3], list[i][4], node);
         }
         return nodes;
       },
@@ -551,7 +556,7 @@
             ['Fauve'],
             ['Diamant'],
             ['Vindicatif', 'Vindicative'],
-            ['Faussé'],
+            ['Faussé', 'Faussée'],
             ['En Plastique'],
             ['Insidieux', 'Insidieuse'],
             ['Solaire'],
@@ -582,7 +587,7 @@
             ['Fauve'],
             ['Diamant'],
             ['Vindicatif', 'Vindicative'],
-            ['Faussé'],
+            ['Faussé', 'Faussée'],
             ['En Plastique'],
             ['Insidieux', 'Insidieuse'],
             ['Solaire'],
@@ -850,7 +855,7 @@
   })();
   /******************************************************
    * OBJET G - Fonctions d'accès aux données du jeu.
-   * Chaque fonction retourne null en cas d'échec.
+   * Chaque fonction retourne Null en cas d'échec.
    ******************************************************/
   var G = (function ()
   {
