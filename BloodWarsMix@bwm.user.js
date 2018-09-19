@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2018.09.07
+// @version     2018.09.19
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2018, Ecilam
@@ -13,7 +13,7 @@
 // @grant       none
 // ==/UserScript==
 /* TODO
-- algo par largeur (mémoire ? limite ?)
+- algo par largeur (mémoire ? limite ?) : derniers tests non probants. Mix à prévoir ?
 - workers multiples ?
 - adaptation Greasemonkey ?
 */
@@ -1174,17 +1174,12 @@
         ".BWMa1{display: block;}",
         ".BWMerror, .BWMerror:hover{color:#FFF;background-color:red;}",
         ".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
-        ".BWMborder {outline: 1px dashed red;}",
+        //".BWMborder {outline: 1px dashed red;}",
+        "@keyframes color_change {from{box-shadow: 0 0 3px 3px rgba(0,0,0,0.5) inset;}to{box-shadow: 0 0 3px 3px rgba(255,0,0,0.5) inset;}}",
+        ".BWMborder {box-shadow: 0 0 3px 3px rgba(255,0,0,0.5) inset; animation: 1s color_change alternate infinite;}",
         // blink
-        "@-moz-keyframes blinker {from {opacity:1;} 50% {opacity:0.1;} to {opacity:1;}}",
-        "@-webkit-keyframes blinker {from {opacity:1;} to {opacity:0;}}",
-        "@keyframes blinker {from {opacity:1;} to {opacity:0;}}",
-        ".BWMblink {-webkit-animation-name: blinker;-webkit-animation-iteration-count: infinite;",
-        "   -webkit-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-webkit-animation-duration: 1s;",
-        "   -moz-animation-name: blinker;-moz-animation-iteration-count: infinite;",
-        "   -moz-animation-timing-function: cubic-bezier(1.0,0,0,1.0);-moz-animation-duration: 1s;",
-        "   animation-name: blinker; animation-iteration-count: infinite;",
-        "   animation-timing-function: cubic-bezier(1.0,0,0,1.0); animation-duration: 1s;}",
+        "@keyframes blinker {from{opacity:1;}to{opacity:0;}}",
+        ".BWMblink {animation: 1s blinker cubic-bezier(1.0,0,0,1.0) infinite;}",
       ];
     return {
       /**
@@ -2648,7 +2643,7 @@ console.debug('BWM test7 : ', p, nb, );
       if (U.getP('shSchI'))
       {
         DOM.newNodes([
-          ['idx_tr2', 'tr', { 'class': 'tblheader' }, [], {}, 'sim'],
+          ['idx_tr2', 'tr', { 'class': 'BWMTR2' }, [], {}, 'sim'],
           ['idx_td20', 'th', {}, [], {}, 'idx_tr2'],
           ['idx_td21', 'th', {}, [], {}, 'idx_tr2'],
           ['idx_span21a', 'span', {}, [], {}, 'idx_td21'],
@@ -2928,7 +2923,7 @@ console.debug('BWM test7 : ', p, nb, );
             target = [v, 0];
           }
           DOM.newNodes([
-            ['target_tr2', 'tr', { 'class': 'tblheader' }, [], {}, 'sim'],
+            ['target_tr2', 'tr', { 'class': 'BWMTR2' }, [], {}, 'sim'],
             ['target_td20', 'th', { 'colspan': '2' }, [], {}, 'target_tr2'],
             ['target_td21', 'th', {}, ['Objet'], {}, 'target_tr2'],
             ['target_td22', 'th', {}, ['Préfixe'], {}, 'target_tr2'],
@@ -3001,7 +2996,7 @@ console.debug('BWM test7 : ', p, nb, );
       if (U.getP('shRes'))
       {
         DOM.newNodes([
-          ['res_tr6', 'tr', { 'class': 'tblheader' },
+          ['res_tr6', 'tr', { 'class': 'BWMTR2' },
             [], {}, 'sim'
           ],
           ['res_th60', 'th', { 'colspan': '2' },
@@ -3226,7 +3221,7 @@ console.debug('BWM test7 : ', p, nb, );
             if (!!U.getP(sel[k][2]))
             {
               DOM.newNodes([
-                ['get_tr1' + k, 'tr', { 'class': 'tblheader' }, [], {}, 'get'],
+                ['get_tr1' + k, 'tr', { 'class': 'BWMTR2' }, [], {}, 'get'],
                 ['get_th1' + k + '_0', 'th', { 'class': 'BWMtitle' }, [], { 'click': [selectTri, 0] }, 'get_tr1' + k],
                 ['get_th1' + k + '_1', 'th', { 'class': 'BWMtitle' }, ['Objet'], { 'click': [selectTri, 1] }, 'get_tr1' + k],
                 ['get_th1' + k + '_2', 'th', { 'class': 'BWMtitle' }, ['Préfixe'], { 'click': [selectTri, 2] }, 'get_tr1' + k],
@@ -3293,7 +3288,7 @@ console.debug('BWM test7 : ', p, nb, );
       { // saisie manuelle
         var max = Math.max(loc[1].length, loc[2][U.getP('cat')].length, loc[3][U.getP('cat')].length, loc[4][U.getP('cat')].length);
         DOM.newNodes([
-          ['get_tr0', 'tr', { 'class': 'tblheader' },
+          ['get_tr0', 'tr', { 'class': 'BWMTR2' },
             [], {}, 'get'
           ],
           ['get_th00', 'th', {},
