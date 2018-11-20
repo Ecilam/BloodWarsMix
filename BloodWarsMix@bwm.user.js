@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2018.09.19
+// @version     2018.11.20
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2018, Ecilam
@@ -171,7 +171,7 @@
       },
       /**
        * @method key
-       * Nom de la valeur situénombre de données.
+       * Nom de la valeur.
        * @param {number} index - entier représentant le numéro de la clé voulue (0 à length).
        * @return {String} 
        */
@@ -936,6 +936,7 @@
           'oFObj': 2,
           'oFPre': 3,
           'oFSuf': 3,
+          'oODelta': ''
         }
       };
     var pref = {};
@@ -1224,7 +1225,7 @@
         var niv = v[6] !== '' ? Number(v[6].replace(new RegExp('[()+]', 'g'), '')) : 0;
         if (!exist(items[type[0] + leg])) items[type[0] + leg] = [];
         items[type[0] + leg].push([grade + niv, type[1], pre, suf]);
-if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
+//if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, exist(type[0]) ? (exist(loc[0][type[0]]) ? loc[0][type[0]] : 'loc[0][type[0]] error') : 'type[0] error', exist(loc[1][grade + niv]) ? (exist(loc[1][grade + niv][0]) ? loc[1][grade + niv][0] : 'loc[1][grade + niv][0] error') : 'loc[1][grade + niv] error', exist(type[0]) ? (exist(type[1]) ? (exist(loc[2][type[0]]) ? (exist(loc[2][type[0]][type[1]]) ? (exist(loc[2][type[0]][type[1]][0]) ? loc[2][type[0]][type[1]][0] : 'loc[2][type[0]][type[1]][0] error') : 'loc[2][type[0]][type[1]] error') : 'loc[2][type[0]] error') : 'type[1] error') : 'type[0] error', exist(type[0]) ? (exist(pre) ? (exist(loc[3][type[0]]) ? (exist(loc[3][type[0]][pre]) ? (exist(loc[3][type[0]][pre][0]) ? loc[3][type[0]][pre][0] : 'loc[3][type[0]][pre][0] error') : 'loc[3][type[0]][pre] error') : 'loc[3][type[0]] error') : 'pre error') : 'type[0] error', exist(type[0]) ? (exist(suf) ? (exist(loc[4][type[0]]) ? (exist(loc[4][type[0]][suf]) ? (exist(loc[4][type[0]][suf][0]) ? loc[4][type[0]][suf][0] : 'loc[4][type[0]][suf][0] error') : 'loc[4][type[0]][suf] error') : 'loc[4][type[0]] error') : 'suf error') : 'type[0] error');
       }
       else console.debug('BWM - Objet inconnu :', obj);
     }
@@ -1246,16 +1247,6 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
     var d = 0;
     for (var i = 0; i < 4; i++) { d += (b[i] === 0 ? 0 : a[i] === 0 ? Infinity : Math.abs(a[i] - b[i])); }
     return d;
-  }
-  
-  function objTabToBin(obj)
-  {
-// todo
-  }
-  
-  function objBinToTab(obj)
-  {
-// todo
   }
   
   function eltMix(a, b, c, i)
@@ -2011,15 +2002,22 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
   // fonctions de recherche
   function cmdSearch(e, i)
   { // i[0]= key ou null, i[1] = mode (stop 1|stop + res 2|fin 3|res 4)
-    var keyA = isGo ? tasks.s[cat][U.getP('sim')] : null,
-      key = i[0] === null ? keyA : i[0];
+    var keyA = isGo ? tasks.s[cat][U.getP('sim')] : null;
+    var key = i[0] === null ? keyA : i[0];
     if (key !== null)
     {
-      var v = tasks.w[key],
-        x = list[tasks.k[key][0]][tasks.k[key][1]];
+      var v = tasks.w[key];
+      var x = list[tasks.k[key][0]][tasks.k[key][1]];
       // sauve les résultats
       if (i[1] > 1)
       {
+        for (var j = x.r.length - 1 ; j >= 0; j--)
+        {
+          if (JSON.stringify(x.r[j]) === JSON.stringify([[0, 0, 0, 0],[0, 0, 0, 0],[0, 0, 0, 0]]))
+          {
+            x.r.splice(j, 1);
+          }
+        }
         for (var j = 0; j < v.r.length; j++)
         {
           x.r.push([]);
@@ -2102,14 +2100,15 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
       }
     }
   }
-/********************************************/
-  // Algo de parcours en profondeur (DFS)
-  // data = liste d'objets
-  // d = écart entre l'objet v et l'objet but
-  // p = poids de l'ensemble
-  // diff = meilleur écart trouvé
-  // niv = meilleur poids d'ensemble trouvé
-  // Version originale
+  /********************************************
+  * Algo de parcours en profondeur (DFS)
+  * data = liste d'objets
+  * d = écart entre l'objet v et l'objet but
+  * p = poids de l'ensemble
+  * diff = meilleur écart trouvé
+  * niv = meilleur poids d'ensemble trouvé
+  * Version originale
+  *********************************************/
   function workDfs(data, tmp, tmpd)
   {
     var n1 = data.length;
@@ -2148,7 +2147,8 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
               self.postMessage({ 'cmd': 'add', 'key': key, 'diff': d, 'fusion': tmp[0].concat([b, a, v]) });
             }
           }
-          if (d > 0 && d < (tmpd + 0) && tmp[0].length < fus)
+          if (d > 0 && d <= (tmpd + delta) && tmp[0].length < fus)
+          //if (d > 0 && tmp[0].length < fus)
           {
             nb[j] = v;
             workDfs(nb, [tmp[0].concat([b, a, v]), p], d);
@@ -2158,9 +2158,10 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
       }
     }
   }
-/********************************************/
-  // Algo de parcours en largeur (BFS)
-  // saturation mémoire à 11 objets
+  /*******************************************
+  * Test algo de parcours en largeur (BFS)
+  * saturation mémoire à 11 objets
+  ********************************************/
   function workBfs(data)
   {
     var table = {'1':{}};
@@ -2206,8 +2207,9 @@ if (debug) console.debug('BWM test4 : ', obj, leg, grade, type, pre, suf, niv, e
     }
 console.debug('BWM test7 : ', p, nb, );
   }
-/********************************************/
-  // élimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
+  /********************************************
+  * Elimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
+  *********************************************/
   function postSearch(data)
   {
     function dataReduce(p, c, i, t)
@@ -2260,11 +2262,8 @@ console.debug('BWM test7 : ', p, nb, );
       }
       else if (objDiff(s.s[i], but) != Infinity && objCmp(s.s[i], [0, 0, 0, 0]) !== 0)
       {
-        if (s.o.oCoef !== '' && s.o.oCoef > 1) datas.push(s.s[i].concat(Math.pow(s.o.oCoef, s.s[i][0]) * s.o.oFQua +
-          Math.pow(s.o.oCoef, s.s[i][1]) * s.o.oFObj + Math.pow(s.o.oCoef, s.s[i][2]) * s.o.oFPre +
-          Math.pow(s.o.oCoef, s.s[i][3]) * s.o.oFSuf));
-        else datas.push(s.s[i].concat(s.s[i][0] * s.o.oFQua + s.s[i][1] * s.o.oFObj +
-          s.s[i][2] * s.o.oFPre + s.s[i][3] * s.o.oFSuf));
+        if (s.o.oCoef !== '' && s.o.oCoef > 1) datas.push(s.s[i].concat(Math.pow(s.o.oCoef, s.s[i][0]) * s.o.oFQua + Math.pow(s.o.oCoef, s.s[i][1]) * s.o.oFObj + Math.pow(s.o.oCoef, s.s[i][2]) * s.o.oFPre + Math.pow(s.o.oCoef, s.s[i][3]) * s.o.oFSuf));
+        else datas.push(s.s[i].concat(s.s[i][0] * s.o.oFQua + s.s[i][1] * s.o.oFObj + s.s[i][2] * s.o.oFPre + s.s[i][3] * s.o.oFSuf));
       }
     }
     // prépare le worker
@@ -2281,7 +2280,7 @@ console.debug('BWM test7 : ', p, nb, );
       objMix.toString(),
       tabTri.toString(),
       workDfs.toString(),
-      workBfs.toString(),
+//      workBfs.toString(),
       postSearch.toString(),
       " var d = e.data, key = d.k;",
       " if (d.cmd=='start') {",
@@ -2290,6 +2289,7 @@ console.debug('BWM test7 : ', p, nb, );
       "		var	diff = d.o.oMaxEcart === '' ? Infinity : d.o.oMaxEcart;",
       "		var	max = d.o.oMaxRes === '' ? Infinity : d.o.oMaxRes, res = 0;",
       "		var	bcout = d.o.oCoef !== '' && d.o.oCoef > 0, niv = Infinity;",
+      "		var	delta = d.o.oODelta === '' ? Infinity : d.o.oODelta;",
       "		var	catMix = d.m, but = d.b;",
       "   workDfs(d.d, [[], 0], Infinity);",
 //      "   workBfs(d.d);",
@@ -2410,19 +2410,20 @@ console.debug('BWM test7 : ', p, nb, );
     else if (exist(list[cat][U.getP('sim')]))
     {
       // vérification options de recherche
-      var defOpt = U.getP('defOpt');
+      var prefOpt = U.getP('defOpt');
+      var defOpt = U.getDefP('defOpt');
       var optTmp = exist(list[cat][U.getP('sim')].o) ? clone(list[cat][U.getP('sim')].o) : {};
       if (!Array.isArray(optTmp))
       {
         list[cat][U.getP('sim')].o = {};
         for (var i in defOpt)
         {
-          list[cat][U.getP('sim')].o[i] = exist(optTmp[i]) ? optTmp[i] : defOpt[i];
+          list[cat][U.getP('sim')].o[i] = exist(optTmp[i]) ? optTmp[i] : exist(prefOpt[i]) ? prefOpt[i] : defOpt[i];
         }
       }
       else
       {
-        list[cat][U.getP('sim')].o = defOpt;
+        list[cat][U.getP('sim')].o = prefOpt;
       }
       // vérification résultats
       if (list[cat][U.getP('sim')].r.length === 0)
@@ -2765,94 +2766,27 @@ console.debug('BWM test7 : ', p, nb, );
             ['opt2_td21', 'td', {}, [], {}, 'opt2_tr2'],
             ['opt2_td22', 'td', {}, [], {}, 'opt2_tr2'],
             ['opt2_td23', 'td', {}, [], {}, 'opt2_tr2'],
-            ['opt2_td24', 'td', {}, [], {}, 'opt2_tr2']
+            ['opt2_td24', 'td', {}, [], {}, 'opt2_tr2'],
+            ['opt2_tr3', 'tr', {}, [], {}, 'opt2'],
+            ['opt2_td30', 'td', {}, ['Opti : '], {}, 'opt2_tr3'],
+            ['opt2_td31', 'td', { 'class': 'atkHit' }, ['Delta'], {}, 'opt2_tr3'],
+            ['opt2_td32', 'td', {}, [], {}, 'opt2_tr3']
           ], rootIU);
           if (isGo)
           {
             DOM.newNodes([
-              ['opt2_mfusion', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oMaxfusion
-                },
-                [], {}, 'opt2_td02'],
-              ['opt2_mecart', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oMaxEcart
-                },
-                [], {}, 'opt2_td04'],
-              ['opt2_mres', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oMaxRes
-                },
-                [], {}, 'opt2_td06'],
-              ['opt2_fcout', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oCoef
-                },
-                [], {}, 'opt2_td12'
-              ],
-              ['opt2_fecart', 'input',
-                {
-                  'class': 'BWMinput',
-                  'type': 'checkbox',
-                  'disabled': true,
-                  'checked': !!s.o.oBest
-                },
-                [], {}, 'opt2_td14'],
-              ['opt2_fpost', 'input',
-                {
-                  'class': 'BWMinput',
-                  'type': 'checkbox',
-                  'disabled': true,
-                  'checked': !!s.o.oPost
-                },
-                [], {}, 'opt2_td16'],
-              ['opt2_fqua', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oFQua
-                },
-                [], {}, 'opt2_td21'],
-              ['opt2_fobj', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oFObj
-                },
-                [], {}, 'opt2_td22'],
-              ['opt2_fpre', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oFPre
-                },
-                [], {}, 'opt2_td23'],
-              ['opt2_fsuf', 'input',
-                {
-                  'class': 'inputbox BWMinput',
-                  'type': 'text',
-                  'disabled': true,
-                  'value': s.o.oFSuf
-                },
-                [], {}, 'opt2_td24'],
-              ['opt_td21a', 'td', { 'colspan': '2' },
-                [], {}, 'opt_tr2']
+              ['opt2_mfusion', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oMaxfusion }, [], {}, 'opt2_td02'],
+              ['opt2_mecart', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oMaxEcart }, [], {}, 'opt2_td04'],
+              ['opt2_mres', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oMaxRes }, [], {}, 'opt2_td06'],
+              ['opt2_fcout', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oCoef }, [], {}, 'opt2_td12'],
+              ['opt2_fecart', 'input', { 'class': 'BWMinput', 'type': 'checkbox', 'disabled': true, 'checked': !!s.o.oBest }, [], {}, 'opt2_td14'],
+              ['opt2_fpost', 'input', { 'class': 'BWMinput', 'type': 'checkbox', 'disabled': true, 'checked': !!s.o.oPost }, [], {}, 'opt2_td16'],
+              ['opt2_fqua', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oFQua }, [], {}, 'opt2_td21'],
+              ['opt2_fobj', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oFObj }, [], {}, 'opt2_td22'],
+              ['opt2_fpre', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oFPre }, [], {}, 'opt2_td23'],
+              ['opt2_fsuf', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oFSuf }, [], {}, 'opt2_td24'],
+              ['opt2_delta', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'disabled': true, 'value': s.o.oODelta }, [], {}, 'opt2_td32'],
+              ['opt_td21a', 'td', { 'colspan': '2' }, [], {}, 'opt_tr2']
             ], rootIU);
           }
           else
@@ -2888,7 +2822,9 @@ console.debug('BWM test7 : ', p, nb, );
               ['opt2_fsuf', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFSuf, 'onfocus': "this.select();" },
                 [], { 'change': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']] }, 'opt2_td24'
               ],
-
+              ['opt2_delta', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oODelta, 'onfocus': "this.select();" },
+                [], { 'change': [optSearch, ['oODelta', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oODelta', '^(|[+-]?[0-9]+)$']] }, 'opt2_td32'
+              ],
               ['opt_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' },
                 ['▲'], { 'click': [getOpt] }, 'opt_tr2'
               ]
@@ -3564,6 +3500,21 @@ console.debug('BWM test7 : ', p, nb, );
           "<tr><td><hr></hr></td></tr>" +
           "<tr><td>Par défaut Préfixe et Suffixe sont prioritaires mais vous pouvez changer ces valeurs suivant vos besoins.</td></tr>"
         ],
+        'opt2_td31': ['Optimisation Delta',
+          "<tr><td>Cette option permet de réduire le temps de recherche en stoppant un arbre de recherche si l'écart entre la fusion actuelle et la cible est supérieur à l'écart de la précédente fusion majoré d'une valeur delta.</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>- vide : recherche sans limite (la plus lente - par défaut).</td></tr>" +
+          "<tr><td>- nombre : stop l'arbre de recherche suivant le delta saisi (-1 plus rapide que 2).</td></tr>" +
+          "<tr><td><hr></hr></td></tr>" +
+          "<tr><td>Saisir un delta induit l'exclusion de certaines recherches. Exemple :</td></tr>" + 
+          "<tr><td>   - 1:Anneau 21:Vindicatif 9:Art</td></tr>" + 
+          "<tr><td>+  - 1:Anneau 22:Faussé 10:Justesse</td></tr>" + 
+          "<tr><td>=  - 1:Anneau 23:En Plastique 11:Jouvence => écart 6</td></tr>" + 
+          "<tr><td>+  - 1:Anneau 28:Noir 6:Sagesse</td></tr>" + 
+          "<tr><td>=  - 1:Anneau 27:Faucon 10:Justesse => écart 7, avec un delta inférieur à 1 le script n'ira pas plus loin</td></tr>" + 
+          "<tr><td>+  - 1:Anneau 20:Diamant 17:Lévitation</td></tr>" + 
+          "<tr><td>=  - 1:Anneau 25:Solaire 15:Chauve-souris</td></tr>"          
+        ],
         'opt_td21': ['Chargement des options',
           "<tr><td>Charge les valeurs par défaut.</td></tr>"
         ],
@@ -3691,7 +3642,7 @@ console.debug('BWM test7 : ', p, nb, );
           }, a) : '', '') + ')(?:[ ]?|$))';
         }
         pat += ")(\\(\\+[0-5]\\)|)";
-if (debug) console.debug('BWM test1 : ', pat, indexPat);
+//if (debug) console.debug('BWM test1 : ', pat, indexPat);
         // analyse des objets de l'armurerie
         var items = {};
         var itemsNode = DOM.getFirstNode("//div[@id='content-mid']//ul[@id='itemListContainer']");
