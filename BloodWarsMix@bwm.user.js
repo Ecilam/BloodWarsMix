@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2018.11.20
+// @version     2019.03.01
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2018, Ecilam
@@ -13,9 +13,12 @@
 // @grant       none
 // ==/UserScript==
 /* TODO
-- algo par largeur (mémoire ? limite ?) : derniers tests non probants. Mix à prévoir ?
 - workers multiples ?
 - adaptation Greasemonkey ?
+- fusionner 2 objets dont un épique :
+      Legendaire Parfait +5
+   +  Epique quelque soit le niveau
+   =  objet épique ayant des affixes de l’objet Légendaire parfait +5 avec le niveau de l’objet Epique
 */
 (function ()
 {
@@ -57,7 +60,10 @@
     var newObjet = obj.constructor();
     for (var i in obj)
     {
-      newObjet[i] = clone(obj[i]);
+      if (obj.hasOwnProperty(i))
+      {
+        newObjet[i] = clone(obj[i]);
+      }
     }
     return newObjet;
   }
@@ -490,7 +496,7 @@
             ['Pare-balles'],
             ['Chamaniste'],
             ['Tigre'],
-            ['D`Assaut'],
+            ['D’Assaut'],
             ['Runique'],
             ['Rituel', 'Rituelle']
           ],
@@ -655,9 +661,9 @@
         [ // 4 - suffixes
           [
             ['-'],
-            ['Explorateur', 'De L`Explorateur'],
+            ['Explorateur', 'De L’Explorateur'],
             ['Précaution', 'De La Précaution'],
-            ['Endurance', 'D`Endurance'],
+            ['Endurance', 'D’Endurance'],
             ['Berger', 'Du Berger'],
             ['Toxicomane', 'Du Toxicomane'],
             ['Protection', 'De La Protection'],
@@ -668,51 +674,51 @@
             ['Sang', 'Du Sang'],
             ['Carapace De Tortue', 'De Carapace De Tortue'],
             ['Soleil', 'Du Soleil'],
-            ['Adrénaline', 'De l`Adrénaline'],
+            ['Adrénaline', 'De l’Adrénaline'],
             ['Précognition', 'De La Précognition'],
-            ['Écaille De Dragon', 'D`Écaille De Dragon'],
+            ['Écaille De Dragon', 'D’Écaille De Dragon'],
             ['Puissance', 'De La Puissance'],
             ['Magie', 'De La Magie']
           ],
           [
             ['-'],
             ['Voleur', 'Du Voleur'],
-            ['Adepte', 'De L`Adepte'],
+            ['Adepte', 'De L’Adepte'],
             ['Garde', 'Du Garde'],
-            ['Athlète', 'De L`Athlète'],
+            ['Athlète', 'De L’Athlète'],
             ['Toxicomane', 'Du Toxicomane'],
-            ['Maître D`Epée', 'Du Maître D`Epée'],
+            ['Maître D’Epée', 'Du Maître D’Epée'],
             ['Tueur', 'Du Tueur'],
             ['Gardien', 'Du Gardien'],
             ['Cobra', 'Du Cobra'],
             ['Carapace De Tortue', 'De Carapace De Tortue'],
-            ['Esquive', 'D`Esquive'],
+            ['Esquive', 'D’Esquive'],
             ['Pillard', 'Du Pillard'],
             ['Maître', 'Du Maître'],
-            ['Adrénaline', 'De l`Adrénaline'],
+            ['Adrénaline', 'De l’Adrénaline'],
             ['Centurion', 'Du Centurion'],
             ['Résistance', 'De La Résistance'],
             ['Caligula', 'De Caligula'],
             ['Semeur De La Mort', 'Du Semeur De La Mort'],
             ['Vitesse', 'De La Vitesse'],
-            ['Orchidée', 'De L`Orchidée']
+            ['Orchidée', 'De L’Orchidée']
           ],
           [
             ['-'],
             ['Brigand', 'Du Brigand'],
             ['Contrebandier', 'Du Contrebandier'],
             ['Toxicomane', 'Du Toxicomane'],
-            ['Athlète', 'De L`Athlète'],
+            ['Athlète', 'De L’Athlète'],
             ['Gestes Muets', 'Des Gestes Muets'],
-            ['Esquive', 'D`Esquive'],
+            ['Esquive', 'D’Esquive'],
             ['Réserve', 'De La Réserve'],
             ['Soleil', 'Du Soleil'],
-            ['Trafiquant D`Armes', 'Du Trafiquant D`Armes'],
+            ['Trafiquant D’Armes', 'Du Trafiquant D’Armes'],
             ['Berger', 'Du Berger'],
-            ['Chasseur D`Ombres', 'Du Chasseur D`Ombres'],
+            ['Chasseur D’Ombres', 'Du Chasseur D’Ombres'],
             ['Serpent', 'Du Serpent'],
             ['Incas', 'Des Incas'],
-            ['Orienteur', 'De L`Orienteur'],
+            ['Orienteur', 'De L’Orienteur'],
             ['Nuit', 'De La Nuit']
           ],
           [
@@ -727,14 +733,14 @@
             ['Pèlerin', 'Du Pèlerin'],
             ['Loup-garou', 'Du Loup-garou'],
             ['Justesse', 'De La Justesse'],
-            ['Art', 'De L`Art'],
+            ['Art', 'De L’Art'],
             ['Jouvence', 'De La Jouvence'],
             ['Chance', 'De La Chance'],
             ['Sang', 'Du Sang'],
-            ['Habilité', 'De L`Habilité'],
+            ['Habilité', 'De L’Habilité'],
             ['Concentration', 'De La Concentration'],
             ['Lévitation', 'De La Lévitation'],
-            ['Astuce', 'De L`Astuce'],
+            ['Astuce', 'De L’Astuce'],
             ['Dément', 'Du Dément'],
             ['Facilitée', 'De La Facilitée']
           ],
@@ -748,7 +754,7 @@
             ['Sagesse', 'De La Sagesse'],
             ['Peau Dure', 'De La Peau Dure'],
             ['Loup-garou', 'Du Loup-garou'],
-            ['Art', 'De L`Art'],
+            ['Art', 'De L’Art'],
             ['Justesse', 'De La Justesse'],
             ['Jouvence', 'De La Jouvence'],
             ['Renard', 'Du Renard'],
@@ -757,7 +763,7 @@
             ['Chauve-souris', 'De La Chauve-souris'],
             ['Concentration', 'De La Concentration'],
             ['Lévitation', 'De La Lévitation'],
-            ['Astuce', 'De L`Astuce'],
+            ['Astuce', 'De L’Astuce'],
             ['Dément', 'Du Dément'],
             ['Facilitée', 'De La Facilitée']
           ],
@@ -767,7 +773,7 @@
             ['Secte', 'De La Secte'],
             ['Douleur', 'De La Douleur'],
             ['Pouvoir', 'Du Pouvoir'],
-            ['Agilité', 'De L`Agilité'],
+            ['Agilité', 'De L’Agilité'],
             ['Puissance', 'De La Puissance'],
             ['Peste', 'De la Peste'],
             ['Courage', 'Du Courage'],
@@ -784,7 +790,7 @@
             ['Dracula', 'De Dracula'],
             ['Vélocité', 'De La Vélocité'],
             ['Clan', 'Du Clan'],
-            ['Empereur', 'De L`Empereur']
+            ['Empereur', 'De L’Empereur']
           ],
           [
             ['-'],
@@ -794,14 +800,14 @@
             ['Hasardeux', 'Du Hasardeux'],
             ['Plomb', 'De Plomb'],
             ['Puissance', 'De La Puissance'],
-            ['Inquisiteur', 'De L`Inquisiteur'],
+            ['Inquisiteur', 'De L’Inquisiteur'],
             ['Buveur De Sang', 'Du Buveur De Sang'],
             ['Conquérant', 'Du Conquérant'],
             ['Pouvoir', 'Du Pouvoir'],
             ['Vengeance', 'De La Vengeance'],
             ['Peste', 'De la Peste'],
             ['Fer À Cheval', 'Du Fer À Cheval'],
-            ['Autocrate', 'De L`Autocrate'],
+            ['Autocrate', 'De L’Autocrate'],
             ['Sang', 'Du Sang'],
             ['Basilic', 'Du Basilic'],
             ['Suicidé', 'Du Suicidé'],
@@ -965,7 +971,10 @@
               id = ref[1];
               for (var i in ids)
               {
-                if (ids[i] == id) delete ids[i]; // en cas de changement de nom
+                if (ids.hasOwnProperty(i))
+                {
+                  if (ids[i] == id) delete ids[i]; // en cas de changement de nom
+                }
               }
               ids[player] = id;
               LS.set('BWM:IDS', ids);
@@ -979,7 +988,10 @@
           var prefTmp = LS.get('BWM:O:' + id, {});
           for (var i in defPref)
           {
-            pref[i] = exist(prefTmp[i]) ? prefTmp[i] : clone(defPref[i]);
+            if (defPref.hasOwnProperty(i))
+            {
+              pref[i] = exist(prefTmp[i]) ? prefTmp[i] : clone(defPref[i]);
+            }
           }
         }
         return this;
@@ -1656,11 +1668,14 @@
       if (exist(tasks.s[cat][U.getP('sim')])) cmdSearch(null, [null, 1]);
       for (var j in tasks.s[cat])
       {
-        if (j > U.getP('sim'))
+        if (tasks.s[cat].hasOwnProperty(j))
         {
-          tasks.k[tasks.s[cat][j]] = [cat, j - 1];
-          tasks.s[cat][j - 1] = tasks.s[cat][j];
-          delete tasks.s[cat][j];
+          if (j > U.getP('sim'))
+          {
+            tasks.k[tasks.s[cat][j]] = [cat, j - 1];
+            tasks.s[cat][j - 1] = tasks.s[cat][j];
+            delete tasks.s[cat][j];
+          }
         }
       }
     }
@@ -2113,13 +2128,13 @@
   {
     var n1 = data.length;
     var n2 = n1-2;
-    for (var i =0, a = data[i]; i < n1; a = data[++i])
+    for (var i = 0, a = data[i]; i < n1; a = data[++i])
     {
       var nb = data.concat();
       nb.splice(i,1);
       for (var j = 0, b = nb[j]; j <= n2; b = nb[++j])
       {
-        if (res == max && !bcout && !becart)
+        if (res === max && !bcout && !becart)
         {
           return;
         }
@@ -2130,7 +2145,7 @@
         if (objCmp(b, a) >= 0 || !becart)
         {
           var v = objMix(a,b).concat(0);
-          var d = objDiff(v,but);
+          var d = objDiff(v, but);
           var p = tmp[1] + a[4] + b[4];
           if (d <= diff)
           {
@@ -2148,7 +2163,6 @@
             }
           }
           if (d > 0 && d <= (tmpd + delta) && tmp[0].length < fus)
-          //if (d > 0 && tmp[0].length < fus)
           {
             nb[j] = v;
             workDfs(nb, [tmp[0].concat([b, a, v]), p], d);
@@ -2157,55 +2171,6 @@
         }
       }
     }
-  }
-  /*******************************************
-  * Test algo de parcours en largeur (BFS)
-  * saturation mémoire à 11 objets
-  ********************************************/
-  function workBfs(data)
-  {
-    var table = {'1':{}};
-    var best = [];
-    var nb = 0;
-    for (var i = 0; i < data.length; i++) // pré-rempli le tableau avec les valeurs de base
-    {
-      table['1'][Math.pow(2, i)] = [[[0, 0], [0, 0], data[i]]];
-    }
-//console.debug('BWM test : ', data, JSON.stringify(table));
-    for (var p = 2; p <= data.length; p++) // balayage
-    {
-      table[p] = {};
-      for (var p2 = 1; p2 <= p - p2; p2++) // balayage
-      {
-        for (var i in table[p2])
-        {
-          for (var j in table[p - p2])
-          {
-//console.debug('BWM test3 : ', p, p2, p - p2, parseInt(i).toString(2), parseInt(j).toString(2), parseInt(i^j).toString(2), parseInt(i|j).toString(2), ((i^j) === (i|j)), i>j);
-            if (((i^j) === (i|j)) && i>j)
-            {
-              if (!exist(table[p][i^j])) table[p][i^j] = [];
-              for (var k = 0; k < table[p2][i].length; k++)
-              {
-                var a = table[p2][i][k][2];
-                for (var l = 0; l < table[p - p2][j].length; l++)
-                {
-                  var b = table[p - p2][j][l][2];
-             /*     var v = objMix(a,b).concat(0);
-                  if (objCmp(b, a) >= 0 || !becart)
-                  var d = objDiff(v,but);*/
-//console.debug('BWM test4 : ', i, j, k, l, JSON.stringify(a), JSON.stringify(b));
-                  table[p][i^j].push([[i, k], [j, l], objMix(a, b).concat(a[4] + b[4])]);
-                  nb++;
-                }
-              }
-//console.debug('BWM test5 : ', i^j, JSON.stringify(table[p]));
-            }
-          }
-        }
-      }
-    }
-console.debug('BWM test7 : ', p, nb, );
   }
   /********************************************
   * Elimine les solutions identiques (même ensemble avec même résultat mais permutations différentes).
@@ -2418,7 +2383,10 @@ console.debug('BWM test7 : ', p, nb, );
         list[cat][U.getP('sim')].o = {};
         for (var i in defOpt)
         {
-          list[cat][U.getP('sim')].o[i] = exist(optTmp[i]) ? optTmp[i] : exist(prefOpt[i]) ? prefOpt[i] : defOpt[i];
+          if (defOpt.hasOwnProperty(i))
+          {
+            list[cat][U.getP('sim')].o[i] = exist(optTmp[i]) ? optTmp[i] : exist(prefOpt[i]) ? prefOpt[i] : defOpt[i];
+          }
         }
       }
       else
@@ -3395,12 +3363,12 @@ console.debug('BWM test7 : ', p, nb, );
           "<tr><td>Lors de l'import la ligne '=' sera automatiquement recalculée et peut donc être laissé à vide ou erronée.</td></tr>" +
           "<tr><td><hr></hr></td></tr>" +
           "<tr><td><b>Exemple :</b></td></tr>" +
-          "<tr><td>Short Renforcé De L`Athlète (+1)</td></tr>" +
-          "<tr><td>+ Short Satiné De L`Athlète (+1)</td></tr>" +
-          "<tr><td>= Short Clouté De L`Athlète (+2)</td></tr>" +
+          "<tr><td>Short Renforcé De L’Athlète (+1)</td></tr>" +
+          "<tr><td>+ Short Satiné De L’Athlète (+1)</td></tr>" +
+          "<tr><td>= Short Clouté De L’Athlète (+2)</td></tr>" +
           "<tr><td>-</td></tr>" +
           "<tr><td>Flexible Du Brigand</td></tr>" +
-          "<tr><td>+ Parfaite Jupe Satinée Du Trafiquant D`Armes (+1)</td></tr>" +
+          "<tr><td>+ Parfaite Jupe Satinée Du Trafiquant D’Armes (+1)</td></tr>" +
           "<tr><td>=</td></tr>"
         ],
         'get_td20': ['Reset',
@@ -3579,12 +3547,15 @@ console.debug('BWM test7 : ', p, nb, );
       };
       for (var key in aides)
       {
-        if (exist(rootIU[key]))
+        if (aides.hasOwnProperty(key))
         {
-          rootIU[key].setAttribute('onmouseout', 'nd();');
-          rootIU[key].setAttribute('onmouseover', "return overlib('<table class=\"BWMoverlib\">" +
-            addslashes(aides[key][1]) + "</table>',CAPTION,'" + aides[key][0] +
-            "',CAPTIONFONTCLASS,'action-caption',WIDTH,300,VAUTO,HAUTO);");
+          if (exist(rootIU[key]))
+          {
+            rootIU[key].setAttribute('onmouseout', 'nd();');
+            rootIU[key].setAttribute('onmouseover', "return overlib('<table class=\"BWMoverlib\">" +
+              addslashes(aides[key][1]) + "</table>',CAPTION,'" + aides[key][0] +
+              "',CAPTIONFONTCLASS,'action-caption',WIDTH,300,VAUTO,HAUTO);");
+          }
         }
       }
     }
