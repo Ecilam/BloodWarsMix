@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2019.03.01
+// @version     2019.03.01a
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @copyright   2011-2018, Ecilam
@@ -338,8 +338,8 @@
   var L = (function ()
   {
     var locStr = {
-      "sDeconnecte": "Vous avez été déconnecté en raison d`une longue inactivité.",
-      "sCourtePause": "Une courte pause est en court en raison de l`actualisation du classement général",
+      "sDeconnecte": "Vous avez été déconnecté en raison d’une longue inactivité.",
+      "sCourtePause": "Une courte pause est en court en raison de l’actualisation du classement général",
       "sUnknowID": "Blood Wars Mix - Erreur :\n\nLe nom de ce vampire doit être lié à son ID. Merci de consulter la Salle du Trône pour rendre le script opérationnel.\nCe message est normal si vous utilisez ce script pour la première fois ou si vous avez changé le nom du vampire.",
       "listes": [
         // 0 - types
@@ -971,10 +971,7 @@
               id = ref[1];
               for (var i in ids)
               {
-                if (ids.hasOwnProperty(i))
-                {
-                  if (ids[i] == id) delete ids[i]; // en cas de changement de nom
-                }
+                if (ids.hasOwnProperty(i) && ids[i] == id) delete ids[i]; // en cas de changement de nom
               }
               ids[player] = id;
               LS.set('BWM:IDS', ids);
@@ -3420,7 +3417,7 @@
           "Un objet n'ayant pas un des éléments de la cible indique une valeur infinie.</td></tr>" +
           "<tr><td><hr></hr></td></tr>" +
           "<tr><td><b>Commandes par objets :</b></td></tr>" +
-          "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d`objet vide.</span></td></tr>" +
+          "<tr><td>- <span class='heal'>+</span><span> : ajoute une ligne d’objet vide.</span></td></tr>" +
           "<tr><td>- ▼ ▲ : déplace la ligne.</td></tr>" +
           "<tr><td>- <span class='atkHit'>X</span><span> : supprime la ligne.</span></td></tr>" +
           "<tr><td>- ► : ajoute cet objet après l'objet sélectionné du résultat en cours ou sinon en fin du résultat.</span></td></tr>"
