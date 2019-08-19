@@ -2,10 +2,9 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2019.03.01a
+// @version     2019.08.19
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
-// @copyright   2011-2018, Ecilam
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
@@ -1184,9 +1183,9 @@
         ".BWMa1{display: block;}",
         ".BWMerror, .BWMerror:hover{color:#FFF;background-color:red;}",
         ".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
-        //".BWMborder {outline: 1px dashed red;}",
-        "@keyframes color_change {from{box-shadow: 0 0 3px 3px rgba(0,0,0,0.5) inset;}to{box-shadow: 0 0 3px 3px rgba(255,0,0,0.5) inset;}}",
-        ".BWMborder {box-shadow: 0 0 3px 3px rgba(255,0,0,0.5) inset; animation: 1s color_change alternate infinite;}",
+        // bord animé
+        "@keyframes border-dance {  0% { background-position: 0 0, 100% 100%, 0 100%, 100% 0;} 100% {background-position: 100% 0, 0 100%, 0 0, 100% 100%;}}",
+        ".BWMborder {width: max-content; background: linear-gradient(90deg, red 50%, transparent 50%), linear-gradient(90deg, red 50%, transparent 50%), linear-gradient(0deg, red 50%, transparent 50%), linear-gradient(0deg, red 50%, transparent 50%); background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;  background-size: 5px 1px, 5px 1px, 1px 5px, 1px 5px; animation: border-dance 4s infinite linear;}",
         // blink
         "@keyframes blinker {from{opacity:1;}to{opacity:0;}}",
         ".BWMblink {animation: 1s blinker cubic-bezier(1.0,0,0,1.0) infinite;}",
@@ -2787,8 +2786,7 @@
               ['opt2_fsuf', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oFSuf, 'onfocus': "this.select();" },
                 [], { 'change': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']], 'keyup': [optSearch, ['oFSuf', '^([1-9][0-9]*)$']] }, 'opt2_td24'
               ],
-              ['opt2_delta', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oODelta, 'onfocus': "this.select();" },
-                [], { 'change': [optSearch, ['oODelta', '^(|[0-9]+)$']], 'keyup': [optSearch, ['oODelta', '^(|[+-]?[0-9]+)$']] }, 'opt2_td32'
+              ['opt2_delta', 'input', { 'class': 'inputbox BWMinput', 'type': 'text', 'value': s.o.oODelta, 'onfocus': "this.select();" }, [], { 'change': [optSearch, ['oODelta', '^(|[+-]?[0-9]+)$']], 'keyup': [optSearch, ['oODelta', '^(|[+-]?[0-9]+)$']] }, 'opt2_td32'
               ],
               ['opt_td21', 'td', { 'colspan': '2', 'class': 'BWMselect heal' },
                 ['▲'], { 'click': [getOpt] }, 'opt_tr2'
