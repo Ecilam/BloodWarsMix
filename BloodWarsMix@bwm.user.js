@@ -2,7 +2,7 @@
 // ==UserScript==
 // @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2020.08.20
+// @version     2020.09.01
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
@@ -1000,25 +1000,25 @@
             ['Émeraude'],
             ['En Or'],
             ['En Platine'],
-            ['En Titane'],
             ['Rubis'],
             ['Distingué', 'Distinguée'],
             ['Astucieux', 'Astucieuse'],
+            ['Cardinal', 'Cardinale'],
+            ['Élastique'],
+            ['Nécromancien', 'Nécromancienne'],
+            ['Astral', 'Astrale'],
             ['Ours'],
             ['Dur', 'Dure'],
-            ['Astral', 'Astrale'],
-            ['Élastique'],
-            ['Cardinal', 'Cardinale'],
-            ['Nécromancien', 'Nécromancienne'],
-            ['Archaique'],
-            ['Hypnotique'],
-            ['Dansant', 'Dansante'],
-            ['Fauve'],
             ['Diamant'],
             ['Vindicatif', 'Vindicative'],
+            ['Archaique'],
+            ['Dansant', 'Dansante'],
+            ['Hypnotique'],
+            ['Fauve'],
             ['Faussé', 'Faussée'],
             ['En Plastique'],
             ['Insidieux', 'Insidieuse'],
+            ['En Titane'],
             ['Solaire'],
             ['Araignée'],
             ['Faucon'],
