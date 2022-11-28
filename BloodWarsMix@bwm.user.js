@@ -1,18 +1,20 @@
 // coding: utf-8 (sans BOM)
 // ==UserScript==
-// @author      Ecilam
 // @name        Blood Wars Mix
-// @version     2020.09.01
+// @author      Ecilam
+// @version     2022.11.28
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
-// @include     /^https:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
+// @match       https://*.fr.bloodwars.net/*
 // @grant       none
 // ==/UserScript==
+
+// @include     /^https:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
+
 /* TODO
-- Vérifier les fusions sur serveur Moria S
 - workers multiples ?
 - adaptation Greasemonkey ?
 - fusionner 2 objets dont un épique :
@@ -158,7 +160,7 @@
        * @method key
        * Nom de la valeur.
        * @param {number} index - entier représentant le numéro de la clé voulue (0 à length).
-       * @return {String} 
+       * @return {String}
        */
       key: function (index) {
         return window.localStorage.key(index);
@@ -212,7 +214,7 @@
        * Assigne un gestionnaire d'évènement à un noeud
        * @example call
        * DOM.addEvent(result,'click',fn,'2');
-       * @example listener 
+       * @example listener
        * // this = node, e = event
        * function fn(e,par) {alert('Event : ' + this.value + e.type + par);}
        * @param {contextNode} node - noeud utilisé
@@ -1436,7 +1438,7 @@
       /**
        * @method id
        * Retourne l'id de l'utilisateur.
-       * @return {integer|null} 
+       * @return {integer|null}
        */
       id: function () {
         return id;
@@ -1444,7 +1446,7 @@
       /**
        * @method name
        * Retourne le nom de l'utilisateur.
-       * @return {string|null} 
+       * @return {string|null}
        */
       name: function () {
         return name;
@@ -1700,7 +1702,7 @@
     return allMix[c];
   }
 
-  function objMix(a, b) { // utilise le tableau catMix 
+  function objMix(a, b) { // utilise le tableau catMix
     var v = [];
     for (var i = 0; i < 4; i++) {
       if (a[i] === 0 || b[i] === 0) {
@@ -2783,19 +2785,6 @@
         },
         [], {}, 'root'
       ],
-      
-      ['alerte_moria_s', 'div', {}, [], {}, 'box'
-      ],
-      ['alerte_moria_s1', 'div', {'class': 'disabled'},
-        [(G.royaume() === 'Moria S' ?'!! ATTENTION !!':'')], {}, 'alerte_moria_s'
-      ],
-      ['alerte_moria_s2', 'div', {'class': 'disabled'},
-        [(G.royaume() === 'Moria S' ?'La liste des fusions n’est pas encore adaptée au serveur Moria S et peut proposer des fusions erronées.':'')], {}, 'alerte_moria_s'
-      ],
-      ['alerte_moria_s3', 'div', {'class': 'disabled'},
-        [(G.royaume() === 'Moria S' ?'En attendant une mise à jour utiliser ce script avec précaution.':'')], {}, 'alerte_moria_s'
-      ],
-      
       ['main', 'table', {
           'class': 'BWMtab0'
         },
