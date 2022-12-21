@@ -2,25 +2,22 @@
 // ==UserScript==
 // @name        Blood Wars Mix
 // @author      Ecilam
-// @version     2022.12.10
+// @version     2022.12.21
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
 // @homepageURL https://github.com/Ecilam/BloodWarsMix
 // @supportURL  https://github.com/Ecilam/BloodWarsMix/issues
-// @match       https://r1.fr.bloodwars.net/*
-// @match       https://r1.fr.bloodwars.net/*
-// @match       https://r2.fr.bloodwars.net/*
 // @match       https://r3.fr.bloodwars.net/*
-// @match       https://r4.fr.bloodwars.net/*
-// @match       https://r7.fr.bloodwars.net/*
 // @match       https://r8.fr.bloodwars.net/*
 // @grant       none
 // ==/UserScript==
 
+// Include remplacé par Match suite préconisation
 // @include     /^https:\/\/r[0-9]*\.fr\.bloodwars\.net\/.*$/
 
 /* TODO
+- Vérifier les fusions sur serveur Moria S
 - workers multiples ?
 - adaptation Greasemonkey ?
 - fusionner 2 objets dont un épique :
@@ -28,6 +25,7 @@
    +  Epique quelque soit le niveau
    =  objet épique ayant des affixes de l’objet Légendaire parfait +5 avec le niveau de l’objet Epique
 - affichage du score des objets.
+- choix de la couleur de sélection (moche pour certains thèmes)
 */
 (function () {
   "use strict";
@@ -1331,10 +1329,23 @@
        * @return {String|null}
        */
       playerName: function () {
-        return DOM.getFirstNodeTextContent("//div[@class='stats-player']/a[@class='me']", null);
+        return DOM.getFirstNodeTextContent("//div[@class='stats-player']/a[@class='me'] | //div[@class='character']/a[@class='nickNameStats']", null);
       },
-      royaume: function() {
-        return DOM.getFirstNodeTextContent("(//div[@class='gameStats']/div[1]/b)", null);
+      royaume: function () {
+        var a = DOM.getFirstNodeTextContent("//div[@class='gameStats']/div[1]/b | //div[@class='realmName']", null);
+        if (!isNull(a)) a = a.replace(/\n|\r/g,'').trim();
+        return a;
+      },
+      /**
+       * @method id
+       * retourne l'ID du joueur (disponible uniquement sur la Salle du trône)
+       * @return {String|null}
+       */
+      id: function () {
+        var refLink = DOM.getFirstNodeTextContent(
+              "//div[@id='content-mid']/div[@id='reflink']/span[@class='reflink'] | //div[@class='throneHall_refLink']/span[@class='textToCopy']", null);
+        var ref = !isNull(refLink) ? /r\.php\?r=([0-9]+)/.exec(refLink) : null;
+        return  !isNull(ref) ? ref[1] : null;
       },
       /**
        * @method page
@@ -1415,18 +1426,18 @@
       init: function () {
         var player = G.playerName();
         var page = G.page();
+if (debug) console.debug('BWARC U init => player, page :', player, page);
         if (page == 'pMain' && !isNull(player)) {
-          var refLink = DOM.getFirstNodeTextContent("//div[@id='content-mid']/div[@id='reflink']/span[@class='reflink']", null);
-          if (!isNull(refLink)) {
-            var ref = /r\.php\?r=([0-9]+)/.exec(refLink);
-            if (!isNull(ref)) {
-              id = ref[1];
-              for (var i in ids) {
-                if (ids.hasOwnProperty(i) && ids[i] == id) delete ids[i]; // en cas de changement de nom
-              }
-              ids[player] = id;
-              LS.set('BWM:IDS', ids);
+          var ref = G.id();
+          if (!isNull(ref))
+          {
+if (debug) console.debug('BWARC U init => ref :', ref);
+            id = ref;
+            for (var i in ids) {
+              if (ids.hasOwnProperty(i) && ids[i] == id) delete ids[i]; // en cas de changement de nom
             }
+            ids[player] = ref;
+            LS.set('BWM:IDS', ids);
           }
         }
         if (!isNull(player) && exist(ids[player])) {
@@ -1641,6 +1652,7 @@
     for (var i = 0; i < itemsList.snapshotLength; i++) {
       var obj = itemsList.snapshotItem(i).textContent;
       var v = new RegExp('^' + pat + '$').exec(obj);
+if (debug) console.debug('BWM updateItems : ', obj, v);
       if (v !== null && v[0] !== '') {
         v = v.reduce(function (a, b) {
           if (exist(b)) {
@@ -4865,14 +4877,17 @@
    *
    ******************************************************/
   var page = G.page();
-  if (debug) console.debug('BWMstart: page, U.id(), U.name()', page, U.id(), U.name(),G.royaume());
+  if (debug) console.debug('BWMstart: page, U.id(), U.name()', page, U.id(), U.name(), window.location.hostname);
   if (page == 'pMixitem') {
     if (!isNull(U.id())) {
       var bwIU = DOM.getFirstNode("//div[@id='content-mid']");
       var bwTop = DOM.getFirstNode("./div[@class='top-options']", bwIU);
       if (bwIU !== null && bwTop !== null) {
         // datas
-        var loc = L.get((G.royaume() === 'Moria S' ? 'moriaS' : 'moria'));
+        var loc = L.get((window.location.hostname === 'r8.fr.bloodwars.net' ? 'moriaS' : 'moria'));
+// @match       https://r3.fr.bloodwars.net/*
+// @match       https://r8.fr.bloodwars.net/*
+  if (debug) console.debug('BWMstart: loc', loc);
         var list = U.getD('LIST', {});
         var tasks = {
           't': null,
