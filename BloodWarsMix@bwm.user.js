@@ -2,7 +2,7 @@
 // ==UserScript==
 // @name        Blood Wars Mix
 // @author      Ecilam
-// @version     2022.12.21
+// @version     2022.12.24c
 // @namespace   BWM
 // @description Ce script permet de tester des synthèses dans le jeu Blood Wars.
 // @license     GPL version 3 ou suivantes http://www.gnu.org/copyleft/gpl.html
@@ -1617,7 +1617,7 @@ if (debug) console.debug('BWARC U init => ref :', ref);
       ".BWMoverlib{margin: 2px;padding: 5px;text-align: left;}",
       // bord animé
       "@keyframes border-dance {  0% { background-position: 0 0, 100% 100%, 0 100%, 100% 0;} 100% {background-position: 100% 0, 0 100%, 0 0, 100% 100%;}}",
-      ".BWMborder {width: max-content; background: linear-gradient(90deg, red 50%, transparent 50%), linear-gradient(90deg, red 50%, transparent 50%), linear-gradient(0deg, red 50%, transparent 50%), linear-gradient(0deg, red 50%, transparent 50%); background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;  background-size: 5px 1px, 5px 1px, 1px 5px, 1px 5px; animation: border-dance 4s infinite linear;}",
+      ".BWMborder {width: max-content; background: linear-gradient(90deg, orange 50%, transparent 50%), linear-gradient(90deg, orange 50%, transparent 50%), linear-gradient(0deg, orange 50%, transparent 50%), linear-gradient(0deg, orange 50%, transparent 50%); background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;  background-size: 5px 1px, 5px 1px, 1px 5px, 1px 5px; animation: border-dance 4s infinite linear;}",
       // blink
       "@keyframes blinker {from{opacity:1;}to{opacity:0;}}",
       ".BWMblink {animation: 1s blinker cubic-bezier(1.0,0,0,1.0) infinite;}",
@@ -1648,11 +1648,10 @@ if (debug) console.debug('BWARC U init => ref :', ref);
    ******************************************************/
   function updateItems() {
     items = {};
-    var itemsList = DOM.getNodes("./li[@id]/div/span", itemsNode);
+    var itemsList = DOM.getNodes("./li[@id]/div/span | ./div[@id]/div/span[@class='item-link']", itemsNode);
     for (var i = 0; i < itemsList.snapshotLength; i++) {
-      var obj = itemsList.snapshotItem(i).textContent;
+      var obj = itemsList.snapshotItem(i).textContent.trim();
       var v = new RegExp('^' + pat + '$').exec(obj);
-if (debug) console.debug('BWM updateItems : ', obj, v);
       if (v !== null && v[0] !== '') {
         v = v.reduce(function (a, b) {
           if (exist(b)) {
@@ -2716,9 +2715,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
       rootIU.root.parentNode.removeChild(rootIU.root);
       rootIU = {};
     }
-    rootIU.root = DOM.newNode('div', {
-      'align': 'center'
-    }, [], {}, null);
+    rootIU.root = DOM.newNode('div', { 'align': 'center', 'class': 'mixerBoxContainer' }, [], {}, null);
     if (U.getP('shPos')) {
       bwIU.appendChild(rootIU.root);
     } else {
@@ -2726,16 +2723,10 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
     }
     window.nd();
     DOM.newNodes([
-      ['hr', 'div', {
-          'class': 'hr720'
-        },
-        [], {}, 'root'
-      ],
-      ['head', 'table', {
-          'class': 'BWMtab3'
-        },
-        [], {}, 'root'
-      ],
+      ['mainbox', 'div', { 'class': 'bwBox' }, [], {}, 'root'],
+      ['hr', 'div', { 'class': 'hr720' }, [], {}, 'mainbox'],
+//      ['div1', 'div', { 'class': 'bwBox' }, [], {}, 'box'],
+      ['head', 'table', { 'class': 'BWMtab3' }, [], {}, 'mainbox'],
       ['head_tr', 'tr', {},
         [], {}, 'head'
       ],
@@ -2801,7 +2792,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
           'class': 'BWMbox',
           'style': 'display:' + (U.getP('shTitle') ? 'block;' : 'none;')
         },
-        [], {}, 'root'
+        [], {}, 'mainbox'
       ],
       ['main', 'table', {
           'class': 'BWMtab0'
@@ -2847,7 +2838,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         ['Catégories - Légendaire : '], {}, 'cat_th0'
       ],
       ['cat_span1', 'span', {
-          'class': 'BWMselect' + (U.getP('leg') === '' ? ' disabled' : '')
+          'class': 'BWMselect' + (U.getP('leg') === '' ? ' enabled' : '')
         },
         ['non'], {
           'click': [setL, '']
@@ -2857,7 +2848,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         [', '], {}, 'cat_th0'
       ],
       ['cat_span3', 'span', {
-          'class': 'BWMselect' + (U.getP('leg') === 'L' ? ' disabled' : '')
+          'class': 'BWMselect' + (U.getP('leg') === 'L' ? ' enabled' : '')
         },
         ['oui'], {
           'click': [setL, 'L']
@@ -2979,7 +2970,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
       ['sim_th0', 'th',
         {
           'colspan': '2',
-          'class': 'BWMselect ' + (U.getP('shSim') ? 'enabled' : 'BWMcutth disabled')
+          'class': 'BWMselect ' + (U.getP('shSim') ? 'enabled' : 'BWMcutth enabled')
         },
         ['[' + (U.getP('shSim') ? '-' : '+') + ']'], {
           'click': [show, 'shSim']
@@ -3052,7 +3043,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
       DOM.newNodes([
         ['cat_span0b' + j + U.getP('leg'), 'span',
           {
-            'class': 'BWMselect' + (j === U.getP('cat') ? ' disabled' :
+            'class': 'BWMselect' + (j === U.getP('cat') ? ' enabled' :
               '') + (exist(tasks.s[j + U.getP('leg')]) ? ' BWMblink' : '')
           },
           [loc[0][j]], {
@@ -3073,7 +3064,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
       DOM.newNodes([
         ['sim_span1b' + j, 'span',
           {
-            'class': 'BWMselect' + (j == U.getP('sim') ? ' disabled' : '') + (exist(
+            'class': 'BWMselect' + (j == U.getP('sim') ? ' enabled' : '') + (exist(
               tasks.s[cat]) && exist(tasks.s[cat][j]) ? ' BWMblink' : '')
           },
           [j], {
@@ -3957,7 +3948,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
       for (var j = 0; j < s.r.length; j++) {
         DOM.newNodes([
           ['res_span41a' + j, 'span', {
-              'class': 'BWMselect' + (j === U.getP('result') ? ' disabled' : '')
+              'class': 'BWMselect' + (j === U.getP('result') ? ' enabled' : '')
             },
             [j], {
               'click': [setR, j]
@@ -4249,7 +4240,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         ['Saisie : '], {}, 'get_th1'
       ],
       ['get_span11', 'span', {
-          'class': 'BWMselect' + (U.getP('mode') === 0 ? ' disabled' : '')
+          'class': 'BWMselect' + (U.getP('mode') === 0 ? ' enabled' : '')
         },
         ['listes (' + arm.length + '+' + results.length + ')!!'], {
           'click': [selectMode, 0]
@@ -4259,7 +4250,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         [', '], {}, 'get_th1'
       ],
       ['get_span13', 'span', {
-          'class': 'BWMselect' + (U.getP('mode') === 1 ? ' disabled' : '')
+          'class': 'BWMselect' + (U.getP('mode') === 1 ? ' enabled' : '')
         },
         ['copie'], {
           'click': [selectMode, 1]
@@ -4269,7 +4260,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         [', '], {}, 'get_th1'
       ],
       ['get_span15', 'span', {
-          'class': 'BWMselect' + (U.getP('mode') === 2 ? ' disabled' : '')
+          'class': 'BWMselect' + (U.getP('mode') === 2 ? ' enabled' : '')
         },
         ['libre'], {
           'click': [selectMode, 2]
@@ -4559,7 +4550,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
                   {
                     'class': (isGo && U.getP('setZone') < 0 ? 'BWMcut2' : 'BWMcut') +
                       ((U.getP('setZone') == -1 ? but[j] : U.getP('setZone') == -2 ? s.s[U.getP('setIndex')][j] : r[U.getP('setIndex')][j]) ==
-                        i ? ' disabled' : '')
+                        i ? ' enabled' : '')
                   },
                   [(j > 0 && i > 0 ? i + ':' : '') + x[i][0]], (isGo && U.getP('setZone') < 0 ? {} : {
                     'click': [selectMSet, [j, i]]
@@ -4590,11 +4581,11 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
             var y = exist(link[key].s1) && exist(link[key].s1[i]) ? link[key].s1[i] : null;
             var z = exist(link[key].s2) && exist(link[key].s2[i]) ? link[key].s2[i] : null;
             if (target[0] == key && target[1] == i) {
-              itemAddClass(link[key][v][i], 'disabled');
+              itemAddClass(link[key][v][i], 'enabled');
               itemAddClass(link[key][v][i], 'BWMborder');
-              if (x !== null) itemAddClass(x, 'disabled');
-              if (y !== null) itemAddClass(y, 'disabled');
-              if (z !== null) itemAddClass(z, 'disabled');
+              if (x !== null) itemAddClass(x, 'enabled');
+              if (y !== null) itemAddClass(y, 'enabled');
+              if (z !== null) itemAddClass(z, 'enabled');
             } else if (x !== null || y !== null || z !== null) {
               itemAddClass(link[key][v][i], 'item-link');
               if (x !== null) itemAddClass(x, 'item-link');
@@ -4877,17 +4868,17 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
    *
    ******************************************************/
   var page = G.page();
-  if (debug) console.debug('BWMstart: page, U.id(), U.name()', page, U.id(), U.name(), window.location.hostname);
+if (debug) console.debug('BWMstart: page, U.id(), U.name()', page, U.id(), U.name(), window.location.hostname);
   if (page == 'pMixitem') {
     if (!isNull(U.id())) {
-      var bwIU = DOM.getFirstNode("//div[@id='content-mid']");
-      var bwTop = DOM.getFirstNode("./div[@class='top-options']", bwIU);
+      //var bwIU = DOM.getFirstNode("//div[@id='content-mid'] | //main[@id='indexContent']"); additionalWrapperForSimpleBar
+      var bwIU = DOM.getFirstNode("//div[@id='content-mid'] | //div[@class='mixer_combineItemsScreen']"); 
+      var bwTop = DOM.getFirstNode("//div[@class='top-options'] | //div[@class='staticHeader  nonSwiperHeaderLong ']");
       if (bwIU !== null && bwTop !== null) {
         // datas
         var loc = L.get((window.location.hostname === 'r8.fr.bloodwars.net' ? 'moriaS' : 'moria'));
 // @match       https://r3.fr.bloodwars.net/*
 // @match       https://r8.fr.bloodwars.net/*
-  if (debug) console.debug('BWMstart: loc', loc);
         var list = U.getD('LIST', {});
         var tasks = {
           't': null,
@@ -4938,7 +4929,7 @@ if (debug) console.debug('BWM updateItems : ', obj, v);
         //if (debug) console.debug('BWM test1 : ', pat, indexPat);
         // analyse des objets de l'armurerie
         var items = {};
-        var itemsNode = DOM.getFirstNode("//div[@id='content-mid']//ul[@id='itemListContainer']");
+        var itemsNode = DOM.getFirstNode("//div[@id='content-mid']//ul[@id='itemListContainer'] | //main[@id='indexContent']//div[@id='itemListContainer']");
         if (!isNull(itemsNode)) {
           var observer = new MutationObserver(function () {
             updateItems();
